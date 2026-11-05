@@ -1,5 +1,5 @@
 export const APP_NAME = "Spektrafilm";
-export const APP_VERSION = "9.39";
+export const APP_VERSION = "9.40";
 export const THEME_COLOR = "#0c0c0d";
 export const GRAY_18 = "#767676";
 export const CHANNEL_URL = "https://github.com/andreavolpato/spektrafilm";
