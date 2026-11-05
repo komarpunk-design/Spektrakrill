@@ -66,6 +66,10 @@ import {
   Check,
   Crop,
   Eye,
+  FolderOpen,
+  ChevronRight,
+  Monitor,
+  Redo2,
   Film,
   FlaskConical,
   ImageDown,
@@ -97,7 +101,7 @@ type LookMode = "draft" | "full" | null;
 type Status = { label: string; pct: number; busy?: boolean } | null;
 
 const ACCEPT =
-  "image/jpeg,image/jpg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp,.dng,.cr2,.nef,.arw,.raf,.rw2,.orf,.pef";
+  "image/jpeg,image/jpg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp,.heic,.dng,.cr2,.cr3,.nef,.arw,.raf,.rw2,.orf,.pef";
 
 const TOOL_ICONS: Record<ToolId, LucideIcon> = {
   film: Film,
@@ -120,13 +124,22 @@ function previewEdge(maxSize: number, draft: boolean): number {
   return draft ? Math.min(512, n) : n;
 }
 
-function safeFileStem(name: string | null | undefined, filmStock: string, ext = ".jpg", engine?: string): string {
+function safeFileStem(
+  name: string | null | undefined,
+  filmStock: string,
+  ext = ".jpg",
+  engine?: string,
+): string {
   const stem = (name ?? "frame")
     .replace(/\.[^.]+$/, "")
     .replace(/[^\w.-]+/g, "_")
     .replace(/^_+|_+$/g, "");
   const suffix = ext.startsWith(".") ? ext : `.${ext}`;
-  const mid = isFilmBypass(filmStock) ? (engine && engine !== "spektrafilm" ? engine : "raw") : filmStock;
+  const mid = isFilmBypass(filmStock)
+    ? engine && engine !== "spektrafilm"
+      ? engine
+      : "raw"
+    : filmStock;
   return `spektrafilm-${mid}-${stem || "frame"}${suffix}`;
 }
 
@@ -245,7 +258,8 @@ function revoke(url: string | null | undefined): void {
 }
 
 function sheetMetrics() {
-  const land = typeof window !== "undefined" && window.matchMedia("(orientation: landscape)").matches;
+  const land =
+    typeof window !== "undefined" && window.matchMedia("(orientation: landscape)").matches;
   const h = typeof window !== "undefined" ? window.innerHeight : 800;
   const w = typeof window !== "undefined" ? window.innerWidth : 1280;
   return land
@@ -336,6 +350,7 @@ function asNativeParams(p: DarkroomParams): Record<string, unknown> {
 export function DarkroomApp() {
   const params = useDarkroom((s) => s.params);
   const setSource = useDarkroom((s) => s.setSource);
+  const canRedo = useDarkroom((state) => state.redoStack.length > 0);
   const fileName = useDarkroom((s) => s.fileName);
   const showOriginal = useDarkroom((s) => s.showOriginal);
   const setShowOriginal = useDarkroom((s) => s.setShowOriginal);
@@ -366,7 +381,7 @@ export function DarkroomApp() {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const [, setMs] = useState<number | null>(null);
+  const [renderMs, setMs] = useState<number | null>(null);
   const [engineOn, setEngineOn] = useState(false);
   const [, setLook] = useState<LookMode>(null);
   const [status, setStatus] = useState<Status>(null);
@@ -376,6 +391,7 @@ export function DarkroomApp() {
   const [galleryTick, setGalleryTick] = useState(0);
   const [stockItems, setStockItems] = useState<StockItem[]>(() => loadStock());
   const [batching, setBatching] = useState(false);
+  const [draggingFile, setDraggingFile] = useState(false);
   const [sheet, setSheet] = useState<SheetId>("half");
 
   const prevShowOrig = useRef(false);
@@ -434,7 +450,10 @@ export function DarkroomApp() {
   const animateSheet = (id: SheetId) => {
     stopSheet();
     const target = snapPx(id);
-    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
       applySheetPx(target);
       sheetVel.current = 0;
       setSheet(id);
@@ -670,7 +689,12 @@ export function DarkroomApp() {
         clearNegCache();
         applyParams(item.params);
         if (item.native && isNativeRawAvailable()) {
-          const res = await loadNativeStockSource(item.id, item.name, useDarkroom.getState().params.previewMaxSize, asNativeParams(item.params));
+          const res = await loadNativeStockSource(
+            item.id,
+            item.name,
+            useDarkroom.getState().params.previewMaxSize,
+            asNativeParams(item.params),
+          );
           sourceFileRef.current = null;
           jpegSceneRef.current = !item.raw;
           setEngineOn(true);
@@ -715,7 +739,17 @@ export function DarkroomApp() {
         setStatus(null);
       }
     },
-    [applyParams, setOrig, setProc, setChromeHidden, flashNote, flashError, setFrame, setSource, selectTool],
+    [
+      applyParams,
+      setOrig,
+      setProc,
+      setChromeHidden,
+      flashNote,
+      flashError,
+      setFrame,
+      setSource,
+      selectTool,
+    ],
   );
 
   const deleteStock = useCallback(
@@ -808,14 +842,25 @@ export function DarkroomApp() {
               ? [null, null]
               : [
                   await loadProfileSafe(p.filmStock),
-                  isPaperBypass(p.printPaper) ? null : await loadProfileSafe(p.printPaper, "kodak_portra_endura"),
+                  isPaperBypass(p.printPaper)
+                    ? null
+                    : await loadProfileSafe(p.printPaper, "kodak_portra_endura"),
                 ];
             if (abortRef.current) throw new Error("cancelled");
-            let planar = imageDataToLinear(data.data, data.width, data.height, p.applyCctfDecoding, !isRawFile(file));
+            let planar = imageDataToLinear(
+              data.data,
+              data.width,
+              data.height,
+              p.applyCctfDecoding,
+              !isRawFile(file),
+            );
             if (p.crop) {
               planar = cropPlanar(planar, p.cropCenterX, p.cropCenterY, p.cropSizeX, p.cropSizeY);
             }
-            const encoded = rotateImageData(linearToImageData(simulate(planar, film, paper, p), p.outputCctf), p.orientation);
+            const encoded = rotateImageData(
+              linearToImageData(simulate(planar, film, paper, p), p.outputCctf),
+              p.orientation,
+            );
             const out = await imageDataToBlob(encoded, mime, png ? 1 : q);
             if (isNativeRawAvailable()) {
               const saved = await saveNativeJpeg(name, out, mime);
@@ -866,7 +911,9 @@ export function DarkroomApp() {
   }, [tool, clearToasts, stopWbPick]);
 
   useEffect(() => {
-    const ids = dockTools(params.rawEngine, params.filmStock, prefs.showLabTabs, tool).map((t) => t.id);
+    const ids = dockTools(params.rawEngine, params.filmStock, prefs.showLabTabs, tool).map(
+      (t) => t.id,
+    );
     if (tool !== "settings" && !ids.includes(tool)) {
       setTool(params.rawEngine === "spektrafilm" ? "film" : "tone");
     }
@@ -877,6 +924,11 @@ export function DarkroomApp() {
     installLabLogHooks();
     pushLabLog("I", "boot", nativeEngine ? "native" : "web");
     const onKey = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLElement &&
+        e.target.closest("input, textarea, select, [contenteditable=true]")
+      )
+        return;
       if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z") return;
       e.preventDefault();
       if (e.shiftKey) useDarkroom.getState().redo();
@@ -950,7 +1002,13 @@ export function DarkroomApp() {
     if (previewLinear) {
       let work = previewLinear;
       if (params.crop) {
-        work = cropPlanar(work, params.cropCenterX, params.cropCenterY, params.cropSizeX, params.cropSizeY);
+        work = cropPlanar(
+          work,
+          params.cropCenterX,
+          params.cropCenterY,
+          params.cropSizeX,
+          params.cropSizeY,
+        );
       }
       work = resizePlanar(work, previewEdge(params.previewMaxSize, false));
       setFullLinear(work);
@@ -967,11 +1025,23 @@ export function DarkroomApp() {
     if (!preview) return;
     let work = preview;
     if (params.crop) {
-      work = cropImageData(work, params.cropCenterX, params.cropCenterY, params.cropSizeX, params.cropSizeY);
+      work = cropImageData(
+        work,
+        params.cropCenterX,
+        params.cropCenterY,
+        params.cropSizeX,
+        params.cropSizeY,
+      );
     }
     work = resizeImageData(work, previewEdge(params.previewMaxSize, false));
     setFull(work);
-    const linear = imageDataToLinear(work.data, work.width, work.height, params.applyCctfDecoding, jpegSceneRef.current);
+    const linear = imageDataToLinear(
+      work.data,
+      work.width,
+      work.height,
+      params.applyCctfDecoding,
+      jpegSceneRef.current,
+    );
     setFullLinear(linear);
     void imageDataToBlob(work, "image/jpeg", 0.9).then((blob) => {
       if (!dead) setOrig(URL.createObjectURL(blob));
@@ -1071,7 +1141,13 @@ export function DarkroomApp() {
         const t0 = performance.now();
         let work = fullLinear
           ? fullLinear
-          : imageDataToLinear(full.data, full.width, full.height, params.applyCctfDecoding, jpegSceneRef.current);
+          : imageDataToLinear(
+              full.data,
+              full.width,
+              full.height,
+              params.applyCctfDecoding,
+              jpegSceneRef.current,
+            );
         const cap = previewEdge(params.previewMaxSize, draft);
         if (Math.max(work.w, work.h) > cap) work = resizePlanar(work, cap);
         const encoded = rotateImageData(
@@ -1108,7 +1184,21 @@ export function DarkroomApp() {
       void runJs(false);
     }, 48);
     return () => window.clearTimeout(t);
-  }, [preview, previewLinear, previewSig, engineOn, nativeEngine, scrubbing, origUrl, full, fullLinear, params, setProc, flashError, clearStatusSoon]);
+  }, [
+    preview,
+    previewLinear,
+    previewSig,
+    engineOn,
+    nativeEngine,
+    scrubbing,
+    origUrl,
+    full,
+    fullLinear,
+    params,
+    setProc,
+    flashError,
+    clearStatusSoon,
+  ]);
 
   const takeNativeFrame = useCallback(
     (
@@ -1418,7 +1508,17 @@ export function DarkroomApp() {
     setPickingWb(true);
     setChromeHidden(false);
     selectTool("camera");
-  }, [pickingWb, origUrl, fullLinear, showOriginal, setShowOriginal, setChromeHidden, selectTool, stopWbPick, flashNote]);
+  }, [
+    pickingWb,
+    origUrl,
+    fullLinear,
+    showOriginal,
+    setShowOriginal,
+    setChromeHidden,
+    selectTool,
+    stopWbPick,
+    flashNote,
+  ]);
 
   const pickGray = useCallback(
     async (nx: number, ny: number) => {
@@ -1460,24 +1560,11 @@ export function DarkroomApp() {
   );
 
   const downloadApk = useCallback(async () => {
-    for (const path of ["/spektrafilm-lab.zip", "/spektrafilm-lab.apk"]) {
-      try {
-        const res = await fetch(path);
-        if (!res.ok) continue;
-        const buf = await res.arrayBuffer();
-        if (buf.byteLength < 1000) continue;
-        const name = path.endsWith(".zip") ? "SpektrafilmLab-android.zip" : "SpektrafilmLab.apk";
-        const mime = path.endsWith(".zip") ? "application/zip" : "application/vnd.android.package-archive";
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(new Blob([buf], { type: mime }));
-        a.download = name;
-        a.click();
-        URL.revokeObjectURL(a.href);
-        return;
-      } catch {
-        /* try next */
-      }
-    }
+    window.open(
+      "https://github.com/komarpunk-design/Spektrakrill/releases/latest",
+      "_blank",
+      "noopener,noreferrer",
+    );
   }, []);
 
   const saveFrame = useCallback(async () => {
@@ -1538,8 +1625,15 @@ export function DarkroomApp() {
           }
           setLook("full");
           const size = res.width > 0 && res.height > 0 ? ` · ${res.width}×${res.height}` : "";
-          pushLabLog("I", "export", `saved ${res.width}x${res.height} ${res.ms ?? 0}ms gpu=${expParams.gpuExport}`);
-          flashNote(`Сохранено · ${png ? "PNG" : `JPEG ${params.exportQuality}`} · оригинал${size}`, 3200);
+          pushLabLog(
+            "I",
+            "export",
+            `saved ${res.width}x${res.height} ${res.ms ?? 0}ms gpu=${expParams.gpuExport}`,
+          );
+          flashNote(
+            `Сохранено · ${png ? "PNG" : `JPEG ${params.exportQuality}`} · оригинал${size}`,
+            3200,
+          );
           setStatus({ label: "Готово", pct: 100 });
           return;
         } finally {
@@ -1561,13 +1655,28 @@ export function DarkroomApp() {
         if (abortRef.current) throw new Error("cancelled");
         let work =
           previewLinear ||
-          imageDataToLinear(preview!.data, preview!.width, preview!.height, params.applyCctfDecoding, jpegSceneRef.current);
+          imageDataToLinear(
+            preview!.data,
+            preview!.width,
+            preview!.height,
+            params.applyCctfDecoding,
+            jpegSceneRef.current,
+          );
         if (params.crop) {
-          work = cropPlanar(work, params.cropCenterX, params.cropCenterY, params.cropSizeX, params.cropSizeY);
+          work = cropPlanar(
+            work,
+            params.cropCenterX,
+            params.cropCenterY,
+            params.cropSizeX,
+            params.cropSizeY,
+          );
         }
         if (abortRef.current) throw new Error("cancelled");
         setStatus({ label: "Кодирую", pct: 80 });
-        const encoded = rotateImageData(linearToImageData(simulate(work, film, paper, params), params.outputCctf), params.orientation);
+        const encoded = rotateImageData(
+          linearToImageData(simulate(work, film, paper, params), params.outputCctf),
+          params.orientation,
+        );
         if (abortRef.current) throw new Error("cancelled");
         blob = await imageDataToBlob(encoded, mime, png ? 1 : q);
       } else if (procUrl) {
@@ -1646,6 +1755,32 @@ export function DarkroomApp() {
   ).length;
   const toast = note || error;
 
+  useEffect(() => {
+    const onCommand = (event: KeyboardEvent) => {
+      if (
+        event.target instanceof HTMLElement &&
+        event.target.closest("input, textarea, select, [contenteditable=true]")
+      )
+        return;
+      if (event.key === "Escape") {
+        setShowOriginal(false);
+        setChromeHidden(false);
+        setConfirmExport(false);
+      }
+      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+      if (event.key.toLowerCase() === "o") {
+        event.preventDefault();
+        if (!busy && !exporting && !batching) void openNativeOrPicker();
+      }
+      if (event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        if (canSave) void saveFrame();
+      }
+    };
+    window.addEventListener("keydown", onCommand);
+    return () => window.removeEventListener("keydown", onCommand);
+  }, [openNativeOrPicker, saveFrame, canSave, busy, exporting, batching, setShowOriginal]);
+
   const onSheetDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
     e.preventDefault();
     sheetMoved.current = false;
@@ -1716,6 +1851,23 @@ export function DarkroomApp() {
   return (
     <div
       ref={appRef}
+      onDragOver={(event) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = busy || exporting || batching ? "none" : "copy";
+        setDraggingFile(true);
+      }}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+          setDraggingFile(false);
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDraggingFile(false);
+        if (busy || exporting || batching) return;
+        const file = event.dataTransfer.files[0];
+        if (file) void onPickedFile(file);
+      }}
       className={[
         "lab-app text-fg",
         scrubbing && "is-scrubbing",
@@ -1731,11 +1883,33 @@ export function DarkroomApp() {
         type="file"
         accept={ACCEPT}
         className="hidden"
-        onChange={(e) => void onPickedFile(e.target.files?.[0])}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          void onPickedFile(file);
+        }}
       />
+      {draggingFile ? (
+        <div className="workbench-drop" role="status">
+          <FolderOpen size={40} />
+          <strong>Откройте кадр в лаборатории</strong>
+          <span>Перетащите RAW, JPEG или PNG</span>
+        </div>
+      ) : null}
       <header className="lab-top">
+        <div className="workbench-brand">
+          <Aperture size={24} />
+          <div>
+            <strong>SPEKTRAFILM</strong>
+            <span>PHOTO LABORATORY</span>
+          </div>
+        </div>
         <div className="lab-top-left">
-          <IconBtn label="Открыть" onClick={() => void openNativeOrPicker()}>
+          <IconBtn
+            label="Открыть"
+            disabled={busy || exporting || batching}
+            onClick={() => void openNativeOrPicker()}
+          >
             <Upload className="size-5" />
           </IconBtn>
           {canUndo ? (
@@ -1744,13 +1918,36 @@ export function DarkroomApp() {
             </IconBtn>
           ) : null}
         </div>
+        <div className="workbench-title">
+          <span>{fileName || "Новый сеанс"}</span>
+          <small>{fileName ? "Локальный файл" : "Откройте фотографию для обработки"}</small>
+        </div>
         <div className="lab-top-right">
+          <button
+            className="workbench-command"
+            type="button"
+            disabled={!canRedo}
+            onClick={() => useDarkroom.getState().redo()}
+            aria-label="Повторить"
+          >
+            <Redo2 size={16} />
+          </button>
           {fileName || origUrl ? (
             <button
               type="button"
               className={showOriginal ? "lab-iconbtn is-on" : "lab-iconbtn"}
               aria-label="До / после"
-              title="До / после"
+              title="Удерживайте для просмотра оригинала"
+              onKeyDown={(event) => {
+                if (event.key === " " || event.key === "Enter") {
+                  event.preventDefault();
+                  setShowOriginal(true);
+                }
+              }}
+              onKeyUp={(event) => {
+                if (event.key === " " || event.key === "Enter") setShowOriginal(false);
+              }}
+              onBlur={() => setShowOriginal(false)}
               onPointerDown={(e) => {
                 e.preventDefault();
                 beforeAfterMoved.current = false;
@@ -1792,13 +1989,113 @@ export function DarkroomApp() {
               <ListPlus className="size-5" strokeWidth={1.7} />
             </IconBtn>
           ) : null}
-          {canSave || canStock ? (
-            <IconBtn label="Сохранить" disabled={!canSave} onClick={() => void saveFrame()}>
-              {exporting || batching ? <Aperture className="size-5" /> : <Check className="size-5" />}
-            </IconBtn>
-          ) : null}
         </div>
+        <button
+          type="button"
+          className="workbench-export"
+          aria-label="Экспортировать кадр"
+          disabled={!canSave}
+          onClick={() => void saveFrame()}
+        >
+          <ImageDown size={16} />
+          <span>{exporting ? "Экспорт…" : "Экспорт"}</span>
+        </button>
       </header>
+      <aside className="workbench-library" aria-label="Библиотека и рабочий процесс">
+        <div className="workbench-section-label">
+          РАБОЧАЯ ОБЛАСТЬ <span>01</span>
+        </div>
+        <button
+          type="button"
+          className={`workbench-library-link ${tool !== "gallery" && tool !== "presets" ? "is-active" : ""}`}
+          onClick={() => selectTool(params.rawEngine === "spektrafilm" ? "film" : "tone")}
+        >
+          <SlidersHorizontal size={16} />
+          Проявочная
+          <ChevronRight size={13} />
+        </button>
+        <button
+          type="button"
+          className={`workbench-library-link ${tool === "gallery" ? "is-active" : ""}`}
+          onClick={() => selectTool("gallery")}
+        >
+          <Images size={16} />
+          Галерея
+        </button>
+        <button
+          type="button"
+          className={`workbench-library-link ${tool === "presets" ? "is-active" : ""}`}
+          onClick={() => selectTool("presets")}
+        >
+          <Bookmark size={16} />
+          Мои пресеты
+        </button>
+        <div className="workbench-section-label">ТЕКУЩИЙ КАДР</div>
+        {origUrl ? (
+          <div className="workbench-source">
+            <img src={origUrl} alt="Исходный кадр" />
+            <strong>{fileName}</strong>
+            <span>
+              {full?.width || preview?.width} × {full?.height || preview?.height} px
+            </span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="workbench-source is-empty"
+            disabled={busy || exporting || batching}
+            onClick={() => void openNativeOrPicker()}
+          >
+            <FolderOpen size={26} />
+            <strong>Добавить фотографию</strong>
+            <span>RAW · JPEG · PNG</span>
+          </button>
+        )}
+        <div className="workbench-section-label">
+          ПРИМЕРЫ <span>02</span>
+        </div>
+        <div className="workbench-samples">
+          {[
+            { name: "Лес", file: "forest.jpg" },
+            { name: "Натюрморт", file: "still-life.jpg" },
+          ].map((sample) => (
+            <button
+              key={sample.file}
+              type="button"
+              disabled={busy || exporting || batching}
+              onClick={() => void openSample(`/samples/${sample.file}`, sample.file)}
+            >
+              <img src={`/samples/${sample.file}`} alt="" />
+              <span>{sample.name}</span>
+            </button>
+          ))}
+        </div>
+        <div className="workbench-pipeline">
+          <div className="workbench-section-label">ПРОЦЕСС</div>
+          {[
+            { id: "camera" as const, name: "Источник и свет" },
+            {
+              id: params.rawEngine === "spektrafilm" ? ("film" as const) : ("tone" as const),
+              name: "Цвет и проявка",
+            },
+            { id: "export" as const, name: "Готовый отпечаток" },
+          ].map((step, i) => (
+            <button key={step.id} type="button" onClick={() => selectTool(step.id)}>
+              <span>0{i + 1}</span>
+              {step.name}
+              <ChevronRight size={12} />
+            </button>
+          ))}
+        </div>
+        <div className="workbench-local">
+          <Monitor size={14} />
+          <span>
+            Обработка на устройстве
+            <br />
+            <small>Ваши фото остаются у вас</small>
+          </span>
+        </div>
+      </aside>
       {tool === "gallery" || tool === "stock" ? (
         <div className="lab-stage is-gallery">
           {tool === "stock" ? (
@@ -1825,7 +2122,11 @@ export function DarkroomApp() {
             />
           )}
           {toast ? (
-            <p className={error ? "lab-toast text-warn" : "lab-toast text-muted"} role="status" onClick={clearToasts}>
+            <p
+              className={error ? "lab-toast text-warn" : "lab-toast text-muted"}
+              role="status"
+              onClick={clearToasts}
+            >
               {toast}
             </p>
           ) : null}
@@ -1833,7 +2134,10 @@ export function DarkroomApp() {
             <div className="lab-status" role="status" aria-live="polite">
               <span className="shrink-0">{status.label}</span>
               <div className="lab-status-track">
-                <div className={status.busy ? "lab-status-fill is-busy" : "lab-status-fill"} style={{ width: `${Math.max(6, status.pct)}%` }} />
+                <div
+                  className={status.busy ? "lab-status-fill is-busy" : "lab-status-fill"}
+                  style={{ width: `${Math.max(6, status.pct)}%` }}
+                />
               </div>
               <span className="tabular-nums">{status.pct}%</span>
               {status.busy || exporting || batching ? (
@@ -1847,6 +2151,22 @@ export function DarkroomApp() {
       ) : (
         <div className="lab-stage">
           <div className="lab-lcd">
+            <div className="workbench-document">
+              <span>
+                <span className="workbench-live-dot" />
+                {showOriginal ? "Оригинал" : "Предпросмотр"}
+              </span>
+              <span>{fileName || "Нет открытого кадра"}</span>
+              <button
+                type="button"
+                aria-pressed={showClip}
+                onClick={() => setShowClip(!showClip)}
+                title="Показать пересветы"
+              >
+                <ScanLine size={14} />
+                Пересветы
+              </button>
+            </div>
             <div className="lab-hist-float">
               <Histogram url={showOriginal ? origUrl : procUrl || origUrl} />
             </div>
@@ -1877,7 +2197,11 @@ export function DarkroomApp() {
               onBrowse={browseRoll}
             />
             {toast ? (
-              <p className={error ? "lab-toast text-warn" : "lab-toast text-muted"} role="status" onClick={clearToasts}>
+              <p
+                className={error ? "lab-toast text-warn" : "lab-toast text-muted"}
+                role="status"
+                onClick={clearToasts}
+              >
                 {toast}
               </p>
             ) : null}
@@ -1885,7 +2209,11 @@ export function DarkroomApp() {
               <div className="lab-confirm" role="dialog" aria-label="Подтверждение сохранения">
                 <p>Сохранить полный кадр в галерею?</p>
                 <div className="lab-confirm-row">
-                  <button type="button" className="lab-log-btn" onClick={() => setConfirmExport(false)}>
+                  <button
+                    type="button"
+                    className="lab-log-btn"
+                    onClick={() => setConfirmExport(false)}
+                  >
                     Нет
                   </button>
                   <button
@@ -1905,7 +2233,10 @@ export function DarkroomApp() {
               <div className="lab-status" role="status" aria-live="polite">
                 <span className="shrink-0">{status.label}</span>
                 <div className="lab-status-track">
-                  <div className={status.busy ? "lab-status-fill is-busy" : "lab-status-fill"} style={{ width: `${Math.max(6, status.pct)}%` }} />
+                  <div
+                    className={status.busy ? "lab-status-fill is-busy" : "lab-status-fill"}
+                    style={{ width: `${Math.max(6, status.pct)}%` }}
+                  />
                 </div>
                 <span className="tabular-nums">{status.pct}%</span>
                 {status.busy || exporting ? (
@@ -1944,7 +2275,9 @@ export function DarkroomApp() {
           onClick={onSheetClick}
         />
         <div className="lab-dock-head">
-          <span className="lab-dock-title">{tool === "settings" ? "Опции" : toolLabel || "Develop"}</span>
+          <span className="lab-dock-title">
+            {tool === "settings" ? "Опции" : toolLabel || "Develop"}
+          </span>
           {tool === "settings" ? (
             <button
               type="button"
@@ -1990,7 +2323,26 @@ export function DarkroomApp() {
           </div>
         ) : null}
       </aside>
-      <nav className={prefs.showToolLabels ? "lab-rail has-labels" : "lab-rail"} aria-label="Инструменты">
+      <footer className="workbench-status">
+        <span>
+          <span className={busy ? "workbench-live-dot is-busy" : "workbench-live-dot"} />
+          {busy ? "Обработка кадра" : "Готово"}
+        </span>
+        <span>
+          {nativeEngine ? "Нативный движок" : "Веб-движок"}
+          {renderMs != null ? ` · ${Math.round(renderMs)} мс` : ""}
+        </span>
+        <span>
+          {pendingStock} в очереди · {params.exportColorSpace.toUpperCase()}
+        </span>
+        <span className="workbench-shortcut">
+          Ctrl O — открыть · Ctrl S — экспорт · Ctrl Z — отменить
+        </span>
+      </footer>
+      <nav
+        className={prefs.showToolLabels ? "lab-rail has-labels" : "lab-rail"}
+        aria-label="Инструменты"
+      >
         {dockTools(params.rawEngine, params.filmStock, prefs.showLabTabs, tool).map((item) => {
           const Icon = TOOL_ICONS[item.id];
           const on = tool === item.id;

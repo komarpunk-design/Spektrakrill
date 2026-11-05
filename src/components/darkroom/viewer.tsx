@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { MIDGRAY_D, samplePrintDensity, type DensitySample } from "@/lib/film/densitometer";
-import { Maximize2, Scan, Blend, Crosshair } from "lucide-react";
+import { Maximize2, Scan, Blend, Crosshair, Aperture, FolderOpen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 function fmtD(n: number): string {
@@ -243,7 +243,10 @@ export function Viewer({
     const probeImg = new Image();
     probeImg.onload = () => {
       const w = Math.min(640, probeImg.naturalWidth);
-      const h = Math.max(1, Math.round((probeImg.naturalHeight * w) / Math.max(1, probeImg.naturalWidth)));
+      const h = Math.max(
+        1,
+        Math.round((probeImg.naturalHeight * w) / Math.max(1, probeImg.naturalWidth)),
+      );
       const c = document.createElement("canvas");
       c.width = w;
       c.height = h;
@@ -297,7 +300,10 @@ export function Viewer({
       const dx = pts[0].x - pts[1].x;
       const dy = pts[0].y - pts[1].y;
       const dist = Math.hypot(dx, dy);
-      scale.current = Math.min(8, Math.max(1, (pinch0.current.scale * dist) / Math.max(1, pinch0.current.dist)));
+      scale.current = Math.min(
+        8,
+        Math.max(1, (pinch0.current.scale * dist) / Math.max(1, pinch0.current.dist)),
+      );
       if (scale.current <= 1.02) {
         scale.current = 1;
         tx.current = 0;
@@ -343,7 +349,14 @@ export function Viewer({
     const wasHold = holding.current;
     const wasMoved = moved.current;
     const hasImage = Boolean(processedUrl || originalUrl);
-    if (!pickingWb && !probe && !wasHold && origin && scale.current <= 1.02 && ptrs.current.size === 0) {
+    if (
+      !pickingWb &&
+      !probe &&
+      !wasHold &&
+      origin &&
+      scale.current <= 1.02 &&
+      ptrs.current.size === 0
+    ) {
       const dx = e.clientX - origin.x;
       const dy = e.clientY - origin.y;
       if (Math.abs(dx) > 64 && Math.abs(dx) > Math.abs(dy) * 1.4) {
@@ -394,8 +407,12 @@ export function Viewer({
   };
 
   const pad = Math.round(padding * 36);
-  const shown = showOriginal ? originalUrl ?? processedUrl : processedUrl ?? originalUrl;
-  const under = showOriginal ? null : originalUrl && processedUrl && originalUrl !== processedUrl ? originalUrl : null;
+  const shown = showOriginal ? (originalUrl ?? processedUrl) : (processedUrl ?? originalUrl);
+  const under = showOriginal
+    ? null
+    : originalUrl && processedUrl && originalUrl !== processedUrl
+      ? originalUrl
+      : null;
 
   return (
     <div
@@ -424,9 +441,7 @@ export function Viewer({
                   : "var(--shadow-print)",
             }}
           >
-            {under ? (
-              <img src={under} alt="" draggable={false} className="lab-print-img" />
-            ) : null}
+            {under ? <img src={under} alt="" draggable={false} className="lab-print-img" /> : null}
             <img
               src={shown}
               alt="Film simulation preview"
@@ -441,15 +456,22 @@ export function Viewer({
           </div>
         ) : (
           <div className="lab-empty">
-            <p className="lab-empty-brand">Spektrafilm</p>
-            <p>Открой RAW или JPEG. Плёнка не применится, пока не выберешь коробку.</p>
+            <div className="workbench-empty-mark">
+              <Aperture size={38} strokeWidth={1.2} />
+            </div>
+            <span className="workbench-eyebrow">ЦИФРОВАЯ ФОТОЛАБОРАТОРИЯ</span>
+            <h1 className="lab-empty-brand">
+              Каждый кадр —<br />
+              новая история.
+            </h1>
+            <p>Откройте фотографию. Выберите плёнку, настройте свет и создайте свой отпечаток.</p>
             <button
               type="button"
               className="lab-btn is-solid"
               onPointerDown={(e) => e.stopPropagation()}
               onClick={() => onOpen?.()}
             >
-              Открыть
+              <FolderOpen size={16} /> Открыть фотографию
             </button>
             {onSample ? (
               <div className="lab-empty-samples">
@@ -496,10 +518,22 @@ export function Viewer({
             bumpHud();
           }}
         >
-          <button type="button" className="lab-hud-btn" onClick={fitView} aria-label="Вписать" title="Вписать">
+          <button
+            type="button"
+            className="lab-hud-btn"
+            onClick={fitView}
+            aria-label="Вписать"
+            title="Вписать"
+          >
             <Maximize2 className="size-4" strokeWidth={1.75} />
           </button>
-          <button type="button" className="lab-hud-btn" onClick={() => actualView()} aria-label="1:1" title="1:1">
+          <button
+            type="button"
+            className="lab-hud-btn"
+            onClick={() => actualView()}
+            aria-label="1:1"
+            title="1:1"
+          >
             <Scan className="size-4" strokeWidth={1.75} />
           </button>
           {zoomPct !== 100 ? (
@@ -577,9 +611,7 @@ export function Viewer({
           </div>
         </div>
       ) : null}
-      {processing ? (
-        <div className="lab-scan-tag">Проявка</div>
-      ) : null}
+      {processing ? <div className="lab-scan-tag">Проявка</div> : null}
       {pickingWb && (processedUrl || originalUrl) ? (
         <div className="lab-pick-banner" aria-live="polite">
           Коснись нейтрального

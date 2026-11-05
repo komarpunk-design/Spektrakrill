@@ -35,7 +35,7 @@ function write(items: GalleryShot[]) {
   } catch {
     /* quota — drop oldest thumbs */
     try {
-      const slim = items.slice(0, 12).map((s) => ({ ...s, thumb: s.thumb.slice(0, 80_000) }));
+      const slim = items.slice(0, 12).map((s) => ({ ...s, thumb: s.thumb }));
       localStorage.setItem(KEY, JSON.stringify(slim));
     } catch {
       /* ignore */
@@ -48,7 +48,7 @@ export function loadLocalGallery(): GalleryShot[] {
 }
 
 export function pushLocalShot(shot: GalleryShot): GalleryShot[] {
-  const prev = read().filter((s) => s.id !== shot.id && s.uri !== shot.uri);
+  const prev = read().filter((s) => s.id !== shot.id && (!shot.uri || s.uri !== shot.uri));
   const next = [shot, ...prev].slice(0, GALLERY_CAP);
   write(next);
   return next;

@@ -32,3 +32,6 @@ android-toolchain/
 *.aab
 *.jks
 *.keystore
+
+# Also ignore a local dependency symlink
+node_modules

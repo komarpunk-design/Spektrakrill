@@ -77,10 +77,10 @@ export function dockTools(
 ): { id: (typeof TOOLS)[number]["id"]; label: string }[] {
   const spektra = engine === "spektrafilm";
   const bypass = isFilmBypass(filmStock);
-  const order = ["gallery", "presets", "film", "tone", "camera", "print", "scan", "crop", "stock", "lab", "log"];
+  const order = ["gallery", "presets", "film", "tone", "camera", "print", "scan", "crop", "stock", "export", "lab", "log"];
   return TOOLS.filter((t) => {
     if (t.id === "settings") return false;
-    if (t.id === "export") return false;
+
     if (t.id === "tone") return !spektra;
     if (t.id === "film") return spektra;
     if (t.id === "print" || t.id === "scan") return spektra && !bypass;
@@ -192,6 +192,8 @@ function BoxShelf({
               className={`lab-box is-${pack}${none ? " is-none" : ""}${value === id ? " is-on" : ""}`}
               onClick={() => onChange(id)}
               title={name}
+              aria-label={name}
+              aria-pressed={value === id}
             >
               <span className="lab-box-band" />
               <span className="lab-box-iso">{iso}</span>
@@ -1673,8 +1675,9 @@ export function Panel({
           <ToggleRow label="Выходной CCTF" checked={params.outputCctf} onChange={(v) => setParam("outputCctf", v)} />
           <ToggleRow label="Сжатие гамута" checked={params.gamutCompress} onChange={(v) => setParam("gamutCompress", v)} />
           <p className="px-4 pt-1 pb-2 text-[0.65rem] leading-snug text-muted">
-            Кадр пишется в Pictures / Spektrafilm. Сохранение — кнопка сверху. Не сворачивай
-            приложение, пока в шторке идёт проявка.
+            {isNativeRawAvailable()
+              ? "Кадр сохраняется в Pictures / Spektrafilm. Не закрывайте приложение до завершения экспорта."
+              : "Кадр будет скачан на компьютер. Для экспорта используйте кнопку сверху или Ctrl S."}
           </p>
         </>
       ) : null}
