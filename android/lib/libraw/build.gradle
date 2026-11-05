@@ -1,0 +1,39 @@
+apply plugin: 'com.android.library'
+apply plugin: 'org.jetbrains.kotlin.android'
+
+android {
+    namespace 'com.spectrafilm.libraw'
+    compileSdk 34
+    ndkVersion '26.1.10909125'
+
+    defaultConfig {
+        minSdk 24
+        externalNativeBuild {
+            cmake {
+                cppFlags '-std=c++17'
+                arguments '-DANDROID_STL=c++_shared',
+                        "-DSFRAW_LIBRAW_SOURCE_DIR=${rootDir}/third_party/LibRaw",
+                        '-DCMAKE_CXX_FLAGS_RELEASE=-O3'
+                abiFilters 'arm64-v8a'
+            }
+        }
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+            version '3.22.1'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}

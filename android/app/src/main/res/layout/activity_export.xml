@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121214"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="32dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:letterSpacing="0.18"
+        android:text="КИРИЛЛКОВАЯ ПЛЕНКА"
+        android:textColor="#8A8680"
+        android:textSize="11sp" />
+
+    <ProgressBar
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginTop="28dp"
+        android:indeterminate="true"
+        android:indeterminateTint="#C9B896" />
+
+    <TextView
+        android:id="@+id/export_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:gravity="center"
+        android:text="Проявляю полный кадр…"
+        android:textColor="#E8E4DC"
+        android:textSize="16sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:text="Spektrafilm · спектральный интеграл\nбез LUT · оригинальный размер"
+        android:textColor="#6A6660"
+        android:textSize="12sp" />
+
+    <Button
+        android:id="@+id/export_done"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:backgroundTint="#2A2A2C"
+        android:text="Закрыть"
+        android:textColor="#C9B896"
+        android:visibility="gone" />
+</LinearLayout>

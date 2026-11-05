@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Spektrafilm</string>
+    <string name="title_activity_main">Spektrafilm</string>
+    <string name="package_name">app.spektrafilm.lab</string>
+    <string name="custom_url_scheme">app.spektrafilm.lab</string>
+</resources>
