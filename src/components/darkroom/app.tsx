@@ -1,6 +1,7 @@
+import { ProcessLab } from "@/components/darkroom/process-lab";
 import { TestPrint } from "@/components/darkroom/test-print";
 import { printTrialParams, type PrintTrialImage } from "@/lib/film/test-print";
-import { nativeTestPrint, jpegB64ToObjectUrl } from "@/lib/film/native-raw";
+import { nativeTestPrint, nativeProcessTrials, jpegB64ToObjectUrl } from "@/lib/film/native-raw";
 import { frameImageData, edgeLabel } from "@/lib/film/photo-frame";
 import { toolChangeCount } from "@/lib/film/tool-state";
 import { Histogram } from "@/components/darkroom/histogram";
@@ -44,7 +45,7 @@ import {
   type PlanarImage,
 } from "@/lib/film/pipeline";
 import { previewSignature } from "@/lib/film/preview-key";
-import { loadProfileSafe, useLiveCatalog } from "@/lib/film/profiles";
+import { loadProfile, loadProfileSafe, useLiveCatalog } from "@/lib/film/profiles";
 import { decodeRawFile, isRawFile, sniffRawContainer } from "@/lib/film/raw";
 import {
   addStockItem,
@@ -110,6 +111,7 @@ const ACCEPT =
 
 const TOOL_ICONS: Record<ToolId, LucideIcon> = {
   film: Film,
+  process: FlaskConical,
   tone: SlidersHorizontal,
   presets: Bookmark,
   camera: Camera,
@@ -1503,6 +1505,37 @@ export function DarkroomApp() {
     } catch(error) { created.forEach(image=>revoke(image.url));throw error; }
   },[nativeEngine,engineOn,fullLinear,previewLinear,full,preview]);
 
+  const renderProcessTrials = useCallback(async (variants: DarkroomParams[], signal: AbortSignal, progress: (value:number)=>void): Promise<PrintTrialImage[]> => {
+    const created: PrintTrialImage[] = [];
+    const check = () => { if (signal.aborted) throw new DOMException("Расчёт отменён", "AbortError"); };
+    try {
+      check();
+      const snapshot=variants[0];
+      if (nativeEngine && engineOn) {
+        const result = await nativeProcessTrials(variants.map(asNativeParams));
+        check();
+        for (const image of result) created.push({url:jpegB64ToObjectUrl(image.jpeg),width:image.width,height:image.height});
+        progress(variants.length); return created;
+      }
+      let source = fullLinear || previewLinear;
+      if (!source && (full || preview)) { const image=(full || preview)!; source=imageDataToLinear(image.data,image.width,image.height,snapshot.applyCctfDecoding,jpegSceneRef.current); }
+      if (!source) throw new Error("Сначала откройте фотографию");
+      source=resizePlanar(source,384);
+      if(snapshot.crop) source=cropPlanar(source,snapshot.cropCenterX,snapshot.cropCenterY,snapshot.cropSizeX,snapshot.cropSizeY);
+      for(let index=0;index<variants.length;index++) {
+        check();
+        const trial=variants[index];
+        const [film,paper]=await Promise.all([loadProfile(trial.filmStock),loadProfile(isPaperBypass(trial.printPaper)?"kodak_portra_endura":trial.printPaper)]);
+        check();
+        const pixels=rotateImageData(linearToImageData(simulate(source,film,paper,trial),trial.outputCctf),trial.orientation);
+        const blob=await imageDataToBlob(pixels,"image/jpeg",.9);check();
+        created.push({url:URL.createObjectURL(blob),width:pixels.width,height:pixels.height});progress(index+1);
+        await new Promise(resolve=>setTimeout(resolve,16));
+      }
+      return created;
+    } catch(error) { created.forEach(image=>revoke(image.url));throw error; }
+  },[nativeEngine,engineOn,fullLinear,previewLinear,full,preview]);
+
   const applyWb = useCallback(
     (wb: { temperature: number; tint: number }, label: string) => {
       patch({ whiteBalance: "custom", temperature: wb.temperature, tint: wb.tint });
@@ -1808,7 +1841,7 @@ export function DarkroomApp() {
       if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
       if (event.key.toLowerCase() === "o") {
         event.preventDefault();
-        if (!busy && !exporting && !batching) void openNativeOrPicker();
+        if (!busy && !exporting && !batching && !testPrinting) void openNativeOrPicker();
       }
       if (event.key.toLowerCase() === "s") {
         event.preventDefault();
@@ -1817,7 +1850,7 @@ export function DarkroomApp() {
     };
     window.addEventListener("keydown", onCommand);
     return () => window.removeEventListener("keydown", onCommand);
-  }, [openNativeOrPicker, saveFrame, canSave, busy, exporting, batching, setShowOriginal]);
+  }, [openNativeOrPicker, saveFrame, canSave, busy, exporting, batching, testPrinting, setShowOriginal]);
 
   const onSheetDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -1892,7 +1925,7 @@ export function DarkroomApp() {
       onDragOver={(event) => {
         if (!event.dataTransfer.types.includes("Files")) return;
         event.preventDefault();
-        event.dataTransfer.dropEffect = busy || exporting || batching ? "none" : "copy";
+        event.dataTransfer.dropEffect = busy || exporting || batching || testPrinting ? "none" : "copy";
         setDraggingFile(true);
       }}
       onDragLeave={(event) => {
@@ -1902,12 +1935,13 @@ export function DarkroomApp() {
       onDrop={(event) => {
         event.preventDefault();
         setDraggingFile(false);
-        if (busy || exporting || batching) return;
+        if (busy || exporting || batching || testPrinting) return;
         const file = event.dataTransfer.files[0];
         if (file) void onPickedFile(file);
       }}
       className={[
         "lab-app text-fg",
+        tool === "process" && "is-process-view",
         scrubbing && "is-scrubbing",
         chromeHidden && "is-chrome-hidden",
         sheetLive && "is-sheet-live",
@@ -1962,7 +1996,7 @@ export function DarkroomApp() {
           <small>{fileName ? "Локальный файл" : "Откройте фотографию для обработки"}</small>
         </div>
         <div className="lab-top-right">
-          {prefs.experimentalEnlarger ? <button type="button" className="workbench-command test-print-launch" aria-label="Пробная печать" title="Экспериментальная пробная печать" onClick={()=>setEnlargerOpen(true)}><FlaskConical size={16}/></button> : null}
+          {prefs.experimentalEnlarger ? <button type="button" disabled={testPrinting} className="workbench-command test-print-launch" aria-label="Пробная печать" title="Экспериментальная пробная печать" onClick={()=>setEnlargerOpen(true)}><FlaskConical size={16}/></button> : null}
           <button
             className="workbench-command"
             type="button"
@@ -2136,7 +2170,7 @@ export function DarkroomApp() {
           </span>
         </div>
       </aside>
-      {tool === "gallery" || tool === "stock" ? (
+      {tool === "process" ? <div className="lab-stage is-process"><ProcessLab params={params} sourceKey={fileName+(origUrl||"")} hasImage={!!(fileName||origUrl)} blocked={busy||exporting||batching} render={renderProcessTrials} onBusy={setTestPrinting} cancelNative={()=>{if(nativeEngine&&engineOn)void cancelNative();}} apply={value=>{patch(value);flashNote("Применена выбранная проявка");}} /></div> : tool === "gallery" || tool === "stock" ? (
         <div className="lab-stage is-gallery">
           {tool === "stock" ? (
             <StockPane

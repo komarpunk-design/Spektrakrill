@@ -42,6 +42,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 export const TOOLS = [
   { id: "film" as const, label: "Плёнка" },
+  { id: "process" as const, label: "Push / Pull" },
   { id: "tone" as const, label: "Тон" },
   { id: "presets" as const, label: "Пресеты" },
   { id: "camera" as const, label: "Камера" },
@@ -79,7 +80,7 @@ export function dockTools(
 ): { id: (typeof TOOLS)[number]["id"]; label: string }[] {
   const spektra = engine === "spektrafilm";
   const bypass = isFilmBypass(filmStock);
-  const order = ["gallery", "presets", "film", "tone", "camera", "print", "scan", "crop", "stock", "export", "lab", "log"];
+  const order = ["gallery", "presets", "film", "process", "tone", "camera", "print", "scan", "crop", "stock", "export", "lab", "log"];
   return TOOLS.filter((t) => {
     if (t.id === "settings") return false;
 
