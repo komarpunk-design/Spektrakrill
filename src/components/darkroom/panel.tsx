@@ -1,4 +1,4 @@
-import { FRAME_STYLES } from "@/lib/film/photo-frame";
+import { FRAME_STYLES, isOriginalEdge } from "@/lib/film/photo-frame";
 import { stockDetail, stockSpec, stockCategory } from "@/lib/film/stock-details";
 import { Field, Select, Segmented, SliderRow, ToggleRow } from "@/components/ui/control";
 import { isNativeRawAvailable, pickNativeText, getNativeLog, clearNativeLog, openExternalUrl } from "@/lib/film/native-raw";
@@ -1544,7 +1544,12 @@ export function Panel({
             {FRAME_STYLES.map(style => <button key={style.value} type="button" className={params.frameStyle === style.value ? "is-selected" : ""} aria-pressed={params.frameStyle === style.value} onClick={() => setParam("frameStyle", style.value)}><span className={`lab-frame-swatch is-${style.value}`} /><span>{style.label}</span></button>)}
             <small>Рамка сохраняется в готовом JPEG или PNG. Исходник не обрезается.</small>
           </div>
-          <SliderRow
+          {isOriginalEdge(params.frameStyle) ? <>
+            <SliderRow label="Номер кадра" min={1} max={99} step={1} value={params.frameNumber} hint={String(params.frameNumber)} onChange={v => setParam("frameNumber",v)} />
+            {params.frameStyle === "135" || params.frameStyle === "film" ? <ToggleRow label="DX-полоса" hint="Декоративная полоса по рисунку оригинала" checked={params.frameBarcode} onChange={v => setParam("frameBarcode",v)} /> : null}
+            <label className="lab-frame-date">Дата на снимке<input aria-label="Дата на снимке" maxLength={32} value={params.frameDate} placeholder="Не печатать" onChange={e=>setParam("frameDate",e.target.value)} /></label>
+            <p className="px-4 py-2 text-xs text-muted">Пропорции края соответствуют оригиналу: 135, 120 или минималистичная кромка.</p>
+          </> : <SliderRow
             label="Ширина рамки"
             hint={`${Math.round(params.whitePadding * 100)}%`}
             min={0.01}
@@ -1552,7 +1557,7 @@ export function Panel({
             step={0.01}
             value={params.whitePadding}
             onChange={(v) => setParam("whitePadding", v)}
-          />
+          />}
         </>
       ) : null}
       {tool === "lab" ? (

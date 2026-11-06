@@ -121,7 +121,10 @@ export interface DarkroomParams {
   previewMaxSize: number;
   gray18Canvas: boolean;
   whitePadding: number;
-  frameStyle: "none" | "white" | "black" | "instant" | "film";
+  frameStyle: "none" | "white" | "black" | "instant" | "film" | "135" | "120" | "minimal";
+  frameNumber: number;
+  frameBarcode: boolean;
+  frameDate: string;
   crop: boolean;
   cropCenterX: number;
   cropCenterY: number;

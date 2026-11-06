@@ -26,3 +26,16 @@ at revision `15fb120996f03fc1e58a9a9d819e335f65d7a092`.
 No upstream Chinese localization resources, app identity, signing keys or prebuilt
 binaries were imported. Native simulation kernels and profile measurements were
 not replaced. Existing LibRaw and other third-party notices remain applicable.
+
+## Original film-edge implementation (version 9.43)
+
+`android/app/src/main/java/app/spektrafilm/lab/FilmEdge.kt` is adapted from
+[FilmEdge.kt in hwx959's spektra-zh branch](https://github.com/hwx959/Spektrafilm-android/blob/80e420ece960c8d7b742ba7d7c15ee033d051b88/app/src/main/java/com/spectrafilm/app/FilmEdge.kt),
+GPLv3. Package/imports/comments are adapted and the Compose sheet is excluded;
+the native compositor drawing commands are preserved. `src/lib/film/photo-frame.ts`
+ports that compositor to browser Canvas. Russian controls are our integration.
+
+The fork identifies this compositor as its own GPLv3 implementation, with a palette
+matched to SpektraLab-CN. No Chinese translation resources, prebuilt native libraries
+or signing keys are used. Upstream Android and spectral-engine attributions above
+remain required and are displayed by our About page.
