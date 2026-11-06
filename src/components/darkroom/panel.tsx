@@ -312,6 +312,7 @@ export function Panel({
   saving,
   canSave,
   onNotice,
+  onOpenEnlarger,
   onAutoWb,
   onPickWb,
   pickingWb,
@@ -324,6 +325,7 @@ export function Panel({
   saving?: boolean;
   canSave?: boolean;
   onNotice?: (msg: string) => void;
+  onOpenEnlarger?: () => void;
   onAutoWb?: () => void;
   onPickWb?: () => void;
   pickingWb?: boolean;
@@ -1694,12 +1696,12 @@ export function Panel({
         </>
       ) : null}
       {tool === "log" ? <LogPane onNotice={onNotice} /> : null}
-      {tool === "settings" ? <SettingsPane onNotice={onNotice} /> : null}
+      {tool === "settings" ? <SettingsPane onNotice={onNotice} onOpenEnlarger={onOpenEnlarger} /> : null}
     </div>
   );
 }
 
-function SettingsPane({ onNotice }: { onNotice?: (msg: string) => void }) {
+function SettingsPane({ onNotice, onOpenEnlarger }: { onNotice?: (msg: string) => void; onOpenEnlarger?:()=>void }) {
   const params = useDarkroom((s) => s.params);
   const setParam = useDarkroom((s) => s.setParam);
   const advanced = useDarkroom((s) => s.advanced);
@@ -1799,6 +1801,11 @@ function SettingsPane({ onNotice }: { onNotice?: (msg: string) => void }) {
           </span>
           <ChevronRight className="size-4 shrink-0 text-subtle" strokeWidth={1.75} />
         </a>
+      </div>
+      <p className="lab-kicker">Экспериментальные инструменты</p>
+      <div className="lab-set-card">
+        <ToggleRow label="Виртуальный увеличитель" hint="Пять пробных выдержек печати. Экспериментальная функция." checked={prefs.experimentalEnlarger} onChange={value=>setPref("experimentalEnlarger",value)} />
+        {prefs.experimentalEnlarger ? <button type="button" className="lab-set-go" onClick={onOpenEnlarger}>Открыть пробную печать</button> : null}
       </div>
       <p className="lab-kicker">Интерфейс</p>
       <div className="lab-set-card">

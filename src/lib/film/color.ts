@@ -1,5 +1,5 @@
-import type { Mat3, Vec3 } from "./types";
-import { whiteBalanceMatrix as wbMatrix } from "./wb-temp-tint";
+import type { Mat3, Vec3 } from "./types.ts";
+import { whiteBalanceMatrix as wbMatrix } from "./wb-temp-tint.ts";
 
 export function srgbToLinear(c: number): number {
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;

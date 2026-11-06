@@ -1,5 +1,5 @@
-import type { DarkroomParams, DiffusionFamily, FilmProfile, Vec3 } from "./types";
-import { isFilmBypass, isPaperBypass } from "./types";
+import type { DarkroomParams, DiffusionFamily, FilmProfile, Vec3 } from "./types.ts";
+import { isFilmBypass, isPaperBypass } from "./types.ts";
 import {
   clamp01,
   interpCurve,
@@ -9,11 +9,11 @@ import {
   softClip,
   srgbToLinear,
   whiteBalanceMatrix,
-} from "./color";
-import { resolveWb } from "./wb-temp-tint";
-import { applyRawEngine, sanitizeRawEngine, sanitizeRawEngineStyle } from "./raw-engine";
-import { applyDigitalTone } from "./digital-tone";
-import { blurPlane, blurRgb, hashNoise } from "./spatial";
+} from "./color.ts";
+import { resolveWb } from "./wb-temp-tint.ts";
+import { applyRawEngine, sanitizeRawEngine, sanitizeRawEngineStyle } from "./raw-engine.ts";
+import { applyDigitalTone } from "./digital-tone.ts";
+import { blurPlane, blurRgb, hashNoise } from "./spatial.ts";
 
 export type PlanarImage = {
   w: number;
@@ -878,10 +878,12 @@ export function simulate(e: PlanarImage, t: FilmProfile | null, n: FilmProfile |
           t.baseRgbOd,
         ),
       ),
+      // Normalize the paper at unit enlarger exposure. Including printExposure
+      // here would cancel the user's exposure adjustment below.
       w = [
-        C[0] * p * r.printExposure,
-        C[1] * m * r.printExposure,
-        C[2] * h * r.printExposure,
+        C[0] * p,
+        C[1] * m,
+        C[2] * h,
       ],
       T = [0, 0, 0];
     {

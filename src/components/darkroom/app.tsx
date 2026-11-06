@@ -1,3 +1,6 @@
+import { TestPrint } from "@/components/darkroom/test-print";
+import { printTrialParams, type PrintTrialImage } from "@/lib/film/test-print";
+import { nativeTestPrint, jpegB64ToObjectUrl } from "@/lib/film/native-raw";
 import { frameImageData, edgeLabel } from "@/lib/film/photo-frame";
 import { toolChangeCount } from "@/lib/film/tool-state";
 import { Histogram } from "@/components/darkroom/histogram";
@@ -373,6 +376,8 @@ export function DarkroomApp() {
   const patch = useDarkroom((s) => s.patch);
   const catalog = useLiveCatalog();
 
+  const [enlargerOpen,setEnlargerOpen]=useState(false);
+  const [testPrinting,setTestPrinting]=useState(false);
   const [preview, setPreview] = useState<ImageData | null>(null);
   const [previewLinear, setPreviewLinear] = useState<PlanarImage | null>(null);
   const [full, setFull] = useState<ImageData | null>(null);
@@ -1469,6 +1474,35 @@ export function DarkroomApp() {
     return null;
   }, [fullLinear, previewLinear, origUrl, nativeEngine]);
 
+  const renderPrintTrials = useCallback(async (snapshot: DarkroomParams, exposures: number[], signal: AbortSignal, progress: (value:number)=>void): Promise<PrintTrialImage[]> => {
+    const created: PrintTrialImage[] = [];
+    const check = () => { if (signal.aborted) throw new DOMException("Расчёт отменён", "AbortError"); };
+    try {
+      check();
+      if (nativeEngine && engineOn) {
+        const result = await nativeTestPrint(asNativeParams(snapshot), exposures);
+        check();
+        for (const image of result) created.push({url:jpegB64ToObjectUrl(image.jpeg),width:image.width,height:image.height});
+        progress(5); return created;
+      }
+      let source = fullLinear || previewLinear;
+      if (!source && (full || preview)) { const image=(full || preview)!; source=imageDataToLinear(image.data,image.width,image.height,snapshot.applyCctfDecoding,jpegSceneRef.current); }
+      if (!source) throw new Error("Сначала откройте фотографию");
+      source=resizePlanar(source,384);
+      if(snapshot.crop) source=cropPlanar(source,snapshot.cropCenterX,snapshot.cropCenterY,snapshot.cropSizeX,snapshot.cropSizeY);
+      const [film,paper]=await Promise.all([loadProfileSafe(snapshot.filmStock),loadProfileSafe(snapshot.printPaper,"kodak_portra_endura")]);
+      for(let index=0;index<exposures.length;index++) {
+        check();
+        const trial=printTrialParams(snapshot,exposures[index]);
+        const pixels=rotateImageData(linearToImageData(simulate(source,film,paper,trial),trial.outputCctf),trial.orientation);
+        const blob=await imageDataToBlob(pixels,"image/jpeg",.9);check();
+        created.push({url:URL.createObjectURL(blob),width:pixels.width,height:pixels.height});progress(index+1);
+        await new Promise(resolve=>setTimeout(resolve,16));
+      }
+      return created;
+    } catch(error) { created.forEach(image=>revoke(image.url));throw error; }
+  },[nativeEngine,engineOn,fullLinear,previewLinear,full,preview]);
+
   const applyWb = useCallback(
     (wb: { temperature: number; tint: number }, label: string) => {
       patch({ whiteBalance: "custom", temperature: wb.temperature, tint: wb.tint });
@@ -1752,7 +1786,7 @@ export function DarkroomApp() {
 
   const toolLabel = TOOLS.find((t) => t.id === tool)?.label ?? "";
   const canUndo = undoStack.length > 0;
-  const canSave = !!(procUrl || full || preview) && !exporting && !batching;
+  const canSave = !!(procUrl || full || preview) && !exporting && !batching && !testPrinting;
   const canStock = !!(fileName || origUrl || full || preview);
   const pendingStock = stockItems.filter(
     (s) => s.status === "queued" || s.status === "error" || s.status === "exporting",
@@ -1900,6 +1934,7 @@ export function DarkroomApp() {
           <span>Перетащите RAW, JPEG или PNG</span>
         </div>
       ) : null}
+      {enlargerOpen && prefs.experimentalEnlarger ? <TestPrint params={params} sourceKey={fileName+(origUrl||"")} hasImage={!!(fileName||origUrl)} blocked={busy||exporting||batching} render={renderPrintTrials} onBusy={setTestPrinting} cancelNative={()=>{if(nativeEngine&&engineOn)void cancelNative();}} apply={exposure=>{patch({printExposure:exposure});flashNote("Применена выдержка пробной печати");}} close={()=>setEnlargerOpen(false)} /> : null}
       <header className="lab-top">
         <div className="workbench-brand">
           <Aperture size={24} />
@@ -1911,7 +1946,7 @@ export function DarkroomApp() {
         <div className="lab-top-left">
           <IconBtn
             label="Открыть"
-            disabled={busy || exporting || batching}
+            disabled={busy || exporting || batching || testPrinting}
             onClick={() => void openNativeOrPicker()}
           >
             <Upload className="size-5" />
@@ -1927,6 +1962,7 @@ export function DarkroomApp() {
           <small>{fileName ? "Локальный файл" : "Откройте фотографию для обработки"}</small>
         </div>
         <div className="lab-top-right">
+          {prefs.experimentalEnlarger ? <button type="button" className="workbench-command test-print-launch" aria-label="Пробная печать" title="Экспериментальная пробная печать" onClick={()=>setEnlargerOpen(true)}><FlaskConical size={16}/></button> : null}
           <button
             className="workbench-command"
             type="button"
@@ -2047,7 +2083,7 @@ export function DarkroomApp() {
           <button
             type="button"
             className="workbench-source is-empty"
-            disabled={busy || exporting || batching}
+            disabled={busy || exporting || batching || testPrinting}
             onClick={() => void openNativeOrPicker()}
           >
             <FolderOpen size={26} />
@@ -2066,7 +2102,7 @@ export function DarkroomApp() {
             <button
               key={sample.file}
               type="button"
-              disabled={busy || exporting || batching}
+              disabled={busy || exporting || batching || testPrinting}
               onClick={() => void openSample(`/samples/${sample.file}`, sample.file)}
             >
               <img src={`/samples/${sample.file}`} alt="" />
@@ -2320,6 +2356,7 @@ export function DarkroomApp() {
               saving={exporting}
               canSave={canSave}
               onNotice={flashNote}
+              onOpenEnlarger={()=>setEnlargerOpen(true)}
               onAutoWb={() => void runAutoWb()}
               onPickWb={togglePickWb}
               pickingWb={pickingWb}
