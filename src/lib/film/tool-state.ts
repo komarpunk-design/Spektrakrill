@@ -102,7 +102,6 @@ export const TOOL_KEYS: Record<ToolId, (keyof DarkroomParams)[]> = {
     "cropAspect",
     "orientation",
     "gray18Canvas",
-    "whitePadding",
   "frameStyle",
   "frameNumber",
   "frameBarcode",

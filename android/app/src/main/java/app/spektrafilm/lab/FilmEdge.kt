@@ -16,13 +16,13 @@ import android.graphics.Typeface
 enum class FilmEdgeStyle {
     NONE,
 
-    
+
     F135,
 
-    
+
     F120,
 
-    
+
     MINIMAL,
 }
 
@@ -31,7 +31,7 @@ data class FilmEdgeSettings(
     val style: FilmEdgeStyle = FilmEdgeStyle.NONE,
     val dateText: String? = null,
     val frameNumber: Int = 18,
-    
+
     val barcode: Boolean = true,
 )
 
@@ -56,7 +56,7 @@ fun composeFilmEdge(src: Bitmap, settings: FilmEdgeSettings, stockLabel: String)
     val outW = w + m.left + m.right
     val outH = h + m.top + m.bottom
 
-    
+
     val out = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
         val space = src.colorSpace
             ?: android.graphics.ColorSpace.get(android.graphics.ColorSpace.Named.SRGB)
@@ -71,7 +71,7 @@ fun composeFilmEdge(src: Bitmap, settings: FilmEdgeSettings, stockLabel: String)
     paint.color = if (whiteBase) BASE_WHITE else BASE_BLACK
     canvas.drawRect(0f, 0f, outW.toFloat(), outH.toFloat(), paint)
 
-    
+
     canvas.drawBitmap(src, m.left.toFloat(), m.top.toFloat(), null)
 
     val imageRight = (m.left + w).toFloat()
@@ -91,7 +91,7 @@ fun composeFilmEdge(src: Bitmap, settings: FilmEdgeSettings, stockLabel: String)
         FilmEdgeStyle.NONE -> Unit
     }
 
-    
+
     settings.dateText?.takeIf { it.isNotBlank() }?.let { date ->
         val dp = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
@@ -141,7 +141,7 @@ private fun draw135(
         textSize = (band * 0.24f).coerceAtLeast(9f)
         color = INK_ORANGE
     }
-    
+
     canvas.drawText(stockLabel.uppercase(), m.left + outW * 0.006f, band * 0.28f, ink)
     val mid = "${frame}A"
     canvas.drawText(mid, (outW - ink.measureText(mid)) / 2f, band * 0.28f, ink)
@@ -149,7 +149,7 @@ private fun draw135(
     canvas.drawText(next, outW - m.right - ink.measureText(next), band * 0.28f, ink)
     drawPerfRow(canvas, outW, m.left, outW - m.right, band * 0.68f, perfH)
 
-    
+
     val bottomBand = outH - imageBottom
     drawPerfRow(canvas, outW, m.left, outW - m.right, imageBottom + bottomBand * 0.22f, perfH)
 
@@ -176,7 +176,7 @@ private fun draw135(
         val baseline = outH - bottomBand * 0.16f
         val leftLabel = "→ ${frame}A"
         val rightLabel = "${frame + 1}"
-        
+
         paint.color = DX_AMBER
         canvas.drawRect(m.left.toFloat(), bcTop, m.left + bcText.measureText(leftLabel) + unit * 5f, outH.toFloat(), paint)
         canvas.drawRect(
@@ -192,7 +192,7 @@ private fun draw135(
         )
     }
 
-    
+
     val stroke = (band * 0.04f).coerceAtLeast(1.5f)
     val line = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -246,14 +246,14 @@ private fun drawMinimal(
 private fun marginsFor(style: FilmEdgeStyle, w: Int, h: Int): Margins {
     val short = minOf(w, h).toFloat()
     return when (style) {
-        
+
         FilmEdgeStyle.F135 -> {
             val top = (short * 0.115f).toInt().coerceAtLeast(14)
             val bottom = (short * 0.165f).toInt().coerceAtLeast(20)
             val side = (short * 0.012f).toInt().coerceAtLeast(3)
             Margins(top, bottom, side, side)
         }
-        
+
         FilmEdgeStyle.F120 -> {
             val top = (short * 0.145f).toInt().coerceAtLeast(16)
             val bottom = (short * 0.145f).toInt().coerceAtLeast(16)

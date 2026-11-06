@@ -3099,9 +3099,6 @@ a.lab-set-go {
 .lab-frame-picker button.is-selected { border-color:var(--wb-accent); background:#303b2b; }
 .lab-frame-swatch { flex-shrink:0; width:31px; height:35px; background:linear-gradient(145deg,#708668,#364f4d); border:4px solid #f5f2e9; }
 .lab-frame-swatch.is-none { border:0; }
-.lab-frame-swatch.is-black { border-color:#111; }
-.lab-frame-swatch.is-instant { border-bottom-width:10px; }
-.lab-frame-swatch.is-film { border:5px dashed #b49b68; outline:2px solid #111; }
 
 .lab-frame-swatch.is-135 { border:5px dashed #e8ad62; outline:2px solid #080908; }
 .lab-frame-swatch.is-120 { border:5px solid #080908; border-bottom-color:#b76b2c; }
