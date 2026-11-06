@@ -1,30 +1,26 @@
-export type FrameStyle = "none" | "white" | "black" | "instant" | "film" | "135" | "120" | "minimal";
+export type FrameStyle = "none" | "135" | "120" | "minimal";
 export const FRAME_STYLES: { value: FrameStyle; label: string }[] = [
   { value: "none", label: "Без рамки" },
-  { value: "135", label: "135 — перфорация" }, { value: "120", label: "120 — плёночный край" },
-  { value: "minimal", label: "Минималистичная белая кромка" }, { value: "white", label: "Белое паспарту" },
-  { value: "black", label: "Чёрная рамка" }, { value: "instant", label: "Моментальный снимок" },
-  { value: "film", label: "Плёнка 35 мм" },
+  { value: "135", label: "135 — перфорация и DX" },
+  { value: "120", label: "120 — плёночный край" },
+  { value: "minimal", label: "Минималистичная белая кромка" },
 ];
 export function sanitizeFrameStyle(value: unknown): FrameStyle {
+  if (value === "film") return "135";
   return FRAME_STYLES.some(style => style.value === value) ? value as FrameStyle : "none";
 }
 export interface FilmEdgeOptions { frameNumber?: number; frameBarcode?: boolean; frameDate?: string; filmStock?: string }
-export function isOriginalEdge(style: FrameStyle): boolean { return ["135", "120", "minimal", "film"].includes(style); }
+export function isOriginalEdge(style: FrameStyle): boolean { return ["135", "120", "minimal"].includes(style); }
 const nativePixels = (short: number, ratio: number, min: number) => Math.max(min, Math.trunc(Math.fround(Math.fround(short) * Math.fround(ratio))));
 export function edgeLabel(settings: FilmEdgeOptions): string {
   return settings.filmStock && settings.filmStock !== "none" ? settings.filmStock.replaceAll("_", " ").toUpperCase() : "SPEKTRAFILM";
 }
 export function frameGeometry(w: number, h: number, style: FrameStyle, width: number) {
   const short = Math.min(w,h);
-  if (style === "135" || style === "film") { const p=nativePixels(short,.012,3), top=nativePixels(short,.115,14), bottom=nativePixels(short,.165,20); return {width:w+2*p,height:h+top+bottom,x:p,y:top,p}; }
+  if (style === "135") { const p=nativePixels(short,.012,3), top=nativePixels(short,.115,14), bottom=nativePixels(short,.165,20); return {width:w+2*p,height:h+top+bottom,x:p,y:top,p}; }
   if (style === "120") { const p=nativePixels(short,.018,4), top=nativePixels(short,.145,16); return {width:w+2*p,height:h+2*top,x:p,y:top,p}; }
   if (style === "minimal") { const p=nativePixels(short,.045,10), bottom=nativePixels(short,.11,24); return {width:w+2*p,height:h+p+bottom,x:p,y:p,p}; }
-  const ratio = Number.isFinite(width) ? Math.max(0.01, Math.min(0.2, width)) : 0.04;
-  const p = style === "none" ? 0 : Math.max(1, Math.round(Math.min(w, h) * ratio));
-  const top = p;
-  const bottom = style === "instant" ? 3 * p : top;
-  return { width: w + 2 * p, height: h + top + bottom, x: p, y: top, p };
+  return { width: w, height: h, x: 0, y: 0, p: 0 };
 }
 /** Border is added outside the image; no image pixels are cropped or covered. */
 export function framedCanvas(image: CanvasImageSource, w: number, h: number, style: FrameStyle, width: number, settings: FilmEdgeOptions = {}): HTMLCanvasElement {
@@ -35,10 +31,7 @@ export function framedCanvas(image: CanvasImageSource, w: number, h: number, sty
     drawOriginalEdge(ctx, image, w, h, style, g, settings);
     return canvas;
   }
-  ctx.fillStyle = style === "black" || style === "film" ? "#141414" : "#f5f2e9";
-  ctx.fillRect(0, 0, g.width, g.height);
-  ctx.drawImage(image, g.x, g.y, w, h);
-
+  ctx.drawImage(image, 0, 0, w, h);
   return canvas;
 }
 export function frameImageData(data: ImageData, style: FrameStyle, width: number, settings: FilmEdgeOptions = {}): ImageData {
@@ -62,7 +55,7 @@ function drawOriginalEdge(ctx: CanvasRenderingContext2D, image: CanvasImageSourc
     const pw=ph*1.3,gap=pw*1.02,span=w,count=Math.max(2,Math.trunc((span+gap)/(pw+gap))),total=count*pw+(count-1)*gap,start=L+(span-total)/2;
     for(let i=0;i<count;i++){const x=start+i*(pw+gap);ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,center-ph/2,pw,ph,pw*.16);else ctx.rect(x,center-ph/2,pw,ph);ctx.fillStyle="#ffffff";ctx.fill();ctx.strokeStyle="#b6a8a8";ctx.lineWidth=Math.max(ph*.05,1);ctx.stroke();}
   };
-  if(style==="135"||style==="film"){
+  if(style==="135"){
     const size=Math.max(T*.24,9),ph=T*.30,mid=`${frame}A`,next=String(frame+1);
     text(label,L+W*.006,T*.28,size);text(mid,(W-measure(mid,size))/2,T*.28,size);text(next,W-L-measure(next,size),T*.28,size);
     perfs(T*.68,ph);perfs(B+bottom*.22,ph);
