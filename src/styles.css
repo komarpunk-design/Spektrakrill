@@ -3152,3 +3152,29 @@ a.lab-set-go {
  .test-print-modes button {font-size:10px;}
 }
 @media(max-width:360px){.test-print-launch{display:none;}}
+
+.development-controls { display:flex;flex-direction:column;gap:14px;padding:12px 14px 20px; }
+.development-controls header h2 { font-size:24px;letter-spacing:-.03em;margin:7px 0; }
+.development-controls header p,.development-limit { font-size:11px;line-height:1.65;color:var(--color-muted); }
+.development-kicker { font-size:9px;letter-spacing:.17em;color:var(--color-accent,#cbdc8c); }
+.development-stock { display:flex;flex-direction:column;align-items:start;gap:6px;background:#1e2224;border:1px solid #353b3e;border-radius:8px;padding:12px;text-align:left; }
+.development-stock strong { font-size:12px; }.development-stock span{font-size:10px;color:var(--color-muted);}
+.development-state { display:flex;justify-content:space-between;align-items:center;padding:12px;background:#20262a;border-radius:8px; }
+.development-state strong {font-size:20px;color:#cbdc8c;}.development-state span {font-size:11px;font-variant-numeric:tabular-nums;}
+.development-state[data-mode="Pull"] strong {color:#8cb8db;}.development-state[data-mode="Push"] strong {color:#e0ac78;}
+.development-section { display:flex;flex-direction:column;gap:13px;padding-top:16px;border-top:1px solid #303639; }
+.development-section h3 {font-size:10px;letter-spacing:.09em;color:var(--color-muted);text-transform:uppercase;}
+.development-exposures {display:grid;grid-template-columns:repeat(5,1fr);gap:5px;}
+.development-exposures button {font-size:10px;padding:10px 0;border:1px solid #394044;border-radius:5px;background:#222729;}
+.development-exposures button[aria-pressed="true"] {border-color:#cbdc8c;color:#cbdc8c;}
+.development-scale {display:flex;justify-content:space-between;color:var(--color-muted);font-size:10px;}
+.development-diagram {margin:0;background:#161b1e;border:1px solid #303639;border-radius:8px;padding:8px;}
+.development-diagram svg {width:100%;height:auto;display:block;color:#a3adb0;}.development-diagram text{font-size:10px;fill:currentColor;}
+.development-diagram figcaption {font-size:9px;line-height:1.5;color:var(--color-muted);padding:4px;}
+.development-controls button:focus-visible {outline:2px solid #cbdc8c;outline-offset:3px;}
+.development-limit {padding:12px;background:#1e2224;border-radius:8px;margin:0;}
+
+.development-controls .lab-note { padding:0;font-size:11px;line-height:1.55; }
+.development-controls .lab-slider-row {padding:0;}
+.development-controls summary {cursor:pointer;font-size:11px;color:var(--color-muted);padding:8px 0;}
+.development-controls details p {margin:10px 0 0;}
