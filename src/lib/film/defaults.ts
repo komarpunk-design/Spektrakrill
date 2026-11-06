@@ -81,6 +81,8 @@ export function sanitizeParams(raw: unknown): DarkroomParams {
   const base = defaultParams();
   const p = raw && typeof raw === "object" ? (raw as Partial<DarkroomParams>) : {};
   const merged: DarkroomParams = { ...base, ...p };
+  merged.filmGamma = Number.isFinite(merged.filmGamma) && merged.filmGamma > 0 ? merged.filmGamma : 1;
+  merged.exposureCompensationEv = Number.isFinite(merged.exposureCompensationEv) ? merged.exposureCompensationEv : 0;
   merged.frameNumber = Number.isFinite(merged.frameNumber) ? Math.max(1,Math.min(99,Math.trunc(merged.frameNumber))) : 18;
   merged.frameBarcode = merged.frameBarcode !== false;
   merged.frameDate = typeof merged.frameDate === "string" ? merged.frameDate.slice(0,32) : "";

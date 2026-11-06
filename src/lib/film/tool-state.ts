@@ -3,10 +3,9 @@ import type { DarkroomParams } from "./types.ts";
 import type { ToolId } from "./store.ts";
 
 export const TOOL_KEYS: Record<ToolId, (keyof DarkroomParams)[]> = {
-  process: [],
+  development: ["filmGamma", "exposureCompensationEv", "autoExposure", "printExposureCompensation"],
   film: [
     "filmStock",
-    "filmGamma",
     "grainActive",
     "grainParticleArea",
     "grainBlur",

@@ -309,38 +309,6 @@ public class RawDecoderPlugin extends Plugin {
     }
 
     @PluginMethod
-    public void processTrials(PluginCall call) {
-        final JSONArray variants = call.getArray("variants");
-        if (variants == null || variants.length() < 1 || variants.length() > 6) {
-            call.reject("Допустимо от одного до шести вариантов"); return;
-        }
-        final int epoch = simEpoch.get(); cancelled.set(false);
-        work.execute(() -> {
-            synchronized (lock) {
-                byte[] savedJpeg = lastJpeg; String savedMime = lastMime;
-                int savedWidth = lastOutWidth, savedHeight = lastOutHeight;
-                try {
-                    if (exporting.get()) throw new Exception("Дождитесь экспорта");
-                    JSONArray images = new JSONArray();
-                    for (int i = 0; i < variants.length(); i++) {
-                        if (cancelled.get() || epoch != simEpoch.get()) throw new Exception("cancelled");
-                        JSONObject trial = new JSONObject(variants.getJSONObject(i).toString());
-                        if (!trial.optString("filmStock", "").matches("[a-z0-9_]{1,96}")) throw new Exception("Недопустимый профиль");
-                        if (!trial.optString("rawEngine", "spektrafilm").equals("spektrafilm")) throw new Exception("Выберите Spektrafilm");
-                        trial.put("previewMaxSize",384);
-                        byte[] jpeg = simulateLocked(trial,false,false);
-                        JSONObject image = new JSONObject(); image.put("jpeg",Base64.encodeToString(jpeg,Base64.NO_WRAP));
-                        image.put("width",lastOutWidth);image.put("height",lastOutHeight);images.put(image);
-                    }
-                    if (cancelled.get() || epoch != simEpoch.get()) throw new Exception("cancelled");
-                    JSObject result = new JSObject();result.put("images",images);call.resolve(result);
-                } catch (Throwable error) {call.reject(friendlyError(error));}
-                finally {lastJpeg=savedJpeg;lastMime=savedMime;lastOutWidth=savedWidth;lastOutHeight=savedHeight;}
-            }
-        });
-    }
-
-    @PluginMethod
     public void testPrint(PluginCall call) {
         final JSONObject original = call.getObject("params");
         final JSONArray exposures = call.getArray("exposures");

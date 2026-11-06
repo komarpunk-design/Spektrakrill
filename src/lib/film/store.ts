@@ -10,7 +10,7 @@ import type { DarkroomParams } from "./types";
 export type SourceKind = "none" | "file";
 export type ToolId =
   | "film"
-  | "process"
+  | "development"
   | "tone"
   | "presets"
   | "camera"
@@ -106,7 +106,7 @@ function debounceLocalStorage(ms: number): StateStorage {
 
 const TOOL_IDS: ToolId[] = [
   "film",
-  "process",
+  "development",
   "tone",
   "presets",
   "camera",

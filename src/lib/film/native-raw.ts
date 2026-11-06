@@ -45,7 +45,6 @@ type NativeSim = {
 };
 
 const RawDecoder = registerPlugin<{
-  processTrials: (opts:{variants:Record<string,unknown>[]})=>Promise<{images:{jpeg:string;width:number;height:number}[]}>;
   testPrint: (opts: {params: Record<string,unknown>; exposures: number[]}) => Promise<{images:{jpeg:string;width:number;height:number}[]}>;
   pickAndDecode: (opts: {
     maxEdge: number;
@@ -558,5 +557,3 @@ export async function loadNativeStockSource(
 export async function nativeTestPrint(params: Record<string,unknown>, exposures: number[]) {
   return (await RawDecoder.testPrint({params, exposures})).images;
 }
-
-export async function nativeProcessTrials(variants:Record<string,unknown>[]) { return (await RawDecoder.processTrials({variants})).images; }
