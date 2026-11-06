@@ -1,0 +1,226 @@
+{
+  "kodak_portra_160": {
+    "manufacturer": "Kodak",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "2010",
+    "summary": "Мелкое зерно, невысокий контраст и мягкие естественные оттенки кожи."
+  },
+  "kodak_portra_400": {
+    "manufacturer": "Kodak",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "2010",
+    "summary": "Тёплая палитра и мягкая передача кожи. Универсальный вариант для портретов."
+  },
+  "kodak_portra_800": {
+    "manufacturer": "Kodak",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "2010",
+    "summary": "Естественные цвета Portra для съёмки при слабом освещении."
+  },
+  "kodak_portra_800_push1": {
+    "manufacturer": "Kodak",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "2010",
+    "summary": "Push-проявка Portra 800 на одну ступень: заметнее контраст и зерно. Не меняет реальную чувствительность исходного фото."
+  },
+  "kodak_portra_800_push2": {
+    "manufacturer": "Kodak",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "2010",
+    "summary": "Push-проявка Portra 800 на две ступени: выраженные контраст и зерно. Не добавляет деталей, которых нет в исходнике."
+  },
+  "kodak_ektar_100": {
+    "manufacturer": "Kodak",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "2008",
+    "summary": "Мелкое зерно и насыщенные цвета для пейзажей и предметной съёмки."
+  },
+  "kodak_gold_200": {
+    "manufacturer": "Kodak",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "1988",
+    "summary": "Тёплые жёлтые и золотистые оттенки для солнечных повседневных кадров."
+  },
+  "kodak_ultramax_400": {
+    "manufacturer": "Kodak",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "2007",
+    "summary": "Насыщенные цвета и заметное зерно. Универсальная негативная плёнка."
+  },
+  "fujifilm_pro_400h": {
+    "manufacturer": "Fujifilm",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "2004",
+    "summary": "Мягкие пастельные оттенки, прохладная зелень и деликатная передача кожи."
+  },
+  "fujifilm_c200": {
+    "manufacturer": "Fujifilm",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "1990",
+    "summary": "Повседневная негативная плёнка с чёткими, слегка прохладными цветами."
+  },
+  "fujifilm_xtra_400": {
+    "manufacturer": "Fujifilm",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "1998",
+    "summary": "Универсальная плёнка для повседневных сюжетов и смешанного освещения."
+  },
+  "kodak_ektachrome_100": {
+    "manufacturer": "Kodak",
+    "group": "color_reversal",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "2018",
+    "summary": "Слайдовая плёнка с нейтральными цветами, мелким зерном и чистыми светами."
+  },
+  "fujifilm_provia_100f": {
+    "manufacturer": "Fujifilm",
+    "group": "color_reversal",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "2000",
+    "summary": "Естественная цветопередача, умеренный контраст и мелкое зерно."
+  },
+  "fujifilm_velvia_100": {
+    "manufacturer": "Fujifilm",
+    "group": "color_reversal",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "2005",
+    "summary": "Контрастный слайд с очень насыщенными цветами для пейзажей."
+  },
+  "kodak_kodachrome_64": {
+    "manufacturer": "Kodak",
+    "group": "color_reversal",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "1974",
+    "summary": "Классический слайд с насыщенными цветами и характерной тёплой палитрой."
+  },
+  "kodak_vision3_50d": {
+    "manufacturer": "Kodak",
+    "group": "motion_picture_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "2010",
+    "summary": "Дневная киноплёнка с мелким зерном для ярко освещённых сцен."
+  },
+  "kodak_vision3_250d": {
+    "manufacturer": "Kodak",
+    "group": "motion_picture_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "2009",
+    "summary": "Дневная киноплёнка: баланс мелкого зерна и широкого диапазона экспозиций."
+  },
+  "kodak_vision3_200t": {
+    "manufacturer": "Kodak",
+    "group": "motion_picture_negative",
+    "kind": "film",
+    "balance": "tungsten",
+    "year": "2010",
+    "summary": "Киноплёнка для ламп накаливания: мягкое зерно и насыщенные цвета."
+  },
+  "kodak_vision3_500t": {
+    "manufacturer": "Kodak",
+    "group": "motion_picture_negative",
+    "kind": "film",
+    "balance": "tungsten",
+    "year": "2007",
+    "summary": "Киноплёнка для ламп накаливания и слабого освещения. При дневном свете учитывайте баланс белого."
+  },
+  "kodak_verita_200d": {
+    "manufacturer": "Kodak",
+    "group": "motion_picture_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "2026",
+    "summary": "Дневная киноплёнка с насыщенными цветами, тёплой кожей и характерным киноконтрастом."
+  },
+  "kodak_2383": {
+    "manufacturer": "Kodak",
+    "group": "print_film",
+    "kind": "print_film",
+    "balance": "tungsten",
+    "year": "2000",
+    "summary": "Копировальная киноплёнка с глубокими чёрными и нейтральными светами."
+  },
+  "kodak_2393": {
+    "manufacturer": "Kodak",
+    "group": "print_film",
+    "kind": "print_film",
+    "balance": "tungsten",
+    "year": "1998",
+    "summary": "Копировальная киноплёнка с более глубокими чёрными и насыщенными цветами, чем 2383."
+  },
+  "kodak_portra_endura": {
+    "manufacturer": "Kodak",
+    "group": "print_paper",
+    "kind": "print_paper",
+    "balance": null,
+    "year": "2005",
+    "summary": "Фотобумага RA-4 с мягким контрастом и естественными оттенками кожи."
+  },
+  "kodak_supra_endura": {
+    "manufacturer": "Kodak",
+    "group": "print_paper",
+    "kind": "print_paper",
+    "balance": null,
+    "year": "2003",
+    "summary": "Фотобумага RA-4 с умеренным контрастом и более насыщенными цветами."
+  },
+  "kodak_ultra_endura": {
+    "manufacturer": "Kodak",
+    "group": "print_paper",
+    "kind": "print_paper",
+    "balance": null,
+    "year": "2003",
+    "summary": "Контрастная фотобумага RA-4 с глубокими чёрными для выразительных отпечатков."
+  },
+  "kodak_endura_premier": {
+    "manufacturer": "Kodak",
+    "group": "print_paper",
+    "kind": "print_paper",
+    "balance": null,
+    "year": "2010",
+    "summary": "Универсальная фотобумага RA-4 для цветной печати."
+  },
+  "kodak_ektacolor_edge": {
+    "manufacturer": "Kodak",
+    "group": "print_paper",
+    "kind": "print_paper",
+    "balance": null,
+    "year": "1997",
+    "summary": "Фотобумага RA-4 для естественных оттенков кожи и насыщенных повседневных снимков."
+  },
+  "fujifilm_crystal_archive_typeii": {
+    "manufacturer": "Fujifilm",
+    "group": "print_paper",
+    "kind": "print_paper",
+    "balance": null,
+    "year": "2005",
+    "summary": "Фотобумага RA-4 с плавными градациями тона и насыщенными цветами."
+  }
+}

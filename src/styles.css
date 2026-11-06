@@ -3081,3 +3081,12 @@ a.lab-set-go {
     display: none;
   }
 }
+
+.lab-edited-dot { position:absolute; top:7px; right:10px; width:5px; height:5px; border-radius:50%; background:var(--wb-accent); box-shadow:0 0 0 2px #1b2024; }
+.lab-stock-detail { padding:12px; margin-bottom:10px; border:1px solid #3b4547; border-left:2px solid var(--wb-accent); border-radius:4px; background:#21292b; }
+.lab-stock-detail strong { display:block; font-size:12px; font-weight:600; color:#e3e9df; }
+.lab-stock-detail > span { display:block; margin-top:6px; font-size:10px; color:var(--wb-accent); }
+.lab-stock-detail p { margin:8px 0 0; font-size:11px; color:#acb8bd; line-height:1.55; }
+.lab-box-balance { display:none; }
+.lab-credit { display:block; font-size:11px; color:var(--wb-accent); margin:12px 0; text-decoration:underline; text-underline-offset:3px; }
+@media(min-width:1100px) { .lab-app .lab-box-balance { display:block; font-size:8px; color:#a9b8b9; margin-top:5px; } .lab-app .lab-box { min-height:108px; } }

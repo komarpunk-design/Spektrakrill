@@ -631,81 +631,18 @@ public final class ExportWorker {
     /** Spektrafilm ImagePipeline.saveToGallery: Bitmap.compress into the MediaStore stream. */
     static android.net.Uri saveEncoded(Context ctx, String name, String mime, byte[] data)
             throws Exception {
-        if (data == null || data.length == 0) throw new Exception("empty jpeg");
-        if (mime == null || mime.isEmpty()) mime = "image/jpeg";
-        android.content.ContentResolver resolver = ctx.getContentResolver();
-        if (Build.VERSION.SDK_INT >= 29) {
-            ContentValues values = new ContentValues();
-            values.put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, name);
-            values.put(android.provider.MediaStore.Images.Media.MIME_TYPE, mime);
-            values.put(
-                    android.provider.MediaStore.Images.Media.RELATIVE_PATH,
-                    android.os.Environment.DIRECTORY_PICTURES + "/Spektrafilm");
-            values.put(android.provider.MediaStore.Images.Media.IS_PENDING, 1);
-            android.net.Uri uri =
-                    resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-            if (uri == null) throw new Exception("gallery");
-            try (OutputStream os = resolver.openOutputStream(uri)) {
-                if (os == null) throw new Exception("write");
-                os.write(data);
-            }
-            ContentValues done = new ContentValues();
-            done.put(android.provider.MediaStore.Images.Media.IS_PENDING, 0);
-            resolver.update(uri, done, null, null);
-            return uri;
-        }
-        File pictures = android.os.Environment.getExternalStoragePublicDirectory(
-                android.os.Environment.DIRECTORY_PICTURES);
-        File dir = new File(pictures, "Spektrafilm");
-        if (!dir.exists() && !dir.mkdirs()) throw new Exception("folder");
-        File outFile = new File(dir, name);
-        try (FileOutputStream fos = new FileOutputStream(outFile)) {
-            fos.write(data);
-        }
-        android.media.MediaScannerConnection.scanFile(
-                ctx, new String[] {outFile.getAbsolutePath()}, new String[] {mime}, null);
-        return android.net.Uri.fromFile(outFile);
+        if (data == null || data.length == 0) throw new Exception("Файл экспорта пуст");
+        return VerifiedMediaWriter.save(ctx, name, mime, output -> output.write(data));
     }
 
-    /** Spektrafilm ImagePipeline.saveToGallery: Bitmap.compress into the MediaStore stream. */
     private static android.net.Uri writeBitmap(
             Context ctx, String name, String mime, int quality, Bitmap bmp) throws Exception {
-        android.content.ContentResolver resolver = ctx.getContentResolver();
-        if (mime == null || mime.isEmpty()) mime = "image/jpeg";
-        boolean png = mime.toLowerCase().contains("png");
-        Bitmap.CompressFormat compress = png ? Bitmap.CompressFormat.PNG : Bitmap.CompressFormat.JPEG;
+        boolean png = mime != null && mime.toLowerCase(java.util.Locale.ROOT).contains("png");
+        Bitmap.CompressFormat format = png ? Bitmap.CompressFormat.PNG : Bitmap.CompressFormat.JPEG;
         int q = png ? 100 : Math.max(70, Math.min(100, quality));
-        if (Build.VERSION.SDK_INT >= 29) {
-            ContentValues values = new ContentValues();
-            values.put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, name);
-            values.put(android.provider.MediaStore.Images.Media.MIME_TYPE, mime);
-            values.put(
-                    android.provider.MediaStore.Images.Media.RELATIVE_PATH,
-                    android.os.Environment.DIRECTORY_PICTURES + "/Spektrafilm");
-            values.put(android.provider.MediaStore.Images.Media.IS_PENDING, 1);
-            android.net.Uri uri =
-                    resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-            if (uri == null) throw new Exception("gallery");
-            try (OutputStream os = resolver.openOutputStream(uri)) {
-                if (os == null) throw new Exception("write");
-                if (!bmp.compress(compress, q, os)) throw new Exception("Не удалось закодировать JPEG");
-            }
-            ContentValues done = new ContentValues();
-            done.put(android.provider.MediaStore.Images.Media.IS_PENDING, 0);
-            resolver.update(uri, done, null, null);
-            return uri;
-        }
-        File pictures = android.os.Environment.getExternalStoragePublicDirectory(
-                android.os.Environment.DIRECTORY_PICTURES);
-        File dir = new File(pictures, "Spektrafilm");
-        if (!dir.exists() && !dir.mkdirs()) throw new Exception("folder");
-        File outFile = new File(dir, name);
-        try (FileOutputStream fos = new FileOutputStream(outFile)) {
-            if (!bmp.compress(compress, q, fos)) throw new Exception("Не удалось закодировать JPEG");
-        }
-        android.media.MediaScannerConnection.scanFile(
-                ctx, new String[] {outFile.getAbsolutePath()}, new String[] {mime}, null);
-        return android.net.Uri.fromFile(outFile);
+        return VerifiedMediaWriter.save(ctx, name, mime, output -> {
+            if (!bmp.compress(format, q, output)) throw new java.io.IOException("Не удалось закодировать изображение");
+        });
     }
 
     private static void rememberLast(Context ctx, String name, android.net.Uri uri, int w, int h) {

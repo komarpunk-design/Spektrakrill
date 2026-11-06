@@ -1,3 +1,4 @@
+import { actualPixelScale, clampViewerScale } from "@/lib/film/viewer-zoom";
 import { cn } from "@/lib/utils";
 import { MIDGRAY_D, samplePrintDensity, type DensitySample } from "@/lib/film/densitometer";
 import { Maximize2, Scan, Blend, Crosshair, Aperture, FolderOpen } from "lucide-react";
@@ -78,11 +79,17 @@ export function Viewer({
     }, 2400);
   };
 
+  const pixelScale = () => {
+    const img = stageRef.current?.querySelector("[data-print] img:last-of-type") as HTMLImageElement | null;
+    if (!img) return 1;
+    return actualPixelScale(img.naturalWidth, img.getBoundingClientRect().width / scale.current, window.devicePixelRatio || 1);
+  };
+
   const applyTransform = () => {
     const el = stageRef.current?.querySelector("[data-print]") as HTMLElement | null;
     if (!el) return;
     el.style.transform = `translate(${tx.current}px, ${ty.current}px) scale(${scale.current})`;
-    const pct = Math.round(scale.current * 100);
+    const pct = Math.round((scale.current / pixelScale()) * 100);
     setZoomPct((z) => (z === pct ? z : pct));
   };
 
@@ -94,21 +101,12 @@ export function Viewer({
   };
 
   const actualView = (cx?: number, cy?: number) => {
-    const img = stageRef.current?.querySelector("[data-print] img") as HTMLImageElement | null;
-    const stage = stageRef.current;
-    if (!img || !img.naturalWidth || !stage) return;
-    const box = img.getBoundingClientRect();
-    const disp = box.width / Math.max(0.01, scale.current);
-    const next = Math.min(8, Math.max(1, img.naturalWidth / disp));
-    if (cx != null && cy != null && next > 1.02) {
-      zoomAt(cx, cy, next);
-    } else {
-      scale.current = next <= 1.02 ? 1 : next;
-      if (scale.current <= 1.02) {
-        scale.current = 1;
-        tx.current = 0;
-        ty.current = 0;
-      }
+    const next = pixelScale();
+    if (cx != null && cy != null) zoomAt(cx, cy, next);
+    else {
+      scale.current = next;
+      tx.current = 0;
+      ty.current = 0;
       applyTransform();
     }
   };
@@ -119,12 +117,12 @@ export function Viewer({
     const rect = stage.getBoundingClientRect();
     const x = clientX - rect.left - rect.width / 2;
     const y = clientY - rect.top - rect.height / 2;
-    const clamped = Math.min(8, Math.max(1, next));
+    const clamped = clampViewerScale(next, pixelScale());
     const prev = scale.current;
     const px = (x - tx.current) / prev;
     const py = (y - ty.current) / prev;
     scale.current = clamped;
-    if (clamped <= 1.02) {
+    if (Math.abs(clamped - 1) <= 0.01) {
       scale.current = 1;
       tx.current = 0;
       ty.current = 0;
@@ -137,6 +135,11 @@ export function Viewer({
 
   useEffect(() => {
     fitView();
+    const stage = stageRef.current;
+    if (!stage) return;
+    const observer = new ResizeObserver(() => fitView());
+    observer.observe(stage);
+    return () => observer.disconnect();
   }, [sourceKey]);
 
   useEffect(() => {
@@ -300,11 +303,8 @@ export function Viewer({
       const dx = pts[0].x - pts[1].x;
       const dy = pts[0].y - pts[1].y;
       const dist = Math.hypot(dx, dy);
-      scale.current = Math.min(
-        8,
-        Math.max(1, (pinch0.current.scale * dist) / Math.max(1, pinch0.current.dist)),
-      );
-      if (scale.current <= 1.02) {
+      scale.current = clampViewerScale((pinch0.current.scale * dist) / Math.max(1, pinch0.current.dist), pixelScale());
+      if (Math.abs(scale.current - 1) <= 0.01) {
         scale.current = 1;
         tx.current = 0;
         ty.current = 0;
@@ -312,7 +312,7 @@ export function Viewer({
       applyTransform();
       return;
     }
-    if (pan0.current && scale.current > 1.02) {
+    if (pan0.current && Math.abs(scale.current - 1) > 0.01) {
       const dx = e.clientX - pan0.current.x;
       const dy = e.clientY - pan0.current.y;
       if (Math.hypot(dx, dy) > 6) {
@@ -354,7 +354,7 @@ export function Viewer({
       !probe &&
       !wasHold &&
       origin &&
-      scale.current <= 1.02 &&
+      Math.abs(scale.current - 1) <= 0.01 &&
       ptrs.current.size === 0
     ) {
       const dx = e.clientX - origin.x;
@@ -402,7 +402,7 @@ export function Viewer({
     if (pickingWb || probe) return;
     if (!processedUrl && !originalUrl) return;
     e.preventDefault();
-    if (scale.current > 1.05) fitView();
+    if (Math.abs(scale.current - 1) > 0.01) fitView();
     else actualView(e.clientX, e.clientY);
   };
 
@@ -444,7 +444,8 @@ export function Viewer({
             {under ? <img src={under} alt="" draggable={false} className="lab-print-img" /> : null}
             <img
               src={shown}
-              alt="Film simulation preview"
+              onLoad={applyTransform}
+              alt="Предпросмотр обработки"
               draggable={false}
               className={cn("lab-print-img", under && "lab-print-img-over")}
             />
@@ -532,11 +533,11 @@ export function Viewer({
             className="lab-hud-btn"
             onClick={() => actualView()}
             aria-label="1:1"
-            title="1:1"
+            title="1:1 — пиксель изображения на пиксель экрана"
           >
             <Scan className="size-4" strokeWidth={1.75} />
           </button>
-          {zoomPct !== 100 ? (
+          {zoomPct > 0 ? (
             <button
               type="button"
               className="lab-hud-btn lab-hud-readout"
@@ -544,7 +545,7 @@ export function Viewer({
               aria-label="Вписать"
               title="Вписать в рамку"
             >
-              {zoomPct}
+              {zoomPct}%
             </button>
           ) : null}
           <button
