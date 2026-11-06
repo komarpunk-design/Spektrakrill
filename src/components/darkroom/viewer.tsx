@@ -1,4 +1,4 @@
-import { framedCanvas, type FrameStyle } from "@/lib/film/photo-frame";
+import { framedCanvas, type FrameStyle, type FilmEdgeOptions } from "@/lib/film/photo-frame";
 import { actualPixelScale, clampViewerScale } from "@/lib/film/viewer-zoom";
 import { cn } from "@/lib/utils";
 import { MIDGRAY_D, samplePrintDensity, type DensitySample } from "@/lib/film/densitometer";
@@ -21,6 +21,7 @@ export function Viewer({
   gray18,
   padding,
   frameStyle,
+  frameSettings,
   processing,
   chromeHidden,
   clip,
@@ -41,6 +42,7 @@ export function Viewer({
   gray18: boolean;
   padding: number;
   frameStyle: FrameStyle;
+  frameSettings: FilmEdgeOptions;
   processing: boolean;
   chromeHidden: boolean;
   clip?: boolean;
@@ -421,7 +423,7 @@ export function Viewer({
     const image = new Image();
     image.onload = () => {
       if (cancelled) return;
-      const canvas = framedCanvas(image, image.naturalWidth, image.naturalHeight, frameStyle, padding);
+      const canvas = framedCanvas(image, image.naturalWidth, image.naturalHeight, frameStyle, padding, frameSettings);
       canvas.toBlob(blob => {
         if (cancelled || !blob) return;
         owned = URL.createObjectURL(blob); setFramedUrl(owned);
@@ -429,7 +431,7 @@ export function Viewer({
     };
     image.src = source;
     return () => { cancelled = true; image.onload = null; if (owned) URL.revokeObjectURL(owned); };
-  }, [processedUrl, originalUrl, frameStyle, padding, showOriginal]);
+  }, [processedUrl, originalUrl, frameStyle, padding, showOriginal, frameSettings.frameNumber, frameSettings.frameBarcode, frameSettings.frameDate, frameSettings.filmStock]);
   const pad = 0;
   const shown = showOriginal ? (originalUrl ?? processedUrl) : (framedUrl ?? processedUrl ?? originalUrl);
   const under = showOriginal

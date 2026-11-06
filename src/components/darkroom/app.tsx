@@ -1,4 +1,4 @@
-import { frameImageData } from "@/lib/film/photo-frame";
+import { frameImageData, edgeLabel } from "@/lib/film/photo-frame";
 import { toolChangeCount } from "@/lib/film/tool-state";
 import { Histogram } from "@/components/darkroom/histogram";
 import { Panel, TOOLS, dockTools } from "@/components/darkroom/panel";
@@ -346,7 +346,7 @@ function IconBtn({
 }
 
 function asNativeParams(p: DarkroomParams): Record<string, unknown> {
-  return p as unknown as Record<string, unknown>;
+  return { ...p, frameStockLabel: edgeLabel(p) } as unknown as Record<string, unknown>;
 }
 
 export function DarkroomApp() {
@@ -863,7 +863,7 @@ export function DarkroomApp() {
               linearToImageData(simulate(planar, film, paper, p), p.outputCctf),
               p.orientation,
             );
-            const framed = frameImageData(encoded, p.frameStyle, p.whitePadding);
+            const framed = frameImageData(encoded, p.frameStyle, p.whitePadding, p);
             const out = await imageDataToBlob(framed, mime, png ? 1 : q);
             if (isNativeRawAvailable()) {
               const saved = await saveNativeJpeg(name, out, mime);
@@ -1681,11 +1681,11 @@ export function DarkroomApp() {
           params.orientation,
         );
         if (abortRef.current) throw new Error("cancelled");
-        blob = await imageDataToBlob(frameImageData(encoded, params.frameStyle, params.whitePadding), mime, png ? 1 : q);
+        blob = await imageDataToBlob(frameImageData(encoded, params.frameStyle, params.whitePadding, params), mime, png ? 1 : q);
       } else if (procUrl) {
         setStatus({ label: "Кодирую превью", pct: 70 });
         const data = await loadUrl(procUrl);
-        blob = await imageDataToBlob(frameImageData(data, params.frameStyle, params.whitePadding), mime, png ? 1 : q);
+        blob = await imageDataToBlob(frameImageData(data, params.frameStyle, params.whitePadding, params), mime, png ? 1 : q);
       } else throw new Error("empty");
       if (abortRef.current) throw new Error("cancelled");
       setStatus({ label: "Пишу файл", pct: 92 });
@@ -2182,6 +2182,7 @@ export function DarkroomApp() {
               gray18={params.gray18Canvas}
               padding={params.whitePadding}
               frameStyle={params.frameStyle}
+              frameSettings={params}
               processing={busy}
               chromeHidden={chromeHidden}
               clip={showClip}

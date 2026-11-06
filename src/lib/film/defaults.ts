@@ -81,6 +81,9 @@ export function sanitizeParams(raw: unknown): DarkroomParams {
   const base = defaultParams();
   const p = raw && typeof raw === "object" ? (raw as Partial<DarkroomParams>) : {};
   const merged: DarkroomParams = { ...base, ...p };
+  merged.frameNumber = Number.isFinite(merged.frameNumber) ? Math.max(1,Math.min(99,Math.trunc(merged.frameNumber))) : 18;
+  merged.frameBarcode = merged.frameBarcode !== false;
+  merged.frameDate = typeof merged.frameDate === "string" ? merged.frameDate.slice(0,32) : "";
   merged.frameStyle = sanitizeFrameStyle(merged.frameStyle);
   merged.whitePadding = Number.isFinite(merged.whitePadding) ? Math.max(0.01, Math.min(0.2, merged.whitePadding)) : 0.04;
   merged.cameraDiffusion = sanitizeDiffusion(merged.cameraDiffusion);
@@ -159,6 +162,9 @@ export const defaultParams = (): DarkroomParams => ({
   gray18Canvas: false,
   whitePadding: 0.04,
   frameStyle: "none",
+  frameNumber: 18,
+  frameBarcode: true,
+  frameDate: "",
   crop: false,
   cropCenterX: 0.5,
   cropCenterY: 0.5,

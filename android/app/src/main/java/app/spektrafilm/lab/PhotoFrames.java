@@ -9,7 +9,16 @@ import android.os.Build;
 
 /** Frames are composited after orientation/crop, before encoding. The source is never cropped. */
 final class PhotoFrames {
-    static Bitmap apply(Bitmap source, String style, double width) {
+    static Bitmap apply(Bitmap source, org.json.JSONObject params) {
+        String style = params.optString("frameStyle", "none");
+        double width = params.optDouble("whitePadding", 0.04);
+        FilmEdgeStyle original = style.equals("135") || style.equals("film") ? FilmEdgeStyle.F135 : style.equals("120") ? FilmEdgeStyle.F120 : style.equals("minimal") ? FilmEdgeStyle.MINIMAL : null;
+        if (original != null) {
+            String date = params.optString("frameDate", "");
+            if (date.length() > 32) date = date.substring(0, 32);
+            FilmEdgeSettings settings = new FilmEdgeSettings(original, date, Math.max(1,Math.min(99,params.optInt("frameNumber",18))), params.optBoolean("frameBarcode",true));
+            return FilmEdgeKt.composeFilmEdge(source, settings, params.optString("frameStockLabel","SPEKTRAFILM"));
+        }
         if (!style.equals("white") && !style.equals("black") && !style.equals("instant") && !style.equals("film")) return source;
         double ratio = Double.isNaN(width) || Double.isInfinite(width) ? 0.04 : Math.max(0.01, Math.min(0.2, width));
         int p = Math.max(1, (int) Math.round(Math.min(source.getWidth(), source.getHeight()) * ratio));
@@ -25,23 +34,7 @@ final class PhotoFrames {
             Canvas canvas = new Canvas(result);
             canvas.drawColor(Color.parseColor(style.equals("black") || style.equals("film") ? "#141414" : "#f5f2e9"));
             canvas.drawBitmap(source, p, top, null);
-            if (style.equals("film")) {
-                Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-                paint.setColor(Color.parseColor("#ddd5bc"));
-                int holeW = Math.max(1, (int) Math.round(p * 0.7));
-                int holeH = Math.max(1, (int) Math.round(p * 0.48));
-                int step = Math.max(2, (int) Math.round(p * 1.4));
-                int offset = (int) Math.round(p * 0.25);
-                for (int x = p; x + holeW <= w - p; x += step) {
-                    canvas.drawRect(x, offset, x + holeW, offset + holeH, paint);
-                    canvas.drawRect(x, h - offset - holeH, x + holeW, h - offset, paint);
-                }
-                paint.setColor(Color.parseColor("#dc9e40"));
-                paint.setTypeface(Typeface.MONOSPACE);
-                paint.setTextSize(Math.max(1, (int) Math.round(p * 0.42)));
-                canvas.drawText("SPEKTRAFILM  35", p, (int) Math.round(p * 1.55), paint);
-                canvas.drawText("01  >", p, h - (int) Math.round(p * 0.95), paint);
-            }
+
             return result;
         } catch (RuntimeException | Error failure) {
             result.recycle(); throw failure;
