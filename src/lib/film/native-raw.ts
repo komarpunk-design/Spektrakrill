@@ -45,6 +45,7 @@ type NativeSim = {
 };
 
 const RawDecoder = registerPlugin<{
+  testPrint: (opts: {params: Record<string,unknown>; exposures: number[]}) => Promise<{images:{jpeg:string;width:number;height:number}[]}>;
   pickAndDecode: (opts: {
     maxEdge: number;
     cameraWb: boolean;
@@ -550,4 +551,9 @@ export async function loadNativeStockSource(
     throw new Error("stock missing");
   }
   return asDecoded(i, name || "frame");
+}
+
+/** Separate native batch; it never publishes files or replaces the editor preview. */
+export async function nativeTestPrint(params: Record<string,unknown>, exposures: number[]) {
+  return (await RawDecoder.testPrint({params, exposures})).images;
 }

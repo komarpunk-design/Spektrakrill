@@ -28,6 +28,7 @@ export type AppPrefs = {
   confirmExport: boolean;
   resetOnOpen: boolean;
   showLabTabs: boolean;
+  experimentalEnlarger: boolean;
   tapHidesChrome: boolean;
 };
 
@@ -36,6 +37,7 @@ export const defaultAppPrefs = (): AppPrefs => ({
   confirmExport: false,
   resetOnOpen: true,
   showLabTabs: false,
+  experimentalEnlarger: false,
   tapHidesChrome: false,
 });
 
@@ -556,6 +558,7 @@ export const useDarkroom = create<DarkroomStore>()(
         state.prefs.confirmExport = Boolean(state.prefs.confirmExport);
         state.prefs.resetOnOpen = state.prefs.resetOnOpen !== false;
         state.prefs.showLabTabs = Boolean(state.prefs.showLabTabs);
+        state.prefs.experimentalEnlarger = state.prefs.experimentalEnlarger === true;
         state.prefs.tapHidesChrome = Boolean(state.prefs.tapHidesChrome);
         if (state.source !== "file") {
           state.source = "none";

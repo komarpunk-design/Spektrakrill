@@ -309,6 +309,48 @@ public class RawDecoderPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void testPrint(PluginCall call) {
+        final JSONObject original = call.getObject("params");
+        final JSONArray exposures = call.getArray("exposures");
+        if (original == null || exposures == null || exposures.length() != 5) {
+            call.reject("Нужны настройки и пять выдержек"); return;
+        }
+        final int epoch = simEpoch.get();
+        cancelled.set(false);
+        work.execute(() -> {
+            synchronized (lock) {
+                byte[] savedJpeg = lastJpeg;
+                String savedMime = lastMime;
+                int savedWidth = lastOutWidth, savedHeight = lastOutHeight;
+                try {
+                    if (exporting.get()) throw new Exception("Дождитесь завершения экспорта");
+                    JSONArray images = new JSONArray();
+                    for (int index = 0; index < 5; index++) {
+                        if (cancelled.get() || epoch != simEpoch.get()) throw new Exception("cancelled");
+                        double exposure = exposures.getDouble(index);
+                        if (Double.isNaN(exposure) || Double.isInfinite(exposure) || exposure < 0.2 || exposure > 3) throw new Exception("Недопустимая выдержка");
+                        JSONObject trial = new JSONObject(original.toString());
+                        trial.put("printExposure", exposure);
+                        trial.put("previewMaxSize", 384);
+                        byte[] jpeg = simulateLocked(trial, false, false);
+                        JSONObject image = new JSONObject();
+                        image.put("jpeg", Base64.encodeToString(jpeg, Base64.NO_WRAP));
+                        image.put("width", lastOutWidth); image.put("height", lastOutHeight);
+                        images.put(image);
+                    }
+                    if (cancelled.get() || epoch != simEpoch.get()) throw new Exception("cancelled");
+                    JSObject result = new JSObject(); result.put("images", images); call.resolve(result);
+                } catch (Throwable error) {
+                    call.reject(friendlyError(error));
+                } finally {
+                    lastJpeg = savedJpeg; lastMime = savedMime;
+                    lastOutWidth = savedWidth; lastOutHeight = savedHeight;
+                }
+            }
+        });
+    }
+
+    @PluginMethod
     public void simulate(PluginCall call) {
         JSONObject paramsJson = call.getObject("params");
         boolean preview = Boolean.TRUE.equals(call.getBoolean("preview", true));
