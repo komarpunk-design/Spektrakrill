@@ -1,0 +1,26 @@
+name: Publish prepared Android APK
+on:
+  push:
+    branches: [apk-delivery-9-44-1381894]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify and publish prepared APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'b5f36c40e0c885b8902fc7f3fb2687fc4f327d290c468f95bc70c6fe125e42b7  release-payload/SpektrafilmLab-9.44-arm64.apk' | sha256sum --check
+          if ! gh release view v9.44-build114 >/dev/null 2>&1; then
+            gh release create v9.44-build114 --target 1381894f577a99413b0f43d89491854495f0c661 --title 'Spektrafilm 9.44 — Android ARM64' --prerelease --notes-file release-payload/notes.md
+          fi
+          gh release upload v9.44-build114 release-payload/SpektrafilmLab-9.44-arm64.apk
+          mkdir downloaded
+          gh release download v9.44-build114 --pattern SpektrafilmLab-9.44-arm64.apk --dir downloaded
+          echo 'b5f36c40e0c885b8902fc7f3fb2687fc4f327d290c468f95bc70c6fe125e42b7  downloaded/SpektrafilmLab-9.44-arm64.apk' | sha256sum --check
