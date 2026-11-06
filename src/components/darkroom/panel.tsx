@@ -1,3 +1,4 @@
+import { FRAME_STYLES } from "@/lib/film/photo-frame";
 import { stockDetail, stockSpec, stockCategory } from "@/lib/film/stock-details";
 import { Field, Select, Segmented, SliderRow, ToggleRow } from "@/components/ui/control";
 import { isNativeRawAvailable, pickNativeText, getNativeLog, clearNativeLog, openExternalUrl } from "@/lib/film/native-raw";
@@ -1205,7 +1206,7 @@ export function Panel({
           <SliderRow
             label="Предвспышка"
             hint={fmt(params.preflashExposure, 3)}
-            min={0}
+            min={0.01}
             max={0.2}
             step={0.005}
             value={params.preflashExposure}
@@ -1538,10 +1539,15 @@ export function Panel({
             checked={params.gray18Canvas}
             onChange={(v) => setParam("gray18Canvas", v)}
           />
+          <div className="lab-frame-picker" role="group" aria-label="Рамка фотографии">
+            <p>Оформление фотографии</p>
+            {FRAME_STYLES.map(style => <button key={style.value} type="button" className={params.frameStyle === style.value ? "is-selected" : ""} aria-pressed={params.frameStyle === style.value} onClick={() => setParam("frameStyle", style.value)}><span className={`lab-frame-swatch is-${style.value}`} /><span>{style.label}</span></button>)}
+            <small>Рамка сохраняется в готовом JPEG или PNG. Исходник не обрезается.</small>
+          </div>
           <SliderRow
-            label="Рамка"
-            hint={fmt(params.whitePadding, 2)}
-            min={0}
+            label="Ширина рамки"
+            hint={`${Math.round(params.whitePadding * 100)}%`}
+            min={0.01}
             max={0.2}
             step={0.01}
             value={params.whitePadding}

@@ -1,3 +1,4 @@
+import { frameImageData } from "@/lib/film/photo-frame";
 import { toolChangeCount } from "@/lib/film/tool-state";
 import { Histogram } from "@/components/darkroom/histogram";
 import { Panel, TOOLS, dockTools } from "@/components/darkroom/panel";
@@ -862,14 +863,15 @@ export function DarkroomApp() {
               linearToImageData(simulate(planar, film, paper, p), p.outputCctf),
               p.orientation,
             );
-            const out = await imageDataToBlob(encoded, mime, png ? 1 : q);
+            const framed = frameImageData(encoded, p.frameStyle, p.whitePadding);
+            const out = await imageDataToBlob(framed, mime, png ? 1 : q);
             if (isNativeRawAvailable()) {
               const saved = await saveNativeJpeg(name, out, mime);
-              await rememberShot(name, encoded.width, encoded.height, saved.uri);
+              await rememberShot(name, framed.width, framed.height, saved.uri);
               setStockItems(patchStock(item.id, { status: "done", exportedUri: saved.uri }));
             } else {
               downloadBlob(out, name);
-              await rememberShot(name, encoded.width, encoded.height);
+              await rememberShot(name, framed.width, framed.height);
               setStockItems(patchStock(item.id, { status: "done" }));
               await new Promise((r) => setTimeout(r, 450));
             }
@@ -1679,10 +1681,11 @@ export function DarkroomApp() {
           params.orientation,
         );
         if (abortRef.current) throw new Error("cancelled");
-        blob = await imageDataToBlob(encoded, mime, png ? 1 : q);
+        blob = await imageDataToBlob(frameImageData(encoded, params.frameStyle, params.whitePadding), mime, png ? 1 : q);
       } else if (procUrl) {
         setStatus({ label: "Кодирую превью", pct: 70 });
-        blob = await (await fetch(procUrl)).blob();
+        const data = await loadUrl(procUrl);
+        blob = await imageDataToBlob(frameImageData(data, params.frameStyle, params.whitePadding), mime, png ? 1 : q);
       } else throw new Error("empty");
       if (abortRef.current) throw new Error("cancelled");
       setStatus({ label: "Пишу файл", pct: 92 });
@@ -2162,7 +2165,8 @@ export function DarkroomApp() {
                 type="button"
                 aria-pressed={showClip}
                 onClick={() => setShowClip(!showClip)}
-                title="Показать пересветы"
+                title="Показать пересветы (без рамки)"
+                disabled={params.frameStyle !== "none"}
               >
                 <ScanLine size={14} />
                 Пересветы
@@ -2177,6 +2181,7 @@ export function DarkroomApp() {
               showOriginal={showOriginal}
               gray18={params.gray18Canvas}
               padding={params.whitePadding}
+              frameStyle={params.frameStyle}
               processing={busy}
               chromeHidden={chromeHidden}
               clip={showClip}

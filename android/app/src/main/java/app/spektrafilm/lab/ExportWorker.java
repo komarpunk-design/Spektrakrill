@@ -309,6 +309,9 @@ public final class ExportWorker {
             }
             if (ExportService.cancelled.get()) throw new Exception("cancelled");
             String mime = format.toLowerCase().contains("png") ? "image/png" : "image/jpeg";
+            Bitmap framed = PhotoFrames.apply(bmp, paramsJson.optString("frameStyle", "none"), paramsJson.optDouble("whitePadding", 0.04));
+            if (framed != bmp) { bmp.recycle(); bmp = framed; }
+            outW = bmp.getWidth(); outH = bmp.getHeight();
             android.net.Uri uri = writeBitmap(ctx, name, mime, quality, bmp);
             try {
                 ExportGallery.record(ctx, name, uri, outW, outH, bmp);

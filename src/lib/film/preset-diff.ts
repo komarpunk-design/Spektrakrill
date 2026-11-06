@@ -26,6 +26,7 @@ const SKIP = new Set<keyof DarkroomParams>([
   "previewMaxSize",
   "gray18Canvas",
   "whitePadding",
+  "frameStyle",
   "cropAspect",
   "applyCctfDecoding",
   "upscaleFactor",

@@ -1,6 +1,6 @@
 node_modules/
 swapfile
-screenshots/
+/screenshots/
 apt/
 .vercel/
 attachments/

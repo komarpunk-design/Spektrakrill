@@ -130,6 +130,7 @@ const KEY_ALIAS: Record<string, keyof DarkroomParams> = {
   exportcolorspace: "exportColorSpace",
   gray18canvas: "gray18Canvas",
   whitepadding: "whitePadding",
+  framestyle: "frameStyle",
 };
 
 function camelize(key: string): string {
