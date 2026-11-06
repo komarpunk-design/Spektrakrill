@@ -1896,42 +1896,8 @@ public class RawDecoderPlugin extends Plugin {
     }
 
     private android.net.Uri writeToPictures(String name, String mime, byte[] bytes) throws Exception {
-        android.content.ContentResolver resolver = getContext().getContentResolver();
-        if (mime == null || mime.isEmpty()) mime = "image/jpeg";
-        if (android.os.Build.VERSION.SDK_INT >= 29) {
-            android.content.ContentValues values = new android.content.ContentValues();
-            values.put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, name);
-            values.put(android.provider.MediaStore.Images.Media.MIME_TYPE, mime);
-            values.put(
-                    android.provider.MediaStore.Images.Media.RELATIVE_PATH,
-                    android.os.Environment.DIRECTORY_PICTURES + "/Spektrafilm");
-            values.put(android.provider.MediaStore.Images.Media.IS_PENDING, 1);
-            android.net.Uri uri =
-                    resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-            if (uri == null) throw new Exception("gallery");
-            try (java.io.OutputStream os = resolver.openOutputStream(uri)) {
-                if (os == null) throw new Exception("write");
-                os.write(bytes);
-            }
-            android.content.ContentValues done = new android.content.ContentValues();
-            done.put(android.provider.MediaStore.Images.Media.IS_PENDING, 0);
-            resolver.update(uri, done, null, null);
-            return uri;
-        }
-        File pictures = android.os.Environment.getExternalStoragePublicDirectory(
-                android.os.Environment.DIRECTORY_PICTURES);
-        File dir = new File(pictures, "Spektrafilm");
-        if (!dir.exists() && !dir.mkdirs()) throw new Exception("folder");
-        File outFile = new File(dir, name);
-        try (FileOutputStream fos = new FileOutputStream(outFile)) {
-            fos.write(bytes);
-        }
-        android.media.MediaScannerConnection.scanFile(
-                getContext(),
-                new String[] {outFile.getAbsolutePath()},
-                new String[] {mime},
-                null);
-        return android.net.Uri.fromFile(outFile);
+        if (bytes == null || bytes.length == 0) throw new Exception("Файл экспорта пуст");
+        return VerifiedMediaWriter.save(getContext(), name, mime, output -> output.write(bytes));
     }
 
     private static byte[] readAll(File f) throws Exception {

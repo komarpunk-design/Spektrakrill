@@ -1,3 +1,4 @@
+import { toolChangeCount } from "@/lib/film/tool-state";
 import { Histogram } from "@/components/darkroom/histogram";
 import { Panel, TOOLS, dockTools } from "@/components/darkroom/panel";
 import { GalleryPane } from "@/components/darkroom/gallery";
@@ -2346,6 +2347,7 @@ export function DarkroomApp() {
         {dockTools(params.rawEngine, params.filmStock, prefs.showLabTabs, tool).map((item) => {
           const Icon = TOOL_ICONS[item.id];
           const on = tool === item.id;
+          const changes = toolChangeCount(params, item.id);
           return (
             <button
               key={item.id}
@@ -2353,7 +2355,8 @@ export function DarkroomApp() {
               className={on ? "lab-tool is-on" : "lab-tool"}
               aria-pressed={on}
               aria-label={item.label}
-              title={item.label}
+              title={changes ? `${item.label}: изменено параметров — ${changes}` : item.label}
+              aria-description={changes ? `Изменено параметров: ${changes}` : "Без изменений"}
               onPointerDown={() => onToolHoldDown(item.id)}
               onPointerUp={onToolHoldUp}
               onPointerCancel={onToolHoldUp}
@@ -2367,6 +2370,7 @@ export function DarkroomApp() {
               }}
             >
               <Icon className="size-5" strokeWidth={1.6} />
+              {changes > 0 ? <span className="lab-edited-dot" aria-hidden="true" /> : null}
               {item.id === "stock" && pendingStock > 0 ? (
                 <span className="lab-tool-badge">{pendingStock > 9 ? "9+" : pendingStock}</span>
               ) : null}

@@ -1,3 +1,4 @@
+import { stockDetail, stockSpec, stockCategory } from "@/lib/film/stock-details";
 import { Field, Select, Segmented, SliderRow, ToggleRow } from "@/components/ui/control";
 import { isNativeRawAvailable, pickNativeText, getNativeLog, clearNativeLog, openExternalUrl } from "@/lib/film/native-raw";
 import { clearJsLog, jsLogText, pushLabLog } from "@/lib/film/lab-log";
@@ -154,8 +155,10 @@ function BoxShelf({
           ? hay(query, "none", "без бумаги", "off", "no paper")
           : hay(query, "none", "без плёнки", "исходник", "raw");
       }
-      return hay(query, id, item?.name, item?.iso, boxShortName(item?.name ?? id));
+      return hay(query, id, item?.name, item?.iso, boxShortName(item?.name ?? id), stockDetail(id)?.summary, stockDetail(id)?.manufacturer, stockCategory(id));
     });
+  const selected = byId.get(value);
+  const selectedDetail = stockDetail(value);
   const trackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -168,6 +171,11 @@ function BoxShelf({
   }
   return (
     <div className="lab-shelf">
+      {selected && value !== "none" ? <section className="lab-stock-detail" aria-label="Сведения о профиле" aria-live="polite">
+        <strong>{selected.name}</strong>
+        <span>{stockCategory(value)}{stockSpec(selected) ? ` · ${stockSpec(selected)}` : ""}</span>
+        {selectedDetail ? <p>{selectedDetail.summary}</p> : <p>Пользовательский профиль. Проверьте результат на своём кадре.</p>}
+      </section> : null}
       <div className="lab-shelf-track" ref={trackRef}>
         {ids.map((id) => {
           const item = byId.get(id);
@@ -198,6 +206,7 @@ function BoxShelf({
               <span className="lab-box-band" />
               <span className="lab-box-iso">{iso}</span>
               <span className="lab-box-title">{boxShortName(name)}</span>
+              {id !== "none" && stockDetail(id)?.balance ? <span className="lab-box-balance">{stockDetail(id)?.balance === "tungsten" ? "Лампы" : "Дневной"}</span> : null}
             </button>
           );
         })}
@@ -1725,6 +1734,8 @@ function SettingsPane({ onNotice }: { onNotice?: (msg: string) => void }) {
           <div className="lab-about">
             <p className="lab-about-name">{APP_NAME}</p>
             <p className="lab-about-ver">Версия {APP_VERSION}</p>
+            <p className="lab-about-copy">Улучшения по материалам Spektrafilm for Android. Лицензия GPLv3.</p>
+            {[{name: "Spektrafilm for Android — Akshay Sharma", url: "https://github.com/thetechgeekko/Spektrafilm-android"}, {name: "Моделирование плёнки — Andrea Volpato", url: "https://github.com/andreavolpato/spektrafilm"}, {name: "Использованный форк — hwx959", url: "https://github.com/hwx959/Spektrafilm-android"}].map(credit => <a key={credit.url} className="lab-credit" href={credit.url} target="_blank" rel="noopener noreferrer" onClick={event => { event.preventDefault(); void openExternalUrl(credit.url); }}>{credit.name}</a>)}
             {APP_COPY.map((p) => (
               <p key={p.slice(0, 24)} className="lab-about-copy">
                 {p}
@@ -1780,7 +1791,7 @@ function SettingsPane({ onNotice }: { onNotice?: (msg: string) => void }) {
           }}
         >
           <span>
-            <span className="lab-set-go-title">Канал в Telegram</span>
+            <span className="lab-set-go-title">Исходный проект</span>
             <span className="lab-set-go-hint">{CHANNEL_HANDLE}</span>
           </span>
           <ChevronRight className="size-4 shrink-0 text-subtle" strokeWidth={1.75} />
