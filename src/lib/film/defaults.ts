@@ -1,3 +1,4 @@
+import { sanitizeFrameStyle } from "./photo-frame.ts";
 import type { DarkroomParams, DiffusionFamily, DiffusionState } from "./types.ts";
 import { isFilmBypass, isPaperBypass } from "./types.ts";
 import {
@@ -80,6 +81,8 @@ export function sanitizeParams(raw: unknown): DarkroomParams {
   const base = defaultParams();
   const p = raw && typeof raw === "object" ? (raw as Partial<DarkroomParams>) : {};
   const merged: DarkroomParams = { ...base, ...p };
+  merged.frameStyle = sanitizeFrameStyle(merged.frameStyle);
+  merged.whitePadding = Number.isFinite(merged.whitePadding) ? Math.max(0.01, Math.min(0.2, merged.whitePadding)) : 0.04;
   merged.cameraDiffusion = sanitizeDiffusion(merged.cameraDiffusion);
   merged.printDiffusion = sanitizeDiffusion(merged.printDiffusion);
   const wb = sanitizeWb(merged);
@@ -155,6 +158,7 @@ export const defaultParams = (): DarkroomParams => ({
   previewMaxSize: 960,
   gray18Canvas: false,
   whitePadding: 0.04,
+  frameStyle: "none",
   crop: false,
   cropCenterX: 0.5,
   cropCenterY: 0.5,

@@ -7,6 +7,7 @@ const DISPLAY_ONLY: (keyof DarkroomParams)[] = [
   "exportMaxEdge",
   "gray18Canvas",
   "whitePadding",
+  "frameStyle",
   "autoPreview",
   "gpuExport",
   "cropAspect",

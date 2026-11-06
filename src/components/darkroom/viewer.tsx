@@ -1,3 +1,4 @@
+import { framedCanvas, type FrameStyle } from "@/lib/film/photo-frame";
 import { actualPixelScale, clampViewerScale } from "@/lib/film/viewer-zoom";
 import { cn } from "@/lib/utils";
 import { MIDGRAY_D, samplePrintDensity, type DensitySample } from "@/lib/film/densitometer";
@@ -19,6 +20,7 @@ export function Viewer({
   showOriginal,
   gray18,
   padding,
+  frameStyle,
   processing,
   chromeHidden,
   clip,
@@ -38,6 +40,7 @@ export function Viewer({
   showOriginal: boolean;
   gray18: boolean;
   padding: number;
+  frameStyle: FrameStyle;
   processing: boolean;
   chromeHidden: boolean;
   clip?: boolean;
@@ -69,6 +72,8 @@ export function Viewer({
   const [probe, setProbe] = useState(false);
   const [hud, setHud] = useState(false);
   const hudTimer = useRef<number | null>(null);
+
+  useEffect(() => { if (frameStyle !== "none") setProbe(false); }, [frameStyle]);
 
   const bumpHud = () => {
     setHud(true);
@@ -406,11 +411,30 @@ export function Viewer({
     else actualView(e.clientX, e.clientY);
   };
 
-  const pad = Math.round(padding * 36);
-  const shown = showOriginal ? (originalUrl ?? processedUrl) : (processedUrl ?? originalUrl);
+  const [framedUrl, setFramedUrl] = useState<string | null>(null);
+  useEffect(() => {
+    const source = processedUrl || originalUrl;
+    if (!source || frameStyle === "none" || showOriginal) { setFramedUrl(null); return; }
+    let cancelled = false;
+    let owned: string | null = null;
+    setFramedUrl(null);
+    const image = new Image();
+    image.onload = () => {
+      if (cancelled) return;
+      const canvas = framedCanvas(image, image.naturalWidth, image.naturalHeight, frameStyle, padding);
+      canvas.toBlob(blob => {
+        if (cancelled || !blob) return;
+        owned = URL.createObjectURL(blob); setFramedUrl(owned);
+      }, "image/png");
+    };
+    image.src = source;
+    return () => { cancelled = true; image.onload = null; if (owned) URL.revokeObjectURL(owned); };
+  }, [processedUrl, originalUrl, frameStyle, padding, showOriginal]);
+  const pad = 0;
+  const shown = showOriginal ? (originalUrl ?? processedUrl) : (framedUrl ?? processedUrl ?? originalUrl);
   const under = showOriginal
     ? null
-    : originalUrl && processedUrl && originalUrl !== processedUrl
+    : frameStyle === "none" && originalUrl && processedUrl && originalUrl !== processedUrl
       ? originalUrl
       : null;
 
@@ -449,7 +473,7 @@ export function Viewer({
               draggable={false}
               className={cn("lab-print-img", under && "lab-print-img-over")}
             />
-            {clip && !showOriginal ? (
+            {clip && !showOriginal && frameStyle === "none" ? (
               <canvas ref={clipRef} className="lab-print-clip" />
             ) : (
               <canvas ref={clipRef} className="hidden" />
@@ -553,6 +577,7 @@ export function Viewer({
             className={clip ? "lab-hud-btn is-on" : "lab-hud-btn"}
             onClick={() => onToggleClip?.()}
             aria-label="Зебра"
+            disabled={frameStyle !== "none"}
             title="Зебра"
           >
             <Blend className="size-4" strokeWidth={1.75} />
@@ -562,6 +587,7 @@ export function Viewer({
             className={probe ? "lab-hud-btn is-on" : "lab-hud-btn"}
             onClick={() => setProbe((v) => !v)}
             aria-label="Пятно"
+            disabled={frameStyle !== "none"}
             title="Пятно"
           >
             <Crosshair className="size-4" strokeWidth={1.75} />
