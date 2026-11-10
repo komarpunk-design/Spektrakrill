@@ -1,3 +1,6 @@
+import experimentalProfileIds from "./experimental-profile-ids.json" with {type:"json"};
+import families from "./experimental-families.json" with {type:"json"};
+import { sanitizeExperimental } from "./experimental.ts";
 import { defaultParams, sanitizeDiffusion, sanitizeWb } from "./defaults.ts";
 import type {
   DarkroomParams,
@@ -220,7 +223,7 @@ function mapInputGamut(v: unknown): InputGamutMode | undefined {
 
 function mapOutputGamut(v: unknown): OutputGamutMode | undefined {
   const s = gamutAlgo(v);
-  if (s === "legacy_clip" || s === "off" || s === "aces_rgc" || s === "oklch" || s === "oklrab") return s;
+  if (s === "legacy_clip" || s === "off" || s === "aces_rgc" || s === "oklch" || s === "oklrab" || s === "jzazbz" || s === "cam16ucs") return s;
   return undefined;
 }
 
@@ -267,6 +270,7 @@ function applyScalar(out: Record<string, unknown>, key: string, v: unknown) {
     if (g) out.outputGamutCompress = g;
     return;
   }
+  if(alias === "experimental"){out.experimental=sanitizeExperimental(v);return;}
   if (v && typeof v === "object") return;
   out[alias] = v;
 }
@@ -535,7 +539,7 @@ export function spektraToParams(raw: Record<string, unknown>): DarkroomParams {
   const og = mapOutputGamut(p.outputGamutCompress ?? p.output_gamut_compress);
   if (og) out.outputGamutCompress = og;
 
-  const film = asRec(p.filmRender);
+  const film = asRec(p.filmRender ?? p.film_render);
   if (film) {
     put(out, "filmGamma", num(val(film, "densityCurveGamma", "filmGamma")));
     const g = asRec(val(film, "grain"));
@@ -556,7 +560,7 @@ export function spektraToParams(raw: Record<string, unknown>): DarkroomParams {
   if (asRec(p.halation)) applyHalation(out, asRec(p.halation)!);
   if (asRec(p.couplers) || asRec(p.dirCouplers)) applyCouplers(out, asRec(p.couplers) ?? asRec(p.dirCouplers)!);
 
-  const print = asRec(p.printRender);
+  const print = asRec(p.printRender ?? p.print_render);
   if (print) {
     put(out, "printGamma", num(val(print, "densityCurveGamma", "printGamma")));
     const morph = asRec(val(print, "densityCurvesMorph"));
@@ -598,6 +602,44 @@ export function spektraToParams(raw: Record<string, unknown>): DarkroomParams {
     put(out, "rawEngineStyle", str(val(set, "rawEngineStyle", "hncsStyle", "lumixPhotoStyle")));
     put(out, "previewMaxSize", num(val(set, "previewMaxSize")));
   }
+
+  // Experimental Python schema. Merge per block so missing keys retain defaults.
+  const experimental = {...sanitizeExperimental(out.experimental)} as Record<string, unknown>;
+  const copy = (block:Record<string,unknown>|null, source:string, dest:string) => {
+    const v=block ? val(block, source) : undefined; if(v!==undefined)experimental[dest]=v;
+  };
+  const chemistry=asRec(film ? val(film,"chemistry") : null);
+  if(chemistry){
+    experimental.filmChemistry=val(chemistry,"active")!==false;
+    put(out,"filmGamma",num(val(chemistry,"gammaFactor")));
+    for(const [source,dest] of Object.entries({gammaFactorFast:'filmFast',gammaFactorSlow:'filmSlow',gammaFactorRed:'filmRed',gammaFactorGreen:'filmGreen',gammaFactorBlue:'filmBlue',developerExhaustion:'filmExhaustion'}))copy(chemistry,source,dest);
+  }
+  const paperChem=asRec(print ? val(print,"chemistry") : null);
+  if(paperChem)applyChemistry(out,{active:true,...paperChem},"print");
+  for(const [block,prefix] of [[film,'film'],[print,'print']] as const){
+    const base=asRec(block ? val(block,"base") : null);
+    if(base){experimental[prefix+'BaseActive']=val(base,'active')!==false;for(const name of ['scale','cyan','magenta','yellow',...(prefix==='film'?['tilt']:[])])copy(base,name,prefix+'Base'+name[0].toUpperCase()+name.slice(1));}
+    const minutes=num(val((prefix==='film'?chemistry:paperChem)??{},'developmentTime'));
+    const key=prefix==='film'?'filmStock':'printPaper',stock=String(out[key]??'').replace(/^exp_/,'');
+    const family=families.find(f=>f.stock===stock||f.members.some(m=>m.id===out[key]));
+    if(family&&minutes!==undefined){const member=family.members.find(m=>m.minutes===minutes);if(member)out[key]=member.id;}
+  }
+  const convert=asRec(film ? val(film,'convert') : null);
+  if(convert)for(const [source,dest] of Object.entries({scanIlluminant:'scanIlluminant',basePercentile:'scanBasePercentile',exposureCompensationEv:'scanExposure',calibration:'scanCalibration'}))copy(convert,source,dest);
+  const grain=asRec(film ? val(film,'grain') : null), couplers=asRec(film ? val(film,'dirCouplers') : null);
+  for(const [block,source,prefix] of [[grain,'rmsGranularity','grainRms'],[grain,'densityMin','grainFloor'],[grain,'uniformity','grainUniformity'],[couplers,'langmuirDonorKRgb','dirDonor'],[couplers,'langmuirReceiverKRgb','dirReceiver']] as const){
+    const values=arr(block ? val(block,source) : null);if(values){for(let i=0;i<3;i++)experimental[prefix+['Red','Green','Blue'][i]]=values[i]??values[0];if(prefix==='grainRms')experimental.grainRms=true;if(prefix.startsWith('dir'))experimental.dirLangmuir=true;}
+  }
+  const scales=arr(grain ? val(grain,'particleScaleSublayers') : null);if(scales)for(let i=0;i<3;i++)experimental['grainScale'+['Fast','Mid','Slow'][i]]=scales[i]??scales[0];
+  copy(grain,'multUsmSigma','grainUsmSigma');copy(grain,'multUsmAmount','grainUsmAmount');copy(couplers,'diffusionTailUm','dirTailUm');copy(couplers,'diffusionTailWeight','dirTailWeight');
+  copy(cam,'colorFilter','colorFilter');copy(set,'rgbToRawMethod','spectralMethod');copy(set,'useConvertLut','scanUseLut');
+  const route=str(val(asRec(p.workflow)??{},'route'));
+  if(route?.includes('convert-film'))experimental.workflow=route.endsWith('scan-minus-base')?'negative-clear':route.includes('print')?'negative-print':'negative-scan';
+  else if(route)put(out,'scanFilm',route==='input > film > scan');
+  if(p.film_render||p.print_render||p.workflow){
+    for(const key of ['filmStock','printPaper']){const id=String(out[key]??'');if(experimentalProfileIds.includes('exp_'+id))out[key]='exp_'+id;}
+  }
+  out.experimental=sanitizeExperimental(experimental);
 
   const tc = asRec(p.toneCurve);
   if (tc) {

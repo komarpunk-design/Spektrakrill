@@ -39,3 +39,21 @@ The fork identifies this compositor as its own GPLv3 implementation, with a pale
 matched to SpektraLab-CN. No Chinese translation resources, prebuilt native libraries
 or signing keys are used. Upstream Android and spectral-engine attributions above
 remain required and are displayed by our About page.
+
+## Experimental spectral / emulsion integration (version 9.48)
+
+New model code, controls and converted assets are adapted from Andrea Volpato's
+[Spektrafilm experimental branch, commit 28bf883e1672e884307edc75852549376e13644e](https://github.com/andreavolpato/spektrafilm/tree/28bf883e1672e884307edc75852549376e13644e).
+Code is GPLv3; the reference profile data are CC BY-SA 4.0. Profile conversion
+retains attribution/metadata and source hashes. Original license and citation
+are in `docs/upstream/experimental/`. Spectral-basis source hashes are recorded
+in `docs/upstream/experimental/spectral-assets.json`; basis algorithms retain
+their reference names. Named illuminant spectra/CIE observer data derive from
+the reference's colour-science library.
+
+The port includes chemistry, spectral base tuning, camera filters, RMS sizing,
+Langmuir DIR, spectral reconstruction, negative scan inversion and calibration
+objectives. Android calibration uses its own bounded LM optimizer. Exact scope,
+numerical checks and remaining differences are documented in
+`docs/EXPERIMENTAL_PARITY.md`. No upstream Chinese localization or binaries are
+included. Original upstream photo-frame attribution above remains applicable.

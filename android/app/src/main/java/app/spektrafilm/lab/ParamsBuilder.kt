@@ -60,7 +60,24 @@ object ParamsBuilder {
         val inCs = if (inputColorSpace.isNullOrBlank()) "ProPhoto RGB" else inputColorSpace
         val paperRaw = firstStr(p, "kodak_portra_endura", "printPaper", "printProfile", "print_profile")
         val paperOff = isBypass(paperRaw)
+        val workflow = p.optJSONObject("experimental")?.optString("workflow", "normal") ?: "normal"
+        val negative = workflow != "normal"
+        val filmRaw = firstStr(p, "kodak_portra_400", "filmStock", "filmProfile", "film_profile")
+        require(!negative || !isBypass(filmRaw)) { "Для конвертации негатива выберите цветную негативную плёнку" }
+        require(workflow != "negative-print" || !paperOff) { "Для печати негатива выберите фотобумагу" }
         return SpektraParams(
+            experimentalJson = JSONObject(p.optJSONObject("experimental")?.toString() ?: "{}").apply {
+                if (optString("spectralMethod", "legacy") == "legacy" && p.optString("rgbToRawMethod", "hanatos2025") == "mallett2019") put("spectralMethod", "mallett2019")
+                if (forExport) put("scanUseLut", false)
+                put("printChemistry", p.optBoolean("chemistryActive", false))
+                put("printGamma", p.optDouble("printGamma", 1.0))
+                put("printFast", p.optDouble("printGammaFast", 1.0))
+                put("printSlow", p.optDouble("printGammaSlow", 1.0))
+                put("printRed", p.optDouble("printGammaR", 1.0))
+                put("printGreen", p.optDouble("printGammaG", 1.0))
+                put("printBlue", p.optDouble("printGammaB", 1.0))
+                put("printExhaustion", p.optDouble("developerExhaustion", 0.0))
+            }.toString(),
             filmProfile = firstStr(p, "kodak_portra_400", "filmStock", "filmProfile", "film_profile"),
             printProfile = if (paperOff) "kodak_portra_endura" else paperRaw,
             camera = CameraParams(
@@ -112,7 +129,7 @@ object ParamsBuilder {
                 cropSize = p.optDouble("cropSizeX", 0.35).toFloat() to
                     p.optDouble("cropSizeY", 0.35).toFloat(),
                 upscaleFactor = if (forExport) 1f else p.optDouble("upscaleFactor", 1.0).toFloat(),
-                scanFilm = p.optBoolean("scanFilm", false) || paperOff,
+                scanFilm = if (negative) workflow != "negative-print" else p.optBoolean("scanFilm", false) || paperOff,
             ),
             settings = SettingsParams(
                 rgbToRawMethod = if (p.optString("rgbToRawMethod", "hanatos2025") == "mallett2019")

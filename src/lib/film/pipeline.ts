@@ -1,3 +1,5 @@
+import { applyLangmuirCouplers } from "./experimental-couplers.ts";
+import { withExperimentalProfile, rmsParticleAreas } from "./experimental-math.ts";
 import type { DarkroomParams, DiffusionFamily, FilmProfile, Vec3 } from "./types.ts";
 import { isFilmBypass, isPaperBypass } from "./types.ts";
 import {
@@ -428,6 +430,11 @@ export function cameraBandPassScales(e: number, t: number): Vec3 {
 const GRAIN_LAYER_SCALE = [2, 1, 0.5];
 function applyGrain(e: Float32Array, t: Float32Array, n: Float32Array, r: number, i: number, a: DarkroomParams, o: FilmProfile, s: number): void {
   if (!a.grainActive) return;
+  if(a.experimental?.grainRms){
+    const area=rmsParticleAreas(o,a.experimental);
+    a={...a,grainParticleArea:1,grainScaleR:area[0],grainScaleG:area[1],grainScaleB:area[2],grainDensityMin:(a.experimental.grainFloorRed+a.experimental.grainFloorGreen+a.experimental.grainFloorBlue)/3,grainUniformity:(a.experimental.grainUniformityRed+a.experimental.grainUniformityGreen+a.experimental.grainUniformityBlue)/3};
+  }
+
   let c = e.length,
     l = Math.max(0.5, Math.min(s, 16)),
     u = l * l,
@@ -510,6 +517,16 @@ function applyGrain(e: Float32Array, t: Float32Array, n: Float32Array, r: number
       t.set(blurPlane(y[1], r, i, b)),
       n.set(blurPlane(y[2], r, i, b)))
     : (e.set(y[0]), t.set(y[1]), n.set(y[2]));
+  if(a.experimental?.grainRms&&a.experimental.grainUsmAmount>0&&a.experimental.grainUsmSigma>0){
+    const exp=a.experimental,planes=[e,t,n],floors=[exp.grainFloorRed,exp.grainFloorGreen,exp.grainFloorBlue];
+    for(let channel=0;channel<3;channel++){
+      const plane=planes[channel],absolute=Float32Array.from(plane,v=>Math.max(0,v+floors[channel])),low=blurPlane(absolute,r,i,exp.grainUsmSigma);
+      let before=0,after=0;
+      for(let k=0;k<plane.length;k++){const d=absolute[k];before+=d;plane[k]=d<=0?0:Math.max(d,1e-6)**(1+exp.grainUsmAmount)/Math.max(low[k],1e-6)**exp.grainUsmAmount;after+=plane[k];}
+      for(let k=0;k<plane.length;k++)plane[k]=plane[k]*(after>0?before/after:1)-floors[channel];
+    }
+  }
+
 }
 function cmyToRgbOd(e: number, t: number, n: number, r: number[][], i: Vec3): Vec3 {
   return [
@@ -639,6 +656,7 @@ function filmingKey(p: DarkroomParams, img: PlanarImage, draft: boolean): string
     p.inhibitionInterlayer,
     p.couplerDiffusionUm,
     p.filmGamma,
+    JSON.stringify(p.experimental),
     p.crop ? 1 : 0,
     p.cropSizeX,
     p.cropSizeY,
@@ -695,6 +713,16 @@ function takeOut(w: number, h: number): PlanarImage {
 
 export function simulate(e: PlanarImage, t: FilmProfile | null, n: FilmProfile | null, r: DarkroomParams, i = false): PlanarImage {
   if (!e || e.w < 1 || e.h < 1 || !e.r || e.r.length < e.w * e.h) return e;
+  const experiment=r.experimental;
+  if(experiment?.workflow&&experiment.workflow!=="normal")throw new Error("Обработка сканов негативов доступна в Android APK. В меню «Эмульсия» выберите обычную фотографию для браузерного предпросмотра.");
+  const filmGamma=experiment?.filmChemistry?1:r.filmGamma;
+  if(t&&experiment)t=withExperimentalProfile(t,experiment,true,experiment.filmChemistry?{gamma:r.filmGamma,fast:experiment.filmFast,slow:experiment.filmSlow,red:experiment.filmRed,green:experiment.filmGreen,blue:experiment.filmBlue,exhaustion:experiment.filmExhaustion}:undefined);
+  if(n&&experiment){
+    const morph=r.chemistryActive&&n.densityModel?{gamma:r.printGamma,fast:r.printGammaFast,slow:r.printGammaSlow,red:r.printGammaR,green:r.printGammaG,blue:r.printGammaB,exhaustion:r.developerExhaustion}:undefined;
+    n=withExperimentalProfile(n,experiment,false,morph);
+    if(morph)r={...r,chemistryActive:false,printGamma:1};
+  }
+
   let o = e.r.length,
     s = Math.max(e.w, e.h),
     c =
@@ -703,6 +731,9 @@ export function simulate(e: PlanarImage, t: FilmProfile | null, n: FilmProfile |
         1e3) /
       s,
     l = cameraBandPassScales(r.filterUvAmount, r.filterIrAmount);
+  const taking=t?.takingFilters?.[experiment?.colorFilter??"none"];
+  if(t&&taking){t={...t,rgbToFilm:taking.matrix};l=[l[0]*taking.gain[0],l[1]*taking.gain[1],l[2]*taking.gain[2]];}
+
   if (isFilmBypass(r.filmStock) || !t) {
     let a = { w: e.w, h: e.h, r: copyPlane(e.r), g: copyPlane(e.g), b: copyPlane(e.b) };
     applyCameraStage(a, r, i, c);
@@ -789,12 +820,13 @@ export function simulate(e: PlanarImage, t: FilmProfile | null, n: FilmProfile |
     ((h[e] = Math.log10(Math.max(a.r[e], 0) + 1e-10)),
       (g[e] = Math.log10(Math.max(a.g[e], 0) + 1e-10)),
       (_[e] = Math.log10(Math.max(a.b[e], 0) + 1e-10)));
-  let [dv, dy, db] = developDensity(h, g, _, t, r.filmGamma);
+  let [dv, dy, db] = developDensity(h, g, _, t, filmGamma);
     v = dv;
     y = dy;
     b = db;
     if (!i) {
-      applyCouplers(v, y, b, a.w, a.h, r, c);
+      if(r.experimental?.dirLangmuir)applyLangmuirCouplers([v,y,b],[h,g,_],a.w,a.h,t,r,c);
+      else applyCouplers(v, y, b, a.w, a.h, r, c);
       applyGrain(v, y, b, a.w, a.h, r, t, c);
     }
     NEG = { key: fkey, c: v, m: y, y: b };
@@ -848,7 +880,7 @@ export function simulate(e: PlanarImage, t: FilmProfile | null, n: FilmProfile |
               t.logExposure.min,
               t.logExposure.max,
               0,
-              r.filmGamma,
+              filmGamma,
             ),
             0,
           ),
@@ -859,7 +891,7 @@ export function simulate(e: PlanarImage, t: FilmProfile | null, n: FilmProfile |
               t.logExposure.min,
               t.logExposure.max,
               1,
-              r.filmGamma,
+              filmGamma,
             ),
             1,
           ),
@@ -870,7 +902,7 @@ export function simulate(e: PlanarImage, t: FilmProfile | null, n: FilmProfile |
               t.logExposure.min,
               t.logExposure.max,
               2,
-              r.filmGamma,
+              filmGamma,
             ),
             2,
           ),

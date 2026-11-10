@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import {mkdirSync} from 'node:fs';
+mkdirSync('artifacts',{recursive:true});
+import {chromium} from 'playwright';
+const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH??'/usr/bin/chromium',args:['--no-sandbox','--disable-dev-shm-usage']});
+try{
+ const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(process.env.APP_URL??'http://127.0.0.1:8080/',{waitUntil:'networkidle'});
+ await page.getByRole('button',{name:'Плёнка',exact:true}).click();await page.getByRole('button',{name:'Пример: лес',exact:true}).click();
+ await page.getByRole('button',{name:'До / после',exact:true}).waitFor();
+ await page.waitForTimeout(1000);await page.waitForFunction(()=>!!document.querySelector('img[alt="Предпросмотр обработки"]')&&!document.querySelector('[aria-label="Открыть"]').disabled);
+ await page.evaluate(async()=>{const s=(await import('/src/lib/film/store.ts')).useDarkroom.getState();s.patch({filmStock:'exp_kodak_portra_400',printPaper:'exp_kodak_portra_endura',grainActive:false,halationActive:false,couplersActive:false,autoExposure:false});s.setTool('emulsion');});
+ await page.getByRole('heading',{name:'Эмульсия',exact:true}).waitFor();
+ const done=async()=>{await page.waitForTimeout(700);await page.waitForFunction(()=>!document.querySelector('[aria-label="Открыть"]').disabled);};await done();
+ const state=()=>page.evaluate(async()=>{const s=(await import('/src/lib/film/store.ts')).useDarkroom.getState();return s.params;});
+ const image=page.getByRole('img',{name:'Предпросмотр обработки',exact:true});
+ const pixels=()=>image.evaluate(async i=>{await i.decode();const c=document.createElement('canvas');c.width=48;c.height=36;const ctx=c.getContext('2d');ctx.drawImage(i,0,0,48,36);return Array.from(ctx.getImageData(0,0,48,36).data);});
+ const before=await pixels();
+ await page.getByRole('switch',{name:'Химия плёнки по слоям',exact:true}).click();
+ const fast=page.getByRole('slider',{name:'Быстрые слои γ',exact:true});await fast.focus();for(let i=0;i<5;i++)await page.keyboard.press('ArrowRight');await done();
+ assert.equal((await state()).experimental.filmFast,1.25);assert.notDeepEqual(await pixels(),before);
+ await page.keyboard.press('Control+z');assert.equal((await state()).experimental.filmFast,1.2);
+ await page.getByRole('combobox',{name:'Метод спектральной реконструкции'}).isDisabled().then(v=>assert.equal(v,true));
+ await page.getByRole('combobox',{name:'Источник изображения'}).isDisabled().then(v=>assert.equal(v,true));
+ await page.getByRole('button',{name:'Взять DIR из профиля experimental',exact:true}).click();await done();assert.equal((await state()).experimental.dirLangmuir,true);assert.equal((await state()).couplersActive,true);
+ await page.getByRole('button',{name:'Взять зерно из профиля experimental',exact:true}).click();await done();assert.equal((await state()).experimental.grainRms,true);assert.equal((await state()).grainActive,true);
+ await page.getByRole('switch',{name:'Настройка основы плёнки',exact:true}).click();const base=page.getByRole('slider',{name:'Общая плотность основы',exact:true});await base.focus();await page.keyboard.press('ArrowRight');await done();assert.equal((await state()).experimental.filmBaseScale,1.05);
+ await page.locator('.lab-sliders').evaluate(el=>el.scrollTop=0);await page.screenshot({path:'artifacts/experimental-desktop.png'});
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:'artifacts/experimental-phone.png'});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await page.evaluate(async()=>{(await import('/src/lib/film/store.ts')).useDarkroom.getState().setParam('filmStock','exp_kodak_doublex_6p5min');});await done();
+ await page.getByRole('combobox').filter({has:page.locator('option[value="exp_kodak_doublex_5min"]')}).selectOption('exp_kodak_doublex_5min');await done();assert.equal((await state()).filmStock,'exp_kodak_doublex_5min');
+ assert.equal(await page.getByRole('slider',{name:'Зелёный канал γ',exact:true}).count(),0);
+ await page.waitForTimeout(700);await page.reload({waitUntil:'networkidle'});await page.getByRole('heading',{name:'Эмульсия',exact:true}).waitFor();assert.equal((await state()).experimental.grainRms,true);
+ assert.deepEqual(errors,[]);console.log('PASS experimental controls; real pixel change; undo; stock presets; RMS and DIR; base; family development time; monochrome controls; persistence; native-only guards; phone overflow');
+}finally{await browser.close()}

@@ -45,6 +45,7 @@ type NativeSim = {
 };
 
 const RawDecoder = registerPlugin<{
+  calibrateNegative: (opts:{params:Record<string,unknown>;base:boolean})=>Promise<{base?:number[];exposure?:number;matrix?:number[]}>;
   testPrint: (opts: {params: Record<string,unknown>; exposures: number[]}) => Promise<{images:{jpeg:string;width:number;height:number}[]}>;
   pickAndDecode: (opts: {
     maxEdge: number;
@@ -556,4 +557,9 @@ export async function loadNativeStockSource(
 /** Separate native batch; it never publishes files or replaces the editor preview. */
 export async function nativeTestPrint(params: Record<string,unknown>, exposures: number[]) {
   return (await RawDecoder.testPrint({params, exposures})).images;
+}
+
+export async function nativeCalibrateNegative(params:Record<string,unknown>,base:boolean){
+ if(!isNativeRawAvailable())throw new Error("Калибровка скана доступна в Android APK");
+ return RawDecoder.calibrateNegative({params,base});
 }

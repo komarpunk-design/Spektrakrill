@@ -80,6 +80,8 @@ bool ae_method_from_string(const char* s, AeMethod* out);
 // accepted for signature parity but the engine always feeds linear input
 // (input_cctf_decoding defaults False); when true the sRGB/ProPhoto inverse EOTF
 // is applied before the luminance integral (matches colour's apply_cctf_decoding).
+double measure_raw_autoexposure_ev(const double* raw,int w,int h,const char* method);
+
 double measure_autoexposure_ev(const double* image, int w, int h,
                                AeColorSpace cs, bool apply_cctf_decoding,
                                AeMethod method, bool known_method);

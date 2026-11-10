@@ -123,10 +123,7 @@ bool ae_method_from_string(const char* s, AeMethod* out) {
     return false;
 }
 
-double measure_autoexposure_ev(const double* image, int w, int h,
-                               AeColorSpace cs, bool apply_cctf_decoding,
-                               AeMethod method, bool known_method) {
-    std::vector<double> Y = luminance_y(image, w, h, cs, apply_cctf_decoding);
+static double measure_field_ev(std::vector<double> Y,int w,int h,AeMethod method,bool known_method,double target){
     const size_t n = Y.size();
 
     double exposure;
@@ -137,9 +134,9 @@ double measure_autoexposure_ev(const double* image, int w, int h,
     } else if (method == AeMethod::kAverage) {
         double s = 0.0;
         for (double v : Y) s += v;
-        exposure = (s / static_cast<double>(n)) / kMidgray;
+        exposure = (s / static_cast<double>(n)) / target;
     } else if (method == AeMethod::kMedian) {
-        exposure = np_median(Y) / kMidgray;
+        exposure = np_median(Y) / target;
     } else if (method == AeMethod::kCenterWeighted) {
         std::vector<double> x, y;
         normalized_coords(w, h, &x, &y);
@@ -159,7 +156,7 @@ double measure_autoexposure_ev(const double* image, int w, int h,
         }
         double acc = 0.0;
         for (size_t i = 0; i < n; ++i) acc += Y[i] * (mask[i] / mask_sum);
-        exposure = acc / kMidgray;
+        exposure = acc / target;
     } else if (method == AeMethod::kPartial) {
         std::vector<double> x, y;
         normalized_coords(w, h, &x, &y);
@@ -177,7 +174,7 @@ double measure_autoexposure_ev(const double* image, int w, int h,
             for (double v : Y) s += v;
             cnt = n;
         }
-        exposure = (s / static_cast<double>(cnt)) / kMidgray;
+        exposure = (s / static_cast<double>(cnt)) / target;
     } else if (method == AeMethod::kMatrix) {
         const int n_rows = 5, n_cols = 5;
         const int cell_h = h / n_rows;
@@ -209,7 +206,7 @@ double measure_autoexposure_ev(const double* image, int w, int h,
         double dot = 0.0;
         for (size_t i = 0; i < zone_weights.size(); ++i)
             dot += (zone_weights[i] / wsum) * zone_means[i];
-        exposure = dot / kMidgray;
+        exposure = dot / target;
     } else if (method == AeMethod::kMultiZone) {
         std::vector<double> x, y;
         normalized_coords(w, h, &x, &y);
@@ -243,7 +240,7 @@ double measure_autoexposure_ev(const double* image, int w, int h,
             for (double v : Y) s += v;
             e = s / static_cast<double>(n);
         }
-        exposure = e / kMidgray;
+        exposure = e / target;
     } else {  // kHighlightWeighted
         // weights = Y^2; if sum < 1e-12 -> weights = ones. exposure =
         // sum(Y * weights) / sum(weights) / 0.184.
@@ -259,12 +256,40 @@ double measure_autoexposure_ev(const double* image, int w, int h,
             for (double v : Y) s += v * (v * v);
             acc = s / total;
         }
-        exposure = acc / kMidgray;
+        exposure = acc / target;
     }
 
     double ev = -std::log2(exposure);
     if (std::isinf(ev)) ev = 0.0;  // np.isinf guard (matches the oracle)
     return ev;
+}
+
+double measure_autoexposure_ev(const double* image,int w,int h,AeColorSpace cs,bool decoding,AeMethod method,bool known){
+    return measure_field_ev(luminance_y(image,w,h,cs,decoding),w,h,method,known,kMidgray);
+}
+double measure_raw_autoexposure_ev(const double* raw,int w,int h,const char* name){
+    AeMethod method=AeMethod::kCenterWeighted;const bool known=!name||ae_method_from_string(name,&method);
+    if(!known)return 0;
+    const size_t count=static_cast<size_t>(w)*h;
+    // Stream the usual methods: a full-resolution single-channel field and
+    // mask would otherwise add 16 bytes/pixel to the already live raw frame.
+    if(method==AeMethod::kAverage||method==AeMethod::kCenterWeighted||method==AeMethod::kPartial||method==AeMethod::kHighlightWeighted){
+        std::vector<double> x,y;normalized_coords(w,h,&x,&y);
+        double weighted=0,total=0,all=0;
+        for(int row=0;row<h;row++)for(int col=0;col<w;col++){
+            const size_t i=static_cast<size_t>(row)*w+col;const double v=(raw[i*3]+raw[i*3+1]+raw[i*3+2])/3;all+=v;
+            double weight=1;
+            if(method==AeMethod::kCenterWeighted)weight=std::exp(-(x[col]*x[col]+y[row]*y[row])/(2*.2*.2));
+            else if(method==AeMethod::kPartial)weight=std::sqrt(x[col]*x[col]+y[row]*y[row])<.15?1:0;
+            else if(method==AeMethod::kHighlightWeighted)weight=v*v;
+            weighted+=v*weight;total+=weight;
+        }
+        const double value=total>=(method==AeMethod::kHighlightWeighted?1e-12:1e-300)?weighted/total:all/count;
+        const double ev=-std::log2(value);return std::isinf(ev)?0:ev;
+    }
+    std::vector<double> field(count);
+    for(size_t i=0;i<field.size();i++)field[i]=(raw[i*3]+raw[i*3+1]+raw[i*3+2])/3;
+    return measure_field_ev(std::move(field),w,h,method,known,1.);
 }
 
 namespace {

@@ -66,6 +66,14 @@ struct Profile {
     // ONLY by the opt-in print-curve morph (model/morph_curves); empty / n_layers==0
     // when the JSON omits it (then the morph is unavailable and the stored
     // density_curves table is used, as in the default path).
+    std::vector<double> dc_model_alphas;
+    std::string experimental_key;
+    bool experimental_auto_exposure = false;
+    std::string experimental_meter_method;
+    bool experimental_source = false;
+    std::string experimental_method;
+    double experimental_projection[9] = {};
+    double experimental_srgb_projection[9] = {};
     std::string dc_model_type;                  // e.g. "cdfs"
     int dc_model_n_layers = 0;                  // sub-layers per channel (0 = absent)
     std::vector<double> dc_model_centers;       // (3*n_layers,) [c*n_layers + i]

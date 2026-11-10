@@ -29,6 +29,8 @@
 #include "model/density_curves.h"
 #include "model/diffusion.h"
 #include "model/grain.h"
+#include "model/experimental.h"
+#include "runtime/stages/autoexposure.h"
 #include "model/spectral.h"
 
 namespace spk {
@@ -197,7 +199,8 @@ inline double clip01(double v) { return v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v); }
 // _rgb_to_tc_b for color_space='ProPhoto RGB', apply_cctf_decoding=False,
 // reference_illuminant='D55'. Mirrors kernels rgb_to_tc_b but with the
 // ProPhoto matrix.
-void prophoto_rgb_to_tc_b(const double rgb[3], Vec2* out_tc, double* out_b) {
+void prophoto_rgb_to_tc_b(const double rgb[3], Vec2* out_tc, double* out_b, const double* custom=nullptr) {
+    if(custom){double xyz[3]={};for(int r=0;r<3;r++)for(int c=0;c<3;c++)xyz[r]+=custom[r*3+c]*rgb[c];const double b=xyz[0]+xyz[1]+xyz[2];*out_b=std::isnan(b)?0:b;*out_tc=tri2quad({xyz[0]/std::fmax(b,1e-10),xyz[1]/std::fmax(b,1e-10)});return;}
     double xyz[3];
     for (int r = 0; r < 3; ++r) {
         xyz[r] = kProPhotoToXyzD55[r][0] * rgb[0] + kProPhotoToXyzD55[r][1] * rgb[1] +
@@ -464,15 +467,21 @@ NdArray build_filming_tc_lut(const Profile& film, const NdArray& spectra_lut_in,
     // preserving erf4 band-pass); otherwise it is the bare sensitivity. Mirrors
     // compute_hanatos2025_tc_lut's apply_window branch.
     std::vector<double> sw(static_cast<size_t>(S) * 3);
-    if (apply_window) {
+    if (apply_window && film.window_params.size() == 4) {
         // window (common across channels) via erf4, then per-channel white-balance
         // normalisation: window[s,c] /= norm[c].
         std::vector<double> window;
         eval_erf4_window(film.window_params.data(), film.wavelengths, &window);
 
         double num[3] = {0, 0, 0}, den[3] = {0, 0, 0};
+        std::vector<double> neutral;
+        if(film.experimental_method=="hanatos2025"){
+            double xyz[3]={};for(int s=0;s<S;s++)for(int c=0;c<3;c++)xyz[c]+=illuminant[s]*kCieCmf1931[s][c];
+            const double sum=xyz[0]+xyz[1]+xyz[2];const Vec2 tc=tri2quad({xyz[0]/sum,xyz[1]/sum});
+            neutral.resize(S);cubic_interp_lut_at_2d(spectra_lut,tc.x*(spectra_lut.shape[0]-1),tc.y*(spectra_lut.shape[1]-1),neutral.data());
+        }
         for (int s = 0; s < S; ++s) {
-            double ill = illuminant[s];
+            double ill = neutral.empty()?illuminant[s]:neutral[s];
             for (int c = 0; c < 3; ++c) {
                 double se = sens[s * 3 + c];
                 num[c] += se * ill * window[s];
@@ -617,7 +626,7 @@ void expose_impl(const Src& src, int width, int height,
     // byte-identical; and no full-resolution float64 `raw` exists at all
     // (~288 MB at 12 MP, EXPORT_FASTPATH item 4). Any active effect takes the
     // materialized path below, unchanged.
-    const bool pointwise_fused =
+    const bool pointwise_fused = !params.raw_auto_exposure &&
         !(params.halation.boost_ev > 0.0) &&        // apply_highlight_boost gate
         !params.diffusion_filter.active &&           // diffusion filter gate
         !(params.lens_blur_um > 0.0 && params.pixel_size_um > 0.0 &&
@@ -628,7 +637,7 @@ void expose_impl(const Src& src, int width, int height,
     // been written and the CPU loop below runs over the same memory. The latch
     // is off unless the caller set it, so the default route is unchanged.
     const bool gpu_expose_ok =
-        params.allow_gpu_filming && tc_lut.shape.size() == 3 &&
+        params.allow_gpu_filming && !params.experimental_projection_active && tc_lut.shape.size() == 3 &&
         tc_lut.shape[0] >= 2 && tc_lut.shape[0] == tc_lut.shape[1] &&
         tc_lut.shape[2] == 3;
 
@@ -650,7 +659,7 @@ void expose_impl(const Src& src, int width, int height,
                 src.load(p, in);
                 Vec2 tc;
                 double b;
-                prophoto_rgb_to_tc_b(in, &tc, &b);
+                prophoto_rgb_to_tc_b(in, &tc, &b,params.experimental_projection_active?params.experimental_projection:nullptr);
                 double rr[3];
                 cubic_interp_lut_at_2d(tc_lut, tc.x * scale, tc.y * scale, rr);
                 for (int c = 0; c < 3; ++c) {
@@ -688,12 +697,17 @@ void expose_impl(const Src& src, int width, int height,
             src.load(p, in);
             Vec2 tc;
             double b;
-            prophoto_rgb_to_tc_b(in, &tc, &b);
+            prophoto_rgb_to_tc_b(in, &tc, &b,params.experimental_projection_active?params.experimental_projection:nullptr);
             double rr[3];
             cubic_interp_lut_at_2d(tc_lut, tc.x * scale, tc.y * scale, rr);
-            for (int c = 0; c < 3; ++c) raw[p * 3 + c] = rr[c] * b * exp_mult;
+            for (int c = 0; c < 3; ++c) raw[p * 3 + c] = rr[c] * b * (params.raw_auto_exposure ? 1 : exp_mult);
         }
     }); }
+
+    if(params.raw_auto_exposure){
+        const double ev=measure_raw_autoexposure_ev(raw,width,height,params.raw_auto_exposure_method),gain=std::pow(2.,ev);
+        parallel_for(0,npix,[&](int lo,int hi){for(int i=lo;i<hi;i++)for(int c=0;c<3;c++){raw[i*3+c]*=gain;raw[i*3+c]*=exp_mult;}});
+    }
 
     // Highlight boost (numba_boost_hightlights.boost_highlights), applied on the
     // float64 irradiance AFTER exposure compensation and BEFORE the diffusion filter
@@ -884,6 +898,8 @@ void develop(const float* log_raw, int width, int height, const Profile& film,
         ScopedStage _t(STG_GRAIN);
         stage_timing_note_grain_sampler(params.grain.fast_sampler);
         GrainParams grain = params.grain;
+        const double rms_blur=grain.blur;
+        if(grain.rms_mode)grain.blur=0;
         // The sublayer path is selected when sublayers_active AND the profile
         // actually carries density_curves_layers; otherwise fall back to the
         // non-sublayer path (mirrors apply_grain's structure, where the layers
@@ -923,6 +939,10 @@ void develop(const float* log_raw, int width, int height, const Profile& film,
             }
             apply_grain_to_density(density_cmy_out, npix, width, height,
                                    params.pixel_size_um, grain, density_cmy_out);
+        }
+        if(grain.rms_mode) {
+            finish_experimental_grain(density_cmy_out, width, height, grain, rms_blur);
+            if(film.monochrome)for(int i=0;i<npix;i++)density_cmy_out[i*3+1]=density_cmy_out[i*3+2]=density_cmy_out[i*3];
         }
     }
 }

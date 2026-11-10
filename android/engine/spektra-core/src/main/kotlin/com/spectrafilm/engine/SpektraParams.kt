@@ -287,6 +287,7 @@ data class SpektraParams(
     val io: IoParams = IoParams(),
     val settings: SettingsParams = SettingsParams(),
     val toneCurve: ToneCurveParams = ToneCurveParams(),
+    val experimentalJson: String = "",
 ) {
     /**
      * Pack the tone curve into a flat float[] for the JNI bridge:

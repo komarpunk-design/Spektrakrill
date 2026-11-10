@@ -169,10 +169,14 @@ export function Select({
   value,
   onChange,
   options,
+  disabled=false,
+  ariaLabel,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string; group?: string }[];
+  disabled?: boolean;
+  ariaLabel?: string;
 }) {
   const groups = new Map<string, { value: string; label: string }[]>();
   for (const o of options) {
@@ -183,6 +187,8 @@ export function Select({
   return (
     <div className="lab-select-wrap">
       <select
+        disabled={disabled}
+        aria-label={ariaLabel}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="lab-select"

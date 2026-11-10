@@ -212,6 +212,7 @@ Profile load_profile_string(const std::string& json_text) {
         profile_error("metadata", "must be an object when present");
 
     Profile p;
+    p.experimental_source = info.has("experimental_source") && info.at("experimental_source").is_string() && !info.at("experimental_source").str.empty();
     p.type = require_string(info, "type", "info.type");
     require_allowlisted(p.type, "info.type", {"negative", "positive"});
 
@@ -275,6 +276,7 @@ Profile load_profile_string(const std::string& json_text) {
                               "data.base_density", NullPolicy::PreserveAsNan);
     // Required by upstream profile validation even though the current Android
     // pipeline does not consume the cached midscale trace directly.
+    if (data.has("midscale_neutral_density") && data.at("midscale_neutral_density").type != json::Type::Null && !data.at("midscale_neutral_density").is_null_number)
     validate_vec(data.at("midscale_neutral_density"), kSpectralRows,
                  "data.midscale_neutral_density", NullPolicy::PreserveAsNan);
     p.density_curves = read_matrix3(data.at("density_curves"), kDensityRows,
@@ -303,7 +305,7 @@ Profile load_profile_string(const std::string& json_text) {
         p.dc_model_type = require_string(
             model, "model_type", "data.density_curves_model.model_type");
         require_allowlisted(p.dc_model_type,
-                            "data.density_curves_model.model_type", {"cdfs"});
+                            "data.density_curves_model.model_type", {"cdfs", "norm_cdfs", "sept_norm_cdfs"});
         const json::Value& centers = model.at("centers");
         const json::Value& amplitudes = model.at("amplitudes");
         const json::Value& sigmas = model.at("sigmas");
@@ -328,6 +330,8 @@ Profile load_profile_string(const std::string& json_text) {
             sigmas, kChannels, center_layers,
             "data.density_curves_model.sigmas");
         p.dc_model_n_layers = static_cast<int>(center_layers);
+        if (model.has("alphas") && model.at("alphas").is_array() && model.at("alphas").size())
+            p.dc_model_alphas = read_fixed_double_matrix(model.at("alphas"), kChannels, center_layers, "data.density_curves_model.alphas");
     }
 
     if (data.has("hanatos2025_adaptation_window_params")) {

@@ -111,6 +111,7 @@ const ACCEPT =
 const TOOL_ICONS: Record<ToolId, LucideIcon> = {
   film: Film,
   development: FlaskConical,
+  emulsion: Aperture,
   tone: SlidersHorizontal,
   presets: Bookmark,
   camera: Camera,
@@ -305,7 +306,7 @@ function snapFromVelocity(px: number, vel: number, m = sheetMetrics()): SheetId 
 
 function snapForTool(tool: string): SheetId {
   if (tool === "gallery" || tool === "stock") return "peek";
-  if (tool === "presets" || tool === "settings" || tool === "log" || tool === "lab" || tool === "development") return "full";
+  if (tool === "presets" || tool === "settings" || tool === "log" || tool === "lab" || tool === "development" || tool === "emulsion") return "full";
   return "half";
 }
 

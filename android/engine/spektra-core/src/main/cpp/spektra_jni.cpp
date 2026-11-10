@@ -40,6 +40,7 @@
 #include "runtime/params_manifest.h"
 #include "runtime/stage_timer.h"
 #include "spektra.h"
+#include "model/negative_calibration.h"
 
 #define JNI(ret, name) extern "C" JNIEXPORT ret JNICALL \
     Java_com_spectrafilm_engine_SpektraEngine_##name
@@ -522,6 +523,7 @@ spk_rgb2raw enum_ordinal_rgb2raw(JNIEnv* env, jobject e) {
 // Marshal a SpektraParams jobject into a flat spk_params. The returned struct
 // holds pointers into the std::string storage parameters, which must outlive use.
 struct ParamStorage {
+    std::string experimental_json;
     std::string film_profile;
     std::string print_profile;
     std::string auto_exposure_method;
@@ -688,6 +690,8 @@ bool marshal_params(JNIEnv* env, jobject params, spk_params* out, ParamStorage* 
     // the parity-reproducing defaults; the jobject getters override below.
     spk_default_params(out);
     if (!params) return true;
+    store->experimental_json = jstr(env, static_cast<jstring>(call_obj(env, params, "getExperimentalJson", "()Ljava/lang/String;")));
+    out->experimental_json = store->experimental_json.empty() ? nullptr : store->experimental_json.c_str();
 
     jobject camera   = call_obj(env, params, "getCamera",
         "()Lcom/spectrafilm/engine/CameraParams;");
@@ -2127,3 +2131,10 @@ JNI(jboolean, nativeFillBitmap)(JNIEnv* env, jclass /*clazz*/,
 } catch (...) {
     return JNI_FALSE;
 }
+
+JNI(jstring, nativeCalibrateNegative)(JNIEnv* env,jclass,jstring profile,jstring params,jfloatArray input,jboolean base) try {
+    if(!input||env->GetArrayLength(input)>4500){throw_runtime(env,"Invalid calibration samples");return nullptr;}
+    std::vector<float> samples(env->GetArrayLength(input));env->GetFloatArrayRegion(input,0,samples.size(),samples.data());if(env->ExceptionCheck())return nullptr;
+    std::string result=spk::calibrate_negative(jstr(env,profile),jstr(env,params),samples,base!=0);
+    return env->NewStringUTF(result.c_str());
+} catch(const std::bad_alloc&){throw_native_oom(env);return nullptr;} catch(const std::exception& e){throw_runtime(env,e.what());return nullptr;}

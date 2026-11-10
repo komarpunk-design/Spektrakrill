@@ -42,7 +42,7 @@ inline constexpr size_t kMaxInputBytes = 1u << 20;
 inline constexpr size_t kMaxDepth = 8;
 inline constexpr size_t kMaxNodes = 16'384;
 inline constexpr size_t kMaxArrayElements = 512;
-inline constexpr size_t kMaxObjectMembers = 64;
+inline constexpr size_t kMaxObjectMembers = 128;
 inline constexpr size_t kMaxDecodedStringBytes = 4'096;
 inline constexpr size_t kMaxNumberTokenBytes = 128;
 

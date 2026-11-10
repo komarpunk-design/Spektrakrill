@@ -38,6 +38,10 @@ namespace spk {
 // deactivate_stochastic_effects, so the C++ grain path is only ever taken with
 // the stochastic effects on.
 struct GrainParams {
+    bool rms_mode = false;
+    double rms_granularity[3] = {6,8,10};
+    double mult_usm_sigma = .7;
+    double mult_usm_amount = 1.5;
     bool active = false;             // gates the whole pass (identity when false)
     bool sublayers_active = true;    // schema default: use the per-sublayer path.
     double agx_particle_area_um2 = 0.2;

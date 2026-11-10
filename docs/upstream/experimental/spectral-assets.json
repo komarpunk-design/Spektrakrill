@@ -1,0 +1,68 @@
+[
+  {
+    "id": "arctic2026beta04",
+    "kind": "reflectance",
+    "file": "arctic2026beta04.npy",
+    "sha256": "cf5b3dafad6470cdd3981038149374c967820654b94142332808681d364083a6",
+    "shape": [
+      192,
+      192,
+      81
+    ]
+  },
+  {
+    "id": "gauss-lasers",
+    "kind": "reflectance",
+    "file": "gauss-lasers.npy",
+    "sha256": "085f26aa57752bf3ef3df33d1cc2943d99f37ec2c8b5ae3905a2f77a5d2a5a82",
+    "shape": [
+      192,
+      192,
+      81
+    ]
+  },
+  {
+    "id": "hanatos2025",
+    "kind": "irradiance",
+    "file": "hanatos2025.npy",
+    "sha256": "52f90c724811f5fab80769f8548bf24d08a521eb09e65ab6e016893258d2a783",
+    "shape": [
+      192,
+      192,
+      81
+    ]
+  },
+  {
+    "id": "jakob2019",
+    "kind": "reflectance",
+    "file": "jakob2019.npy",
+    "sha256": "c83235c8d569d44b7190b2e8abbe4dfddb3a726d9fbade8839fc03bcb9e75d1b",
+    "shape": [
+      192,
+      192,
+      81
+    ]
+  },
+  {
+    "id": "mallett2019",
+    "kind": "reflectance",
+    "file": "mallett2019.npy",
+    "sha256": "c1ea8a0c3e164a56736748300caf2c262c606e0d93fc047dd5615228dc5fc71e",
+    "shape": [
+      192,
+      192,
+      81
+    ]
+  },
+  {
+    "id": "otsu2018",
+    "kind": "reflectance",
+    "file": "otsu2018.npy",
+    "sha256": "fc53d74160dadd1866e4915e5416944f6f4988429489ed6eb498bfc58d0f724c",
+    "shape": [
+      192,
+      192,
+      81
+    ]
+  }
+]

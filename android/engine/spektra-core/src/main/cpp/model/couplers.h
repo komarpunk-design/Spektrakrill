@@ -27,6 +27,9 @@ namespace spk {
 // spektrafilm.runtime.params_schema.DirCouplersParams. Defaults are filled by
 // runtime/params.h (digest) for the negative-film stock.
 struct DirCouplersParams {
+    bool langmuir = false;
+    double langmuir_donor_k[3] = {1,1,1};
+    double langmuir_receiver_k[3] = {1,1,1};
     bool active = false;
     double amount = 1.0;
 

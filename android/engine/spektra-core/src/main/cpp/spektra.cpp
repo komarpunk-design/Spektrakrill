@@ -72,6 +72,10 @@
 #include "profiles/profile.h"
 #include "runtime/color_reference.h"
 #include "runtime/params.h"
+#include "model/experimental.h"
+#include "model/negative.h"
+#include "model/experimental_projection.h"
+#include "kernels/spectral_upsampling.h"
 #include "runtime/print_digest.h"
 #include "runtime/stage_timer.h"
 #include "runtime/tc_lut_cache.h"
@@ -230,6 +234,8 @@ struct spk_engine {
     std::mutex lut_mutex;
     bool lut_loaded = false;
     spk::NdArray spectra_lut;
+    std::string experimental_spectra_id;
+    std::shared_ptr<const spk::NdArray> experimental_spectra;
 
     // Per-render setup caches (PERF). Every simulate() otherwise re-parses the
     // film/print profile JSON and rebuilds the filming tc_lut from scratch, even
@@ -560,6 +566,17 @@ class ProfileInvalid final : public std::runtime_error {
 };
 
 // Load a film/print profile by id (e.g. "kodak_portra_400") through spk_read_asset.
+static std::shared_ptr<const spk::NdArray> engine_experimental_spectra(spk_engine* eng,const std::string& method){
+    std::lock_guard<std::mutex> guard(eng->lut_mutex);
+    if(eng->experimental_spectra_id==method&&eng->experimental_spectra)return eng->experimental_spectra;
+    const std::string path="luts/experimental/"+method+".npy";
+    std::vector<char> bytes;
+    if(!spk_read_asset(eng,path.c_str(),bytes,spk::kMaxNpyFileBytes))throw std::runtime_error("Missing experimental spectral basis");
+    auto array=std::make_shared<spk::NdArray>(spk::parse_npy(bytes.data(),bytes.size(),path.c_str()));
+    if(array->shape.size()!=3||array->shape[0]<2||array->shape[0]>256||array->shape[1]!=array->shape[0]||array->shape[2]!=81)throw std::runtime_error("Invalid experimental spectral basis shape");
+    eng->experimental_spectra=array;eng->experimental_spectra_id=method;return array;
+}
+
 // User-imported JSON in user_profiles_dir is preferred so a later Volpato stock
 // can be simulated without baking it into the APK. Asset absence and invalid
 // content stay distinct so the additive C status and JNI diagnostic do not
@@ -687,7 +704,7 @@ static spk::TcLutCache::Lease engine_tc_lut(
     const bool parameterized =
         spectral_gaussian_blur > 0.0f || !apply_window || apply_surface ||
         band_pass_on || gamut_in_on;
-    std::string key = film_id;
+    std::string key = film_id + film.experimental_key;
     if (parameterized) {
         key.push_back('|');
         const unsigned char* b =
@@ -727,6 +744,13 @@ static spk::TcLutCache::Lease engine_tc_lut(
         // else stays on the baked D55 the daylight stocks were shipped with.
         const double* illuminant =
             film.reference_illuminant == "T" ? kTIlluminant : kD55Illuminant;
+        if(!film.experimental_method.empty()){
+            auto spectra=engine_experimental_spectra(eng,film.experimental_method);
+            auto result=spk::build_experimental_tc_lut(film,*spectra,illuminant,spectral_gaussian_blur,apply_window,apply_surface,filter_uv,filter_ir);
+            if(input_gamut_compress==spk::InputGamutCompress::kXy)
+                spk::remap_tc_lut_for_compression(result,spk::experimental_xy_D65,0,1,6);
+            return result;
+        }
         return spk::build_filming_tc_lut(
             film, engine_spectra(eng), illuminant,
             spectral_gaussian_blur, apply_window, apply_surface, filter_uv,
@@ -806,6 +830,9 @@ static uint64_t compute_film_cache_key(const std::vector<double>& rgb, int width
     h = fnv1a64(h, &height, sizeof(height));
     h = fnv1a64(h, &input_color_space, sizeof(input_color_space));
     // 3) Film profile id bytes (NULL-safe).
+    h = fnv1a64(h, &p->auto_exposure, sizeof(p->auto_exposure));
+    if(p->auto_exposure_method)h=fnv1a64(h,p->auto_exposure_method,std::strlen(p->auto_exposure_method));
+    if (p->experimental_json) h = fnv1a64(h, p->experimental_json, std::strlen(p->experimental_json));
     if (p->film_profile) h = fnv1a64(h, p->film_profile, std::strlen(p->film_profile));
     // 4) Filming pointwise params that change film_density_cmy.
     h = fnv1a64(h, &p->exposure_compensation_ev, sizeof(p->exposure_compensation_ev));
@@ -933,6 +960,9 @@ static uint64_t compute_print_density_key(const std::vector<float>& film_density
                 film_density_cmy.size() * sizeof(float));
     h = fnv1a64(h, &width, sizeof(width));
     h = fnv1a64(h, &height, sizeof(height));
+    h = fnv1a64(h, &p->auto_exposure, sizeof(p->auto_exposure));
+    if(p->auto_exposure_method)h=fnv1a64(h,p->auto_exposure_method,std::strlen(p->auto_exposure_method));
+    if (p->experimental_json) h = fnv1a64(h, p->experimental_json, std::strlen(p->experimental_json));
     if (p->film_profile) h = fnv1a64(h, p->film_profile, std::strlen(p->film_profile));
     if (p->print_profile) h = fnv1a64(h, p->print_profile, std::strlen(p->print_profile));
     if (p->enlarger_illuminant) {
@@ -1850,6 +1880,8 @@ const char* pointwise_route_ineligibility(
     if (!std::isfinite(fparams.dir_couplers.diffusion_size_um) ||
         fparams.dir_couplers.diffusion_size_um > 0.0)
         return "dir_diffusion";
+    if (fparams.experimental_projection_active) return "experimental_projection";
+    if (fparams.dir_couplers.langmuir) return "langmuir_couplers";
     if (fparams.grain.active) return "grain";
     if (fparams.halation.active) return "halation";
     if (fparams.halation.boost_ev > 0.0) return "highlight_boost";
@@ -2150,6 +2182,44 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
     spk::ParallelCancellationScope cancellation_scope(cancel, cancel_user_data);
     if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
 
+    // 1) Load the film profile.
+    spk::Profile film;
+    spk::NegativeSettings negative;
+    std::unique_ptr<spk::NegativeConverter> converter;
+    std::unique_ptr<spk::NegativeViewing> negative_viewing;
+    try {
+        film = load_engine_profile(eng, p->film_profile);
+        spk::prepare_experimental_profile(film, p->experimental_json, true, p->density_curve_gamma);
+        negative=spk::negative_settings(p->experimental_json);
+        if(negative.active()){
+            if(tap_log_raw)throw std::runtime_error("Negative conversion has no camera-exposure tap");
+            converter=std::make_unique<spk::NegativeConverter>(film,negative,SPK_CS_PROPHOTO,p->input_cctf_decoding!=0);
+            negative_viewing=std::make_unique<spk::NegativeViewing>(negative);
+            film.resolved_viewing_illuminant=&negative_viewing->value;
+            film.viewing_illuminant=negative.illuminant;
+        }
+        if(p->rgb_to_raw_method==SPK_RGB2RAW_MALLETT2019&&film.experimental_method.empty())spk::select_experimental_spectral_method(film,"mallett2019");
+        film.experimental_auto_exposure=!film.experimental_method.empty()&&p->auto_exposure!=0;
+        film.experimental_meter_method=p->auto_exposure_method?p->auto_exposure_method:"center_weighted";
+    } catch (const std::bad_alloc&) {
+        return SPK_ERR_OOM;
+    } catch (const ProfileAssetNotFound&) {
+        return SPK_ERR_PROFILE_NOT_FOUND;
+    } catch (const ProfileInvalid& e) {
+        set_last_error_message(e.what());
+        return SPK_ERR_PROFILE_INVALID;
+    } catch (const std::exception& e) {
+        set_last_error_message(e.what());
+        return SPK_ERR_BAD_ARGS;
+    }
+    if (film.log_sensitivity.empty() || film.log_exposure.empty()) {
+        return SPK_ERR_INTERNAL;  // profile lacks filming fields
+    }
+    if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
+
+    spk_params geometry_params=*p;
+    if(!film.experimental_method.empty()||converter)geometry_params.auto_exposure=0;
+
     // 0) Geometry preprocess (pipeline._preprocess -> crop_and_rescale). Runs
     //    BEFORE filming, mirroring Python ordering. Default params (crop off,
     //    upscale 1.0) leave the image, geometry and pixel_size_um unchanged.
@@ -2159,29 +2229,11 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
     int width = 0, height = 0;
     double resize_pixel_size_um = 0.0;
     { spk::ScopedStage _t(spk::STG_PREPROCESS);
-      preprocess_geometry(in, p, &pin, &width, &height, &resize_pixel_size_um); }
+      preprocess_geometry(in, &geometry_params, &pin, &width, &height, &resize_pixel_size_um); }
     if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
     const int npix = width * height;
     if (out_w) *out_w = width;
     if (out_h) *out_h = height;
-
-    // 1) Load the film profile.
-    spk::Profile film;
-    try {
-        film = load_engine_profile(eng, p->film_profile);
-    } catch (const std::bad_alloc&) {
-        return SPK_ERR_OOM;
-    } catch (const ProfileAssetNotFound&) {
-        return SPK_ERR_PROFILE_NOT_FOUND;
-    } catch (const ProfileInvalid& e) {
-        set_last_error_message(e.what());
-        return SPK_ERR_PROFILE_INVALID;
-    }
-    if (film.log_sensitivity.empty() || film.log_exposure.empty() ||
-        film.window_params.size() < 4) {
-        return SPK_ERR_INTERNAL;  // profile lacks filming fields
-    }
-    if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
 
     // 2) Digested filming params (auto-exposure off; stochastic/grain off).
     //    Spatial effects are PER-EFFECT gated, exactly like the oracle: absent
@@ -2197,14 +2249,23 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
         !film.stock.empty() ? film.stock.c_str() : p->film_profile,
         film.use.c_str(), film.reference_illuminant.c_str(), film.monochrome);
     fparams.exposure_compensation_ev = p->exposure_compensation_ev;
-    const float g = p->density_curve_gamma != 0.0f ? p->density_curve_gamma : 1.0f;
+    const float g = spk::experimental_film_chemistry(p->experimental_json) ? 1.0f : (p->density_curve_gamma != 0.0f ? p->density_curve_gamma : 1.0f);
     fparams.density_curve_gamma[0] = g;
     fparams.density_curve_gamma[1] = g;
     fparams.density_curve_gamma[2] = g;
     // DIR-coupler user params (amount / inhibition / diffusion); the per-channel
     // gamma matrices stay film-specific (baked by the digest). diffusion_size_um
     // <= 0 self-gates to the pointwise path.
+    spk::configure_experimental_projection(fparams,film);
+    fparams.raw_auto_exposure=!film.experimental_method.empty() && p->auto_exposure!=0;
+    fparams.raw_auto_exposure_method=p->auto_exposure_method;
     apply_user_dir_couplers(fparams.dir_couplers, p);
+    spk::configure_experimental_couplers(fparams.dir_couplers, p->experimental_json, &film);
+    if(film.monochrome&&film.experimental_source){
+        for(int c=1;c<3;c++)fparams.dir_couplers.gamma_samelayer_rgb[c]=fparams.dir_couplers.gamma_samelayer_rgb[0];
+        for(int i=0;i<2;i++)fparams.dir_couplers.gamma_interlayer_r_to_gb[i]=fparams.dir_couplers.gamma_interlayer_g_to_rb[i]=fparams.dir_couplers.gamma_interlayer_b_to_rg[i]=0;
+    }
+
     // Camera optical diffusion filter — self-gated on camera_diffusion_active
     // (plus strength/scale inside apply_diffusion_filter_um), matching the
     // oracle's gate on diffusion_filter.active alone.
@@ -2225,6 +2286,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
         // normalized density curves.
         spk::digest_grain_params(fparams);
         apply_user_grain(fparams.grain, p);
+        spk::configure_experimental_grain(fparams.grain, film, p->experimental_json);
     }
     if (halation_on) {
         spk::digest_halation_params(fparams, film.use.c_str(),
@@ -2331,6 +2393,11 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
     if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
 
     if (!scan_film_cache_hit) {
+        if(converter){
+            density_cmy.resize(out_elems);
+            converter->convert(pin.direct?in->data:nullptr,pin.direct?nullptr:pin.rgb.data(),pin.gain,npix,density_cmy.data());
+            std::vector<double>().swap(pin.rgb);
+        }else{
         std::vector<float> log_raw(out_elems);
         if (pin.direct) {
             spk::expose_f32_gain(in->data, pin.gain, width, height, fparams,
@@ -2350,6 +2417,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
         // 5) develop(): log_raw -> density_cmy (+ DIR couplers, spatial diffusion if on).
         density_cmy.resize(out_elems);
         spk::develop(log_raw.data(), width, height, film, fparams, density_cmy.data());
+        }
         if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
         if (use_scan_film_cache) {
             std::lock_guard<std::mutex> g(eng->film_cache_mutex);
@@ -2412,8 +2480,9 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
     }
 
     final_rgb->assign(static_cast<size_t>(npix) * 3, 0.0f);
+    if(negative.workflow=="negative-clear")std::fill(film.base_density.begin(),film.base_density.end(),0);
     spk::scan(film, sparams, density_cmy.data(), width, height, final_rgb->data());
-    if (film.monochrome) force_monochrome_rgb(*final_rgb);
+    if (film.monochrome && !film.experimental_source) force_monochrome_rgb(*final_rgb);
     if (cancellation_requested(cancel, cancel_user_data)) {
         final_rgb->clear();
         return SPK_ERR_CANCELLED;
@@ -2429,6 +2498,12 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
     if (tap_log_raw) tap_log_raw->clear();
     if (tap_density_cmy) tap_density_cmy->clear();
     return SPK_ERR_CANCELLED;
+} catch (const std::exception& e) {
+    if (final_rgb) final_rgb->clear();
+    if (tap_log_raw) tap_log_raw->clear();
+    if (tap_density_cmy) tap_density_cmy->clear();
+    set_last_error_message(e.what());
+    return SPK_ERR_BAD_ARGS;
 }
 
 // Run the negative -> print -> scan route, producing display RGB plus the
@@ -2454,6 +2529,52 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
     spk::ParallelCancellationScope cancellation_scope(cancel, cancel_user_data);
     if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
 
+    // 1) Load film + print profiles.
+    spk::Profile film, prnt, reference_prnt;
+    spk::NegativeSettings negative;
+    std::unique_ptr<spk::NegativeConverter> converter;
+    std::unique_ptr<spk::NegativeViewing> negative_viewing;
+    try {
+        film = load_engine_profile(eng, p->film_profile);
+        spk::prepare_experimental_profile(film, p->experimental_json, true, p->density_curve_gamma);
+        negative=spk::negative_settings(p->experimental_json);
+        if(negative.active()){
+            if(tap_log_raw)throw std::runtime_error("Negative conversion has no camera-exposure tap");
+            converter=std::make_unique<spk::NegativeConverter>(film,negative,SPK_CS_PROPHOTO,p->input_cctf_decoding!=0);
+            negative_viewing=std::make_unique<spk::NegativeViewing>(negative);
+            film.resolved_viewing_illuminant=&negative_viewing->value;
+            film.viewing_illuminant=negative.illuminant;
+        }
+        if(p->rgb_to_raw_method==SPK_RGB2RAW_MALLETT2019&&film.experimental_method.empty())spk::select_experimental_spectral_method(film,"mallett2019");
+        film.experimental_auto_exposure=!film.experimental_method.empty()&&p->auto_exposure!=0;
+        film.experimental_meter_method=p->auto_exposure_method?p->auto_exposure_method:"center_weighted";
+        prnt = load_engine_profile(eng, p->print_profile);
+        reference_prnt=prnt;
+        spk::prepare_experimental_profile(prnt, p->experimental_json, false, 1.0);
+        reference_prnt.base_density=prnt.base_density;
+    } catch (const std::bad_alloc&) {
+        return SPK_ERR_OOM;
+    } catch (const ProfileAssetNotFound&) {
+        return SPK_ERR_PROFILE_NOT_FOUND;
+    } catch (const ProfileInvalid& e) {
+        set_last_error_message(e.what());
+        return SPK_ERR_PROFILE_INVALID;
+    } catch (const std::exception& e) {
+        set_last_error_message(e.what());
+        return SPK_ERR_BAD_ARGS;
+    }
+    if (film.log_sensitivity.empty() || film.log_exposure.empty()) {
+        return SPK_ERR_INTERNAL;  // film profile lacks filming fields
+    }
+    if (prnt.log_sensitivity.empty() || prnt.log_exposure.empty() ||
+        prnt.density_curves.empty()) {
+        return SPK_ERR_INTERNAL;  // print profile lacks printing fields
+    }
+    if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
+
+    spk_params geometry_params=*p;
+    if(!film.experimental_method.empty()||converter)geometry_params.auto_exposure=0;
+
     // 0) Geometry preprocess (crop_and_rescale) BEFORE filming, mirroring the
     //    Python pipeline._preprocess. Default params -> passthrough. The print
     //    route runs spatial/grain off, so pixel_size_um is not consumed here;
@@ -2464,34 +2585,11 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
     int width = 0, height = 0;
     double resize_pixel_size_um = 0.0;
     { spk::ScopedStage _t(spk::STG_PREPROCESS);
-      preprocess_geometry(in, p, &pin, &width, &height, &resize_pixel_size_um); }
+      preprocess_geometry(in, &geometry_params, &pin, &width, &height, &resize_pixel_size_um); }
     if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
     const int npix = width * height;
     if (out_w) *out_w = width;
     if (out_h) *out_h = height;
-
-    // 1) Load film + print profiles.
-    spk::Profile film, prnt;
-    try {
-        film = load_engine_profile(eng, p->film_profile);
-        prnt = load_engine_profile(eng, p->print_profile);
-    } catch (const std::bad_alloc&) {
-        return SPK_ERR_OOM;
-    } catch (const ProfileAssetNotFound&) {
-        return SPK_ERR_PROFILE_NOT_FOUND;
-    } catch (const ProfileInvalid& e) {
-        set_last_error_message(e.what());
-        return SPK_ERR_PROFILE_INVALID;
-    }
-    if (film.log_sensitivity.empty() || film.log_exposure.empty() ||
-        film.window_params.size() < 4) {
-        return SPK_ERR_INTERNAL;  // film profile lacks filming fields
-    }
-    if (prnt.log_sensitivity.empty() || prnt.log_exposure.empty() ||
-        prnt.density_curves.empty()) {
-        return SPK_ERR_INTERNAL;  // print profile lacks printing fields
-    }
-    if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
 
     // 2) Build (or reuse the engine-cached) Hanatos2025 filming tc_lut (D55
     //    reference illuminant). Needed both by the filming expose and by the
@@ -2535,7 +2633,7 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
         // defaults {0,0,0}, mirroring the Python FileNotFoundError branch.
         spk::ScopedStage _t(spk::STG_PRINT_DIGEST);
         std::vector<char> nf;
-        if (spk_read_asset(eng, kNeutralFiltersRel, nf,
+        if (spk_read_asset(eng, (film.experimental_source||prnt.experimental_source)?"filters/neutral_print_filters_experimental.json":kNeutralFiltersRel, nf,
                            spk::json::kMaxInputBytes)) {
             if (!pointwise_test_fault(6)) {
                 (void)spk::resolve_neutral_cc_string(
@@ -2563,14 +2661,14 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
     neutral_cc[2] += static_cast<double>(p->y_filter_shift);
 
     // Print density-curve gamma is independent of the film gamma.
-    const float pg = p->print_density_curve_gamma != 0.0f ? p->print_density_curve_gamma : 1.0f;
+    const float pg = spk::experimental_print_chemistry(p->experimental_json) ? 1.0f : (p->print_density_curve_gamma != 0.0f ? p->print_density_curve_gamma : 1.0f);
     // Build the filtered illuminant first (color_enlarger with neutral CC), then
     // use it for the native midgray factor.
     spk::PrintingParams pparams = spk::digest_printing_params(
         neutral_cc, enl, /*exposure_factor_midgray=*/1.0, pg);
     { spk::ScopedStage _t(spk::STG_PRINT_DIGEST);
       pparams.exposure_factor_midgray = spk::compute_midgray_exposure_factor(
-          film, prnt, tc_lut, pparams.filtered_illuminant, pg,
+          film, prnt, tc_lut, pparams.filtered_illuminant, spk::experimental_film_chemistry(p->experimental_json)?1.0f:p->density_curve_gamma,
           static_cast<double>(p->exposure_compensation_ev),
           p->normalize_print_exposure != 0, p->print_exposure_compensation != 0); }
     // enlarger.print_exposure (default 1.0) multiplies the print exposure.
@@ -2585,7 +2683,7 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
     // Default-off -> print_develop uses the stored density_curves table (the
     // parity-gate path). The morph is downstream of the cached film_density_cmy,
     // so it needs no film-cache-key fold (the cache memoises only film density).
-    pparams.morph.active = p->print_morph_active != 0;
+    pparams.morph.active = p->print_morph_active != 0 && !spk::experimental_print_chemistry(p->experimental_json);
     pparams.morph.gamma_factor = p->print_morph_gamma_factor;
     pparams.morph.gamma_factor_fast = p->print_morph_gamma_factor_fast;
     pparams.morph.gamma_factor_slow = p->print_morph_gamma_factor_slow;
@@ -2680,7 +2778,7 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
         spk::print_reference_log_raw(film, prnt, pparams, cmy_film_white,
                                      log_raw_white);
         double y_black, y_white;
-        spk::measure_print_references(prnt, log_raw_black, log_raw_white, pg,
+        spk::measure_print_references(reference_prnt, log_raw_black, log_raw_white, pg,
                                       &y_black, &y_white);
         bw_corr = spk::build_color_correction(
             y_black, y_white,
@@ -2701,11 +2799,20 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
         !film.stock.empty() ? film.stock.c_str() : p->film_profile,
         film.use.c_str(), film.reference_illuminant.c_str(), film.monochrome);
     fparams.exposure_compensation_ev = p->exposure_compensation_ev;
-    const float fg = p->density_curve_gamma != 0.0f ? p->density_curve_gamma : 1.0f;
+    const float fg = spk::experimental_film_chemistry(p->experimental_json) ? 1.0f : (p->density_curve_gamma != 0.0f ? p->density_curve_gamma : 1.0f);
     fparams.density_curve_gamma[0] = fg;
     fparams.density_curve_gamma[1] = fg;
     fparams.density_curve_gamma[2] = fg;
+    spk::configure_experimental_projection(fparams,film);
+    fparams.raw_auto_exposure=!film.experimental_method.empty() && p->auto_exposure!=0;
+    fparams.raw_auto_exposure_method=p->auto_exposure_method;
     apply_user_dir_couplers(fparams.dir_couplers, p);
+    spk::configure_experimental_couplers(fparams.dir_couplers, p->experimental_json, &film);
+    if(film.monochrome&&film.experimental_source){
+        for(int c=1;c<3;c++)fparams.dir_couplers.gamma_samelayer_rgb[c]=fparams.dir_couplers.gamma_samelayer_rgb[0];
+        for(int i=0;i<2;i++)fparams.dir_couplers.gamma_interlayer_r_to_gb[i]=fparams.dir_couplers.gamma_interlayer_g_to_rb[i]=fparams.dir_couplers.gamma_interlayer_b_to_rg[i]=0;
+    }
+
     apply_user_diffusion_filter(fparams.diffusion_filter, p, /*is_camera=*/true);
     fparams.lens_blur_um = static_cast<double>(p->lens_blur_um);
     fparams.pixel_size_um = resize_pixel_size_um;
@@ -2715,6 +2822,7 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
         // scan route wires it. Deterministic seed; stays serial.
         spk::digest_grain_params(fparams);
         apply_user_grain(fparams.grain, p);
+        spk::configure_experimental_grain(fparams.grain, film, p->experimental_json);
     }
     if (print_halation_on) {
         spk::digest_halation_params(fparams, film.use.c_str(),
@@ -2736,7 +2844,7 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
     spk::ScanningParams sparams = build_print_scanning_params(
         eng, p, print_stochastic, bw_corr);
 
-    const char* pointwise_ineligible = pointwise_route_ineligibility(
+    const char* pointwise_ineligible = converter ? "negative_conversion" : pointwise_route_ineligibility(
         p, film, prnt, tc_lut, fparams, pparams, sparams, final_rgb,
         tap_log_raw, tap_film_density_cmy, tap_print_density_cmy, npix);
     if (pointwise_ineligible) {
@@ -3102,6 +3210,11 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
     if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
 
     if (!film_cache_hit) {
+        if(converter){
+            film_density_cmy.resize(out_elems);
+            converter->convert(pin.direct?in->data:nullptr,pin.direct?nullptr:pin.rgb.data(),pin.gain,npix,film_density_cmy.data());
+            std::vector<double>().swap(pin.rgb);
+        }else{
         std::vector<float> film_log_raw(out_elems);
         if (pin.direct) {
             spk::expose_f32_gain(in->data, pin.gain, width, height, fparams,
@@ -3121,6 +3234,7 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
         film_density_cmy.resize(out_elems);
         spk::develop(film_log_raw.data(), width, height, film, fparams,
                      film_density_cmy.data());
+        }
         if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
         if (use_film_cache) {
             // Store {width, height, film_density_cmy} + key under the lock, count miss.
@@ -3236,7 +3350,7 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
     final_rgb->assign(static_cast<size_t>(npix) * 3, 0.0f);
     spk::scan(prnt, sparams, print_density_cmy.data(), width, height,
               final_rgb->data());
-    if (film.monochrome || prnt.monochrome) force_monochrome_rgb(*final_rgb);
+    if ((film.monochrome && !film.experimental_source) || (prnt.monochrome && !prnt.experimental_source)) force_monochrome_rgb(*final_rgb);
     if (cancellation_requested(cancel, cancel_user_data)) {
         final_rgb->clear();
         return SPK_ERR_CANCELLED;
@@ -3254,6 +3368,13 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
     if (tap_film_density_cmy) tap_film_density_cmy->clear();
     if (tap_print_density_cmy) tap_print_density_cmy->clear();
     return SPK_ERR_CANCELLED;
+} catch (const std::exception& e) {
+    if (final_rgb) final_rgb->clear();
+    if (tap_log_raw) tap_log_raw->clear();
+    if (tap_film_density_cmy) tap_film_density_cmy->clear();
+    if (tap_print_density_cmy) tap_print_density_cmy->clear();
+    set_last_error_message(e.what());
+    return SPK_ERR_BAD_ARGS;
 }
 
 // B&W stocks are widened to three equal channels. Grain seeds and a color
@@ -3360,6 +3481,7 @@ void spk_default_params(spk_params* p) {
     p->film_profile = film;
     p->print_profile = print;
     p->enlarger_illuminant = "TH-KG3";
+    p->experimental_json = nullptr;
 
     // camera
     p->exposure_compensation_ev = 0.0f;
