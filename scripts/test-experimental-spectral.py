@@ -6,7 +6,7 @@ import numpy as np
 import colour
 import scipy,scipy.ndimage,scipy.special
 from opt_einsum import contract
-parser=argparse.ArgumentParser();parser.add_argument('--source',type=Path,required=True);parser.add_argument('--probe',type=Path,required=True);args=parser.parse_args()
+parser=argparse.ArgumentParser();parser.add_argument('--source',type=Path,required=True);parser.add_argument('--probe',type=Path,required=True);parser.add_argument('--stocks',nargs='+',default=['exp_kodak_portra_400','exp_kodak_vision3_500t','exp_kodak_doublex_6p5min']);args=parser.parse_args()
 source=args.source.resolve();root=Path(__file__).resolve().parents[1];data=source/'src/spektrafilm/data/luts/spectral_upsampling'
 assert subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()=='28bf883e1672e884307edc75852549376e13644e'
 for name in ['spektrafilm','spektrafilm.utils','spektrafilm.model','spektrafilm.runtime']:
@@ -24,7 +24,7 @@ functions={'_tri2quad','_quad2tri','_illuminant_to_xy','_radial_mobius_warp_xy',
 tree=ast.parse((source/'src/spektrafilm/utils/spectral_upsampling.py').read_text());exec(compile(ast.Module(body=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in functions],type_ignores=[]),'upstream-spectral-upsampling.py','exec'),env)
 profiles=root/'android/engine/spektra-core/src/main/assets/spektra/profiles';count=0;worst=0
 with tempfile.TemporaryDirectory() as temporary:
- for stock in ['exp_kodak_portra_400','exp_kodak_vision3_500t','exp_kodak_doublex_6p5min']:
+ for stock in args.stocks:
   payload=json.loads((profiles/(stock+'.json')).read_text());d=payload['data'];info=payload['info'];sensitivity=np.nan_to_num(10**np.asarray(d['log_sensitivity'],dtype=np.float32).astype(float))
   for method,descriptor in sorted(registry.items()):
    result=Path(temporary)/(stock+'-'+method+'.bin')

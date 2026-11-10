@@ -56,6 +56,8 @@ add_library(spektra SHARED
         model/diffusion.cpp                  # in-emulsion scatter + halation (spatial)
         model/grain.cpp                      # AgX particle grain model (M6)
         model/negative_calibration.cpp
+        model/negs_prep.cpp
+        model/negs_grain.cpp
         model/negative.cpp
         model/experimental.cpp
         model/morph_curves.cpp               # opt-in s023 print density-curve morph (default OFF)

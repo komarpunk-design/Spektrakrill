@@ -5,6 +5,7 @@
 #include "model/experimental_filters.h"
 #include "kernels/gaussian.h"
 #include "model/experimental_projection.h"
+#include "model/negs_projection.h"
 #include "runtime/params.h"
 #include "runtime/stages/filming.h"
 #include "kernels/spectral_upsampling.h"
@@ -48,8 +49,8 @@ void method(Profile& p,const J* j){
     if(id!="hanatos2025"&&id!="mallett2019"&&id!="otsu2018"&&id!="jakob2019"&&id!="arctic2026beta04"&&id!="gauss-lasers")throw std::runtime_error("Unknown spectral reconstruction method");
     p.experimental_method=id;p.experimental_key+="|spectral-method:"+id;
     const bool reflectance=id!="hanatos2025",tungsten=p.reference_illuminant=="T";
-    const double* matrix=reflectance?experimental_prophoto_D65:tungsten?experimental_prophoto_T:experimental_prophoto_D55;
-    const double* srgb=reflectance?experimental_srgb_D65:tungsten?experimental_srgb_T:experimental_srgb_D55;
+    const double* matrix=reflectance?experimental_prophoto_D65:tungsten?experimental_prophoto_T:p.reference_illuminant=="BB3200"?negs_prophoto_BB3200:experimental_prophoto_D55;
+    const double* srgb=reflectance?experimental_srgb_D65:tungsten?experimental_srgb_T:p.reference_illuminant=="BB3200"?negs_srgb_BB3200:experimental_srgb_D55;
     std::copy(matrix,matrix+9,p.experimental_projection);std::copy(srgb,srgb+9,p.experimental_srgb_projection);
 }
 
@@ -63,7 +64,7 @@ void chemistry(Profile& p,const J& j,bool film,double global) {
     const double slow=number(j,(prefix+"Slow").c_str(),1,.05,10);
     const double exhaustion=number(j,(prefix+"Exhaustion").c_str(),0,0,1);
     p.density_curves.assign(p.n_density_pts*3,0);
-    if(n==3)p.density_curves_layers.assign(p.n_density_pts*9,0);
+    if(n>1)p.density_curves_layers.assign(p.n_density_pts*n*3,0);
     else p.density_curves_layers.clear();
     for(int c=0;c<3;c++) {
         const char* suffix=p.monochrome?"Red":c==0?"Red":c==1?"Green":"Blue";
@@ -96,7 +97,7 @@ void chemistry(Profile& p,const J& j,bool film,double global) {
         for(int x=0;x<p.n_density_pts;x++)for(int i=0;i<n;i++){
             const double d=amps[i]*layer((p.log_exposure[x]-centers[i]-offset)/sigmas[i],p.is_positive(),p.dc_model_type,alphas[i],exhaustion);
             p.density_curves[x*3+c]+=static_cast<float>(d);
-            if(n==3)p.density_curves_layers[x*9+i*3+c]=static_cast<float>(d);
+            if(n>1)p.density_curves_layers[x*n*3+i*3+c]=static_cast<float>(d);
         }
     }
 }
@@ -177,17 +178,19 @@ void configure_experimental_grain(GrainParams& grain,const Profile& film,const c
     const double scales[]={number(*j,"grainScaleFast",1,.05,4),number(*j,"grainScaleMid",.5,.05,4),number(*j,"grainScaleSlow",.25,.05,4)};
     for(int l=0;l<3;l++)grain.agx_particle_scale_layers[l]=scales[l];
     grain.agx_particle_area_um2=1;
-    const bool layers=film.density_curves_layers.size()==static_cast<size_t>(film.n_density_pts)*9;
+    const int layer_count=film.density_curves_layers.empty()?0:film.density_curves_layers.size()/(film.n_density_pts*3);
+    const bool layers=layer_count>0;
     for(int c=0;c<3;c++){
         const std::string suffix=film.monochrome?"Red":c==0?"Red":c==1?"Green":"Blue";
         const double rms=number(*j,("grainRms"+suffix).c_str(),c==0?6:c==1?8:10,.01,100);
         grain.rms_granularity[c]=rms;
         grain.density_min[c]=number(*j,("grainFloor"+suffix).c_str(),.03,0,.5);
         grain.uniformity[c]=number(*j,("grainUniformity"+suffix).c_str(),.97,0,1);
-        double maximum[3]={0,0,0},total=0;
-        const int nlayer=layers?3:1;
+        double total=0;
+        const int nlayer=layers?layer_count:1;
+        std::vector<double> maximum(nlayer,0);
         for(int x=0;x<film.n_density_pts;x++)for(int l=0;l<nlayer;l++){
-            const double d=layers?film.density_curves_layers[x*9+l*3+c]:film.density_curves[x*3+c];
+            const double d=layers?film.density_curves_layers[x*nlayer*3+l*3+c]:film.density_curves[x*3+c];
             if(std::isfinite(d))maximum[l]=std::max(maximum[l],d);
         }
         for(int l=0;l<nlayer;l++)total+=maximum[l];
@@ -198,8 +201,8 @@ void configure_experimental_grain(GrainParams& grain,const Profile& film,const c
             for(int l=0;l<nlayer;l++){
                 const double frac=maximum[l]/total;if(frac<=0)continue;
                 const double floor=frac*grain.density_min[c];
-                double d=layers?film.density_curves_layers[x*9+l*3+c]:film.density_curves[x*3+c];if(!std::isfinite(d))d=0;d+=floor;
-                shape+=scales[l]/frac*d*(maximum[l]+floor-grain.uniformity[c]*d);
+                double d=layers?film.density_curves_layers[x*nlayer*3+l*3+c]:film.density_curves[x*3+c];if(!std::isfinite(d))d=0;d+=floor;
+                shape+=scales[std::min(l,2)]/frac*d*(maximum[l]+floor-grain.uniformity[c]*d);
             }
             peak=std::max(peak,shape);
         }

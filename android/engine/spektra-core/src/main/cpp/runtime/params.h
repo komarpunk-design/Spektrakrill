@@ -20,6 +20,7 @@
 #define SPK_RUNTIME_PARAMS_H
 
 #include "model/couplers.h"
+#include "model/negs_prep.h"
 #include "model/diffusion.h"
 #include "model/grain.h"
 #include "model/morph_curves.h"
@@ -40,6 +41,7 @@ enum class InputColorSpace {
 // Digested parameters the filming stage needs. Mirrors the relevant fields of
 // the Python digested RuntimePhotoParams for the parity toggles.
 struct FilmingParams {
+    NegsPrep prep;
     bool raw_auto_exposure = false;
     const char* raw_auto_exposure_method = nullptr;
     bool experimental_projection_active = false;

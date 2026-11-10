@@ -21,7 +21,8 @@
     "format": "prettier --write .",
     "build:apk-web": "node scripts/with-app-env.mjs vite build --config vite.config.apk.ts",
     "build:apk": "bash scripts/build-apk.sh",
-    "test:experimental": "node --experimental-strip-types --test --test-isolation=none src/lib/film/experimental.test.ts src/lib/film/development.test.ts src/lib/film/original-film-edge.test.ts src/lib/film/tool-state.test.ts src/lib/film/preset-diff.test.ts src/lib/film/profile-json.test.ts src/lib/film/printing-exposure.test.ts src/lib/film/film-bypass.test.ts src/lib/film/stock-details.test.ts"
+    "test:experimental": "node --experimental-strip-types --test --test-isolation=none src/lib/film/experimental.test.ts src/lib/film/development.test.ts src/lib/film/original-film-edge.test.ts src/lib/film/tool-state.test.ts src/lib/film/preset-diff.test.ts src/lib/film/profile-json.test.ts src/lib/film/printing-exposure.test.ts src/lib/film/film-bypass.test.ts src/lib/film/stock-details.test.ts",
+    "test:negs": "node --experimental-strip-types --test --test-isolation=none src/lib/film/negs.test.ts src/lib/film/experimental.test.ts src/lib/film/stock-look.test.ts src/lib/film/development.test.ts src/lib/film/tool-state.test.ts src/lib/film/preset-diff.test.ts src/lib/film/stock-details.test.ts src/lib/film/film-bypass.test.ts src/lib/film/profile-json.test.ts src/lib/film/printing-exposure.test.ts"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.1",

@@ -3,6 +3,7 @@ import type { DarkroomParams } from "./types.ts";
 import type { ToolId } from "./store.ts";
 
 export const TOOL_KEYS: Record<ToolId, (keyof DarkroomParams)[]> = {
+  prep: ["prep"],
   emulsion: ["experimental", "filmGamma", "grainActive", "grainBlur", "grainDyeCloudsUm", "couplersActive", "gammaSamelayer", "gammaRtoGB", "gammaGtoRB", "gammaBtoRG", "couplerDiffusionUm"],
   development: ["filmGamma", "exposureCompensationEv", "autoExposure", "printExposureCompensation"],
   film: [

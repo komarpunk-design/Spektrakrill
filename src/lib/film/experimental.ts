@@ -1,3 +1,4 @@
+import negsPresets from "./negs-presets.json" with { type: "json" };
 import scanIlluminants from "./experimental-illuminants.json" with { type: "json" };
 import couplersPresets from "./experimental-couplers-presets.json" with { type: "json" };
 import grainPresets from "./experimental-grain-presets.json" with { type: "json" };
@@ -160,6 +161,11 @@ export function experimentalGrainPreset(
     preset = {
       ...defaults[group][profile.type],
       ...((table[profile.sourceStock ?? profile.id] as Record<string, number[]>) ?? {}),
+      ...(profile.negs
+        ? ((negsPresets as unknown as Record<string, { grain: Record<string, number[]> }>)[
+            profile.id
+          ]?.grain ?? {})
+        : {}),
     };
   const expand = (key: string, fallback: number[]) => {
     const value = preset[key] ?? fallback;
@@ -202,14 +208,23 @@ export function experimentalCouplersPreset(
   const preset = {
     ...defaults[profile.monochrome ? "bw" : "color"][profile.type],
     ...((table[profile.sourceStock ?? profile.id] as Record<string, number[]>) ?? {}),
+    ...(profile.negs
+      ? ((negsPresets as unknown as Record<string, { couplers: Record<string, number[]> }>)[
+          profile.id
+        ]?.couplers ?? {})
+      : {}),
   };
   const three = (name: string, fallback: number[]) => {
     const v = preset[name] ?? fallback;
-    return [v[0], v[1] ?? v[0], v[2] ?? v[0]] as [number, number, number];
+    return (profile.monochrome ? [v[0], v[0], v[0]] : [v[0], v[1] ?? v[0], v[2] ?? v[0]]) as [
+      number,
+      number,
+      number,
+    ];
   };
   const two = (name: string) => {
     const v = preset[name] ?? [0, 0];
-    return [v[0], v[1] ?? v[0]] as [number, number];
+    return (profile.monochrome ? [0, 0] : [v[0], v[1] ?? v[0]]) as [number, number];
   };
   const donor = three("langmuir_donor_k_rgb", [1, 1, 1]),
     receiver = three("langmuir_receiver_k_rgb", [1, 1, 1]);

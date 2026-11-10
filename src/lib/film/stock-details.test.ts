@@ -4,10 +4,12 @@ import { describe, it } from "node:test";
 import { stockDetail, stockSpec, stockCategory } from "./stock-details.ts";
 
 describe("Russian stock details", () => {
-  it("includes translated detail for all 28 imported catalog entries", () => {
+  it("includes translated detail for legacy and Negs entries", () => {
     const text = readFileSync(new URL("./stock-details.json", import.meta.url), "utf8");
     const entries = JSON.parse(text);
-    assert.equal(Object.keys(entries).length, 28);
+    const catalog=JSON.parse(readFileSync(new URL("../../../public/profiles/catalog.json",import.meta.url),"utf8"));
+    assert.ok(Object.keys(entries).length>=28);
+    for(const p of [...catalog.films,...catalog.papers])if(p.negs)assert.ok(entries[p.id],p.id);
     assert.equal(/\p{Script=Han}/u.test(text), false);
     for (const value of Object.values(entries) as {summary: string}[]) assert.match(value.summary, /[А-Яа-я]/);
   });

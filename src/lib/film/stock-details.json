@@ -222,5 +222,333 @@
     "balance": null,
     "year": "2005",
     "summary": "Фотобумага RA-4 с плавными градациями тона и насыщенными цветами."
+  },
+  "negs_agfa_agfachrome_100": {
+    "manufacturer": "Agfa",
+    "group": "color_reversal",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_agfa_agfachrome_200": {
+    "manufacturer": "Agfa",
+    "group": "color_reversal",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_agfa_agfachrome_50": {
+    "manufacturer": "Agfa",
+    "group": "color_reversal",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_cinestill_400d": {
+    "manufacturer": "CineStill",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Приблизительная модель: часть характеристик восстановлена по примерам фотографий."
+  },
+  "negs_cinestill_800t": {
+    "manufacturer": "CineStill",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "tungsten",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_fotufilm_infrared_color": {
+    "manufacturer": "Fotufilm",
+    "group": "color_reversal",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Творческая ложноцветная ИК-модель. Обычная RGB-фотография не содержит измеренных ИК-данных."
+  },
+  "negs_fujifilm_acros_100_ii_4min": {
+    "manufacturer": "Fujifilm",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_fujifilm_acros_100_ii_7min": {
+    "manufacturer": "Fujifilm",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_fujifilm_acros_100_ii_10min": {
+    "manufacturer": "Fujifilm",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_fujifilm_astia_100f": {
+    "manufacturer": "Fujifilm",
+    "group": "color_reversal",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_fujifilm_eterna_500": {
+    "manufacturer": "Fujifilm",
+    "group": "motion_picture",
+    "kind": "film",
+    "balance": "tungsten",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_fujifilm_eterna_vivid_500": {
+    "manufacturer": "Fujifilm",
+    "group": "motion_picture",
+    "kind": "film",
+    "balance": "tungsten",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_fujifilm_f64d": {
+    "manufacturer": "Fujifilm",
+    "group": "motion_picture",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_fujifilm_pro_160ns": {
+    "manufacturer": "Fujifilm",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_fujifilm_reala_100": {
+    "manufacturer": "Fujifilm",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_fujifilm_reala_500d": {
+    "manufacturer": "Fujifilm",
+    "group": "motion_picture",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_fujifilm_superia_200": {
+    "manufacturer": "Fujifilm",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Приблизительная модель: часть характеристик восстановлена по примерам фотографий."
+  },
+  "negs_fujifilm_velvia_50": {
+    "manufacturer": "Fujifilm",
+    "group": "color_reversal",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_harman_phoenix_200": {
+    "manufacturer": "Harman",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Приблизительная модель: часть характеристик восстановлена по примерам фотографий."
+  },
+  "negs_ilford_delta_3200_7min": {
+    "manufacturer": "Ilford",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_ilford_delta_3200_9min": {
+    "manufacturer": "Ilford",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_ilford_delta_3200_12min": {
+    "manufacturer": "Ilford",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_ilford_delta_3200_16min": {
+    "manufacturer": "Ilford",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_ilford_fp4_plus_6min": {
+    "manufacturer": "Ilford",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. Время проявки оценено авторами."
+  },
+  "negs_ilford_fp4_plus_8min": {
+    "manufacturer": "Ilford",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_ilford_fp4_plus_9min": {
+    "manufacturer": "Ilford",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. Время проявки оценено авторами."
+  },
+  "negs_ilford_hp5_plus_6p5min": {
+    "manufacturer": "Ilford",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_ilford_hp5_plus_9p5min": {
+    "manufacturer": "Ilford",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. Время проявки оценено авторами."
+  },
+  "negs_ilford_hp5_plus_14min": {
+    "manufacturer": "Ilford",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. Время проявки оценено авторами."
+  },
+  "negs_kodak_aerochrome_1443": {
+    "manufacturer": "Kodak",
+    "group": "color_reversal",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Приблизительная модель: часть характеристик восстановлена по примерам фотографий."
+  },
+  "negs_kodak_aerocolor_2460": {
+    "manufacturer": "Kodak",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_kodak_kodachrome_200": {
+    "manufacturer": "Kodak",
+    "group": "color_reversal",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_kodak_kodachrome_25": {
+    "manufacturer": "Kodak",
+    "group": "color_reversal",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_kodak_kodacolor_100": {
+    "manufacturer": "Kodak",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_kodak_tmax_100_6min": {
+    "manufacturer": "Kodak",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_kodak_tmax_100_7p5min": {
+    "manufacturer": "Kodak",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_kodak_trix400_d76_8min_8min": {
+    "manufacturer": "Kodak",
+    "group": "bw_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
+  },
+  "negs_lomography_color_100": {
+    "manufacturer": "Lomography",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Приблизительная модель: часть характеристик восстановлена по примерам фотографий."
+  },
+  "negs_lomography_lomochrome_metropolis": {
+    "manufacturer": "Lomography",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Приблизительная модель: часть характеристик восстановлена по примерам фотографий."
+  },
+  "negs_lomography_lomochrome_turquoise": {
+    "manufacturer": "Lomography",
+    "group": "color_negative",
+    "kind": "film",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Приблизительная модель: часть характеристик восстановлена по примерам фотографий."
+  },
+  "negs_ilford_mgrc_deluxe_grade2_1min": {
+    "manufacturer": "Ilford",
+    "group": "print_paper",
+    "kind": "print_paper",
+    "balance": "daylight",
+    "year": "",
+    "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0."
   }
 }

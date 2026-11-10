@@ -857,6 +857,7 @@ class SpektraEngine private constructor(
             nativeDebugMarshalledParams(params)
 
         /** Experimental scan calibration; bounded samples, no engine state mutation. */
+        @JvmStatic external fun nativeApplyNegsPrep(buffer: ByteBuffer, width: Int, height: Int, params: String)
         @JvmStatic external fun nativeCalibrateNegative(profile: String, params: String, samples: FloatArray, base: Boolean): String
 
         @JvmStatic private external fun nativeSetBigCores(mode: Int)

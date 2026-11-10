@@ -1,3 +1,5 @@
+import {NEGS_FILM_FORMATS} from "@/lib/film/negs-film-formats";
+import { PrepControls } from "@/components/darkroom/prep-controls";
 import { EmulsionControls } from "@/components/darkroom/emulsion-controls";
 import { DevelopmentControls } from "@/components/darkroom/development-controls";
 import { FRAME_STYLES, isOriginalEdge } from "@/lib/film/photo-frame";
@@ -46,6 +48,7 @@ export const TOOLS = [
   { id: "film" as const, label: "Плёнка" },
   { id: "development" as const, label: "Push / Pull" },
   { id: "emulsion" as const, label: "Эмульсия" },
+  { id: "prep" as const, label: "Подготовка" },
   { id: "tone" as const, label: "Тон" },
   { id: "presets" as const, label: "Пресеты" },
   { id: "camera" as const, label: "Камера" },
@@ -83,7 +86,7 @@ export function dockTools(
 ): { id: (typeof TOOLS)[number]["id"]; label: string }[] {
   const spektra = engine === "spektrafilm";
   const bypass = isFilmBypass(filmStock);
-  const order = ["gallery", "presets", "film", "development", "emulsion", "tone", "camera", "print", "scan", "crop", "stock", "export", "lab", "log"];
+  const order = ["gallery", "presets", "film", "prep", "development", "emulsion", "tone", "camera", "print", "scan", "crop", "stock", "export", "lab", "log"];
   return TOOLS.filter((t) => {
     if (t.id === "settings") return false;
 
@@ -122,7 +125,8 @@ const STYLE_CHIP: Record<string, string> = {
 function hay(q: string, ...parts: Array<string | number | null | undefined>) {
   const n = q.trim().toLowerCase();
   if (!n) return true;
-  return parts.some((p) => String(p ?? "").toLowerCase().includes(n));
+  const text=parts.map(p=>String(p??"")).join(" ").toLowerCase();
+  return n.split(/\s+/).every(word=>text.includes(word));
 }
 
 type Receipt = {
@@ -146,10 +150,11 @@ function BoxShelf({
   groups: { label: string; ids: string[] }[];
   value: string;
   onChange: (id: string) => void;
-  items: { id: string; name: string; iso?: number | null }[];
+  items: { id: string; name: string; iso?: number | null;approximate?:boolean;creative?:boolean;estimatedDevelopment?:boolean }[];
   kind: "film" | "paper";
   query?: string;
 }) {
+  const favorites=useDarkroom(s=>s.prefs.favoriteStocks)??[],setPref=useDarkroom(s=>s.setPref);
   const byId = new Map(items.map((item) => [item.id, item]));
   const ids = groups
     .flatMap((group) => group.ids)
@@ -162,6 +167,7 @@ function BoxShelf({
       }
       return hay(query, id, item?.name, item?.iso, boxShortName(item?.name ?? id), stockDetail(id)?.summary, stockDetail(id)?.manufacturer, stockCategory(id));
     });
+  ids.sort((a,b)=>Number(favorites.includes(b))-Number(favorites.includes(a)));
   const selected = byId.get(value);
   const selectedDetail = stockDetail(value);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -177,8 +183,10 @@ function BoxShelf({
   return (
     <div className="lab-shelf">
       {selected && value !== "none" ? <section className="lab-stock-detail" aria-label="Сведения о профиле" aria-live="polite">
-        <strong>{selected.name}</strong>
+        <div className="lab-stock-title-row"><strong>{selected.name}</strong><button type="button" className="lab-stock-star" aria-label={(favorites.includes(value)?"Убрать из избранного: ":"В избранное: ")+selected.name} aria-pressed={favorites.includes(value)} onClick={()=>setPref('favoriteStocks',favorites.includes(value)?favorites.filter(id=>id!==value):[...favorites,value])}>{favorites.includes(value)?'★':'☆'}</button></div>
         <span>{stockCategory(value)}{stockSpec(selected) ? ` · ${stockSpec(selected)}` : ""}</span>
+        {selected.creative?<p className="lab-model-note">Творческая ИК-модель · не измеренный реальный материал</p>:selected.approximate?<p className="lab-model-note">Приблизительная модель · часть данных восстановлена по примерам</p>:null}
+        {selected.estimatedDevelopment?<p className="lab-model-note">Это время проявки оценено авторами профиля, а не измерено.</p>:null}
         {selectedDetail ? <p>{selectedDetail.summary}</p> : <p>Пользовательский профиль. Проверьте результат на своём кадре.</p>}
       </section> : null}
       <div className="lab-shelf-track" ref={trackRef}>
@@ -513,6 +521,7 @@ export function Panel({
       }}
     >
       {tool === "emulsion" ? <EmulsionControls /> : null}
+      {tool === "prep" ? <PrepControls /> : null}
       {tool === "development" ? <DevelopmentControls /> : null}
       {tool === "film" ? (
         <>
@@ -541,6 +550,7 @@ export function Panel({
               className="lab-find"
               value={find}
               onChange={(e) => setFind(e.target.value)}
+              onKeyDown={(e)=>{if(e.key==='Escape'){e.preventDefault();setFind('');}else if(e.key==='Enter'){e.preventDefault();document.querySelector<HTMLButtonElement>('.lab-shelf-track .lab-box')?.click();}}}
               placeholder="Portra, C200, Vision…"
               autoCapitalize="off"
               autoCorrect="off"
@@ -945,6 +955,7 @@ export function Panel({
               </Field>
             </div>
           ) : null}
+          <Field label="Формат кадра · Negs"><Select ariaLabel="Формат кадра" value={String(params.filmFormatMm)} onChange={value=>setParam('filmFormatMm',Number(value))} options={[...(!NEGS_FILM_FORMATS.some(f=>f.mm===params.filmFormatMm)?[{value:String(params.filmFormatMm),label:`Свой · ${fmt(params.filmFormatMm)} мм`}]:[]),...NEGS_FILM_FORMATS.map(f=>({value:String(f.mm),label:f.label}))]}/></Field>
           <SliderRow
             label="Формат, мм"
             hint={fmt(params.filmFormatMm, 0)}
@@ -1114,6 +1125,7 @@ export function Panel({
               className="lab-find"
               value={find}
               onChange={(e) => setFind(e.target.value)}
+              onKeyDown={(e)=>{if(e.key==='Escape'){e.preventDefault();setFind('');}else if(e.key==='Enter'){e.preventDefault();document.querySelector<HTMLButtonElement>('.lab-shelf-track .lab-box')?.click();}}}
               placeholder="Endura, Crystal, 2383…"
               autoCapitalize="off"
               autoCorrect="off"
@@ -1739,7 +1751,7 @@ function SettingsPane({ onNotice, onOpenEnlarger }: { onNotice?: (msg: string) =
             <p className="lab-about-name">{APP_NAME}</p>
             <p className="lab-about-ver">Версия {APP_VERSION}</p>
             <p className="lab-about-copy">Движок Spektrafilm for Android и функции ветки experimental Andrea Volpato (28bf883). Код GPLv3, данные профилей CC BY-SA 4.0.</p>
-            {[{name:"Spektrafilm · experimental 28bf883",url:"https://github.com/andreavolpato/spektrafilm/tree/28bf883e1672e884307edc75852549376e13644e"},{name: "Spektrafilm for Android — Akshay Sharma", url: "https://github.com/thetechgeekko/Spektrafilm-android"}, {name: "Моделирование плёнки — Andrea Volpato", url: "https://github.com/andreavolpato/spektrafilm"}, {name: "Использованный форк — hwx959", url: "https://github.com/hwx959/Spektrafilm-android"}].map(credit => <a key={credit.url} className="lab-credit" href={credit.url} target="_blank" rel="noopener noreferrer" onClick={event => { event.preventDefault(); void openExternalUrl(credit.url); }}>{credit.name}</a>)}
+            {[{name:"Negs — Noah Haasis · Prep и плёнки",url:"https://github.com/noahhaasis/negs/tree/26c903be9064b4fbfd46a8396620ba7e1e9bc1df"},{name:"Fotufilm — MUAStudio Inc. · данные CC BY-SA 4.0",url:"https://github.com/DhaliwalX/fotufilm-engine/tree/96623ba0831a52dbddcda35727a206d4123a8b5f"},{name:"Spektrafilm · experimental 28bf883",url:"https://github.com/andreavolpato/spektrafilm/tree/28bf883e1672e884307edc75852549376e13644e"},{name: "Spektrafilm for Android — Akshay Sharma", url: "https://github.com/thetechgeekko/Spektrafilm-android"}, {name: "Моделирование плёнки — Andrea Volpato", url: "https://github.com/andreavolpato/spektrafilm"}, {name: "Использованный форк — hwx959", url: "https://github.com/hwx959/Spektrafilm-android"}].map(credit => <a key={credit.url} className="lab-credit" href={credit.url} target="_blank" rel="noopener noreferrer" onClick={event => { event.preventDefault(); void openExternalUrl(credit.url); }}>{credit.name}</a>)}
             {APP_COPY.map((p) => (
               <p key={p.slice(0, 24)} className="lab-about-copy">
                 {p}

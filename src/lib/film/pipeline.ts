@@ -1,3 +1,4 @@
+import {applyPrep} from "./negs-prep.ts";
 import { applyLangmuirCouplers } from "./experimental-couplers.ts";
 import { withExperimentalProfile, rmsParticleAreas } from "./experimental-math.ts";
 import type { DarkroomParams, DiffusionFamily, FilmProfile, Vec3 } from "./types.ts";
@@ -657,6 +658,7 @@ function filmingKey(p: DarkroomParams, img: PlanarImage, draft: boolean): string
     p.couplerDiffusionUm,
     p.filmGamma,
     JSON.stringify(p.experimental),
+    JSON.stringify(p.prep),
     p.crop ? 1 : 0,
     p.cropSizeX,
     p.cropSizeY,
@@ -674,6 +676,7 @@ function applyCameraStage(a: PlanarImage, r: DarkroomParams, draft: boolean, pix
   );
   if (r.autoExposure) applyScale(a, 2 ** autoExposureEv(a, r.autoExposureMethod));
   applyScale(a, 2 ** r.exposureCompensationEv);
+  if(r.prep)applyPrep(a,r.prep);
   boostHighlights(a, r.boostEv, r.boostRange, r.protectEv);
   if (r.cameraDiffusion?.active) {
     applyDiffusion(
@@ -762,6 +765,7 @@ export function simulate(e: PlanarImage, t: FilmProfile | null, n: FilmProfile |
     applyRawEngine(a, sanitizeRawEngine(r.rawEngine), sanitizeRawEngineStyle(sanitizeRawEngine(r.rawEngine), r.rawEngineStyle)),
     r.autoExposure && applyScale(a, 2 ** autoExposureEv(a, r.autoExposureMethod)),
     applyScale(a, 2 ** r.exposureCompensationEv),
+    r.prep && applyPrep(a,r.prep),
     boostHighlights(a, r.boostEv, r.boostRange, r.protectEv),
     r.cameraDiffusion?.active &&
       applyDiffusion(

@@ -4,7 +4,9 @@ import { Field, Select, SliderRow, ToggleRow } from "@/components/ui/control";
 import { useDarkroom } from "@/lib/film/store";
 import { loadProfile } from "@/lib/film/profiles";
 import scanIlluminants from "@/lib/film/experimental-illuminants.json";
-import families from "@/lib/film/experimental-families.json";
+import experimentalFamilies from "@/lib/film/experimental-families.json";
+import negsFamilies from "@/lib/film/negs-families.json";
+const families=[...experimentalFamilies,...negsFamilies];
 import type { FilmProfile } from "@/lib/film/types";
 import type { ExperimentalParams } from "@/lib/film/experimental";
 import {
@@ -256,7 +258,7 @@ export function EmulsionControls() {
             <Select
               value={params.filmStock}
               onChange={(id) => setParam("filmStock", id)}
-              options={family.members.map((m) => ({ value: m.id, label: `${m.minutes} мин` }))}
+              options={family.members.map((m) => ({ value: m.id, label: `${m.minutes} мин${"estimated" in m&&m.estimated?" · оценка":""}` }))}
             />
           </Field>
         ) : (
@@ -313,7 +315,7 @@ export function EmulsionControls() {
             className="lab-ghost"
             onClick={() => patch(experimentalCouplersPreset(profile, params))}
           >
-            Взять DIR из профиля experimental
+            {profile.negs?"Взять DIR из профиля Negs":"Взять DIR из профиля experimental"}
           </button>
         ) : null}
         <ToggleRow
@@ -371,7 +373,7 @@ export function EmulsionControls() {
             className="lab-ghost"
             onClick={() => patch(experimentalGrainPreset(profile, params))}
           >
-            Взять зерно из профиля experimental
+            {profile.negs?"Взять зерно из профиля Negs":"Взять зерно из профиля experimental"}
           </button>
         ) : null}
         {e.grainRms ? (
@@ -421,7 +423,7 @@ export function EmulsionControls() {
             <Select
               value={params.printPaper}
               onChange={(id) => setParam("printPaper", id)}
-              options={paperFamily.members.map((m) => ({ value: m.id, label: `${m.minutes} мин` }))}
+              options={paperFamily.members.map((m) => ({ value: m.id, label: `${m.minutes} мин${"estimated" in m&&m.estimated?" · оценка":""}` }))}
             />
           </Field>
         </div>
