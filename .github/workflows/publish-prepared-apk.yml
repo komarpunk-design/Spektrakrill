@@ -1,0 +1,28 @@
+name: Publish prepared Negs APK
+on:
+  push:
+    branches: [apk-delivery-9-49-f40d708]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify, publish and download the complete APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '09f3f04ec26ff0d0f38f1119cc7425f75b5f66e4262283a14b209611774a222f  release-payload/SpektrafilmLab-9.49-arm64.apk' | sha256sum --check
+          if ! gh release view v9.49-build119 >/dev/null 2>&1; then
+            gh release create v9.49-build119 --target f40d708c74ad27cf553e7972c0402521ad57d770 --prerelease --title 'Spektrafilm 9.49 — Negs tools · ARM64' --notes-file release-payload/notes.md
+          fi
+          if ! gh release view v9.49-build119 --json assets --jq '.assets[].name' | grep -Fxq 'SpektrafilmLab-9.49-arm64.apk'; then
+            gh release upload v9.49-build119 release-payload/SpektrafilmLab-9.49-arm64.apk
+          fi
+          mkdir downloaded
+          gh release download v9.49-build119 --pattern SpektrafilmLab-9.49-arm64.apk --dir downloaded
+          echo '09f3f04ec26ff0d0f38f1119cc7425f75b5f66e4262283a14b209611774a222f  downloaded/SpektrafilmLab-9.49-arm64.apk' | sha256sum --check
