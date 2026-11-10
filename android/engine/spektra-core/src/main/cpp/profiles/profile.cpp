@@ -124,13 +124,14 @@ std::vector<float> read_matrix3(const json::Value& value, size_t expected_rows,
 std::vector<float> read_tensor33(const json::Value& value, size_t expected_rows,
                                  const std::string& field) {
     require_size(value, expected_rows, field);
-    const size_t elements = checked_product(expected_rows, 9, field);
+    const size_t elements = checked_product(expected_rows, value[0].size()*3, field);
     std::vector<float> out;
     out.reserve(elements);
     for (size_t row = 0; row < expected_rows; ++row) {
         const std::string row_field = field + "[" + std::to_string(row) + "]";
-        require_size(value[row], kChannels, row_field);
-        for (size_t layer = 0; layer < kChannels; ++layer) {
+        require_size(value[row], value[0].size(), row_field);
+        if(value[row].size()<1 || value[row].size()>8)profile_error(row_field,"layer count must be 1..8");
+        for (size_t layer = 0; layer < value[0].size(); ++layer) {
             const std::string layer_field =
                 row_field + "[" + std::to_string(layer) + "]";
             require_size(value[row][layer], kChannels, layer_field);
@@ -261,7 +262,7 @@ Profile load_profile_string(const std::string& json_text) {
     p.reference_illuminant =
         require_string(info, "reference_illuminant", "info.reference_illuminant");
     require_allowlisted(p.reference_illuminant, "info.reference_illuminant",
-                        {"D55", "T", "TH-KG3"});
+                        {"D55", "T", "TH-KG3", "BB3200"});
 
     // Unknown root/info/data/model keys are intentionally accepted and ignored.
     // This is the V1 forward-compatibility policy: metadata may evolve, while

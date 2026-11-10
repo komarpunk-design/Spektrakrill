@@ -1,0 +1,375 @@
+{
+  "repository": "https://github.com/noahhaasis/negs",
+  "commit": "26c903be9064b4fbfd46a8396620ba7e1e9bc1df",
+  "profiles": [
+    {
+      "id": "negs_agfa_agfachrome_100",
+      "stock": "agfa_agfachrome_100",
+      "sha256": "9b29e7dd61afac4a944737ec84d26d70698ecf614808acc6e32d0ba8289b3212",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_agfa_agfachrome_200",
+      "stock": "agfa_agfachrome_200",
+      "sha256": "2926532e96a8c4b382ae9f3e591e4ff5b4a234b8ed492881a2b6b60147c92624",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_agfa_agfachrome_50",
+      "stock": "agfa_agfachrome_50",
+      "sha256": "b38579c6f39a43d9291f661ca6dff250567e6e0dea2a68ad82ff22d98a584e43",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_cinestill_400d",
+      "stock": "cinestill_400d",
+      "sha256": "180a911b5d61c4e2aa12e7636d9e9b18434ecf134716936b0c5d83b7affccb3c",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": true,
+      "creative": false
+    },
+    {
+      "id": "negs_cinestill_800t",
+      "stock": "cinestill_800t",
+      "sha256": "f27513a0e6fdc37404a34ada52bc1186efad52b4d26b5c2881a24ae4c0075345",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_fotufilm_infrared_color",
+      "stock": "fotufilm_infrared_color",
+      "sha256": "eedb361df65020ec619d8d6c9960631e359b6b2104bdf11c7864a112e7bd3be1",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": true,
+      "creative": true
+    },
+    {
+      "id": "negs_fujifilm_acros_100_ii_4min",
+      "stock": "fujifilm_acros_100_ii",
+      "sha256": "15fbc8294c13677fc861526e9f17e4bfdc85a33418913406b81646f3fb0b9576",
+      "minutes": 4.0,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_fujifilm_acros_100_ii_7min",
+      "stock": "fujifilm_acros_100_ii",
+      "sha256": "15fbc8294c13677fc861526e9f17e4bfdc85a33418913406b81646f3fb0b9576",
+      "minutes": 7.0,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_fujifilm_acros_100_ii_10min",
+      "stock": "fujifilm_acros_100_ii",
+      "sha256": "15fbc8294c13677fc861526e9f17e4bfdc85a33418913406b81646f3fb0b9576",
+      "minutes": 10.0,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_fujifilm_astia_100f",
+      "stock": "fujifilm_astia_100f",
+      "sha256": "4ae2bffa8a61d6b410731f58e3ff743bff05186f24ab0b1eb0d9a635939dd79e",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_fujifilm_eterna_500",
+      "stock": "fujifilm_eterna_500",
+      "sha256": "4bb38634ebf6eca049ce8ee856b3b67a82a054b0020d5919344b7204040c4dbe",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_fujifilm_eterna_vivid_500",
+      "stock": "fujifilm_eterna_vivid_500",
+      "sha256": "91287d9a8c1a1825cbb4a05138223860f8cb5d1f3be42cf1b9321041a366c4a7",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_fujifilm_f64d",
+      "stock": "fujifilm_f64d",
+      "sha256": "d67958ce9a088e81c1878459593a06b130c33c8aa7dcbc1fdf2da6f530c41e9d",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_fujifilm_pro_160ns",
+      "stock": "fujifilm_pro_160ns",
+      "sha256": "4be99bd662310d499c8ef11e352b76288605c6d40d246eafe0fd8e28f9154dfb",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_fujifilm_reala_100",
+      "stock": "fujifilm_reala_100",
+      "sha256": "53c74693dd6573dd6e352ebaf013af0f4779761bde66f3e7f26493c87c1479fd",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_fujifilm_reala_500d",
+      "stock": "fujifilm_reala_500d",
+      "sha256": "35a3e4b881e7b2c2d20c413f4052e69f23c8d3295d00852d1fcc8c7e645d93f3",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_fujifilm_superia_200",
+      "stock": "fujifilm_superia_200",
+      "sha256": "b06772deb96223010ddc4f6be98effc9b4c96d4f7bba74794af62758fb63756e",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": true,
+      "creative": false
+    },
+    {
+      "id": "negs_fujifilm_velvia_50",
+      "stock": "fujifilm_velvia_50",
+      "sha256": "166e55e8343d8e74965d176a64b93e92d6d3895647f001e2ff017f7fc902969d",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_harman_phoenix_200",
+      "stock": "harman_phoenix_200",
+      "sha256": "12d596793968f1e5a0f285f8511d1a3fc400d35d275d7fe27f8b969f24e0e860",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": true,
+      "creative": false
+    },
+    {
+      "id": "negs_ilford_delta_3200_7min",
+      "stock": "ilford_delta_3200",
+      "sha256": "b83c32d1dffd9770cc94a8eeaa47a8cf23a9a2d4550a295416c74dd4461c4773",
+      "minutes": 7.0,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_ilford_delta_3200_9min",
+      "stock": "ilford_delta_3200",
+      "sha256": "b83c32d1dffd9770cc94a8eeaa47a8cf23a9a2d4550a295416c74dd4461c4773",
+      "minutes": 9.0,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_ilford_delta_3200_12min",
+      "stock": "ilford_delta_3200",
+      "sha256": "b83c32d1dffd9770cc94a8eeaa47a8cf23a9a2d4550a295416c74dd4461c4773",
+      "minutes": 12.0,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_ilford_delta_3200_16min",
+      "stock": "ilford_delta_3200",
+      "sha256": "b83c32d1dffd9770cc94a8eeaa47a8cf23a9a2d4550a295416c74dd4461c4773",
+      "minutes": 16.0,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_ilford_fp4_plus_6min",
+      "stock": "ilford_fp4_plus",
+      "sha256": "942e8ed067e381af98c202f86c4b5b6813e43c170cb8acd5016e7274d0df3903",
+      "minutes": 6.0,
+      "estimatedDevelopment": true,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_ilford_fp4_plus_8min",
+      "stock": "ilford_fp4_plus",
+      "sha256": "942e8ed067e381af98c202f86c4b5b6813e43c170cb8acd5016e7274d0df3903",
+      "minutes": 8.0,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_ilford_fp4_plus_9min",
+      "stock": "ilford_fp4_plus",
+      "sha256": "942e8ed067e381af98c202f86c4b5b6813e43c170cb8acd5016e7274d0df3903",
+      "minutes": 9.0,
+      "estimatedDevelopment": true,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_ilford_hp5_plus_6p5min",
+      "stock": "ilford_hp5_plus",
+      "sha256": "372a13c189606f20a3ba85e1c57b086ed84c097a054f77a3192cd63a1326755c",
+      "minutes": 6.5,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_ilford_hp5_plus_9p5min",
+      "stock": "ilford_hp5_plus",
+      "sha256": "372a13c189606f20a3ba85e1c57b086ed84c097a054f77a3192cd63a1326755c",
+      "minutes": 9.5,
+      "estimatedDevelopment": true,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_ilford_hp5_plus_14min",
+      "stock": "ilford_hp5_plus",
+      "sha256": "372a13c189606f20a3ba85e1c57b086ed84c097a054f77a3192cd63a1326755c",
+      "minutes": 14.0,
+      "estimatedDevelopment": true,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_ilford_mgrc_deluxe_grade2_1min",
+      "stock": "ilford_mgrc_deluxe_grade2",
+      "sha256": "12c5cb28e875b687bcc9a21078b8c95b8faa4b5ba7051e13f71e2a60f0f308da",
+      "minutes": 1.0,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_kodak_aerochrome_1443",
+      "stock": "kodak_aerochrome_1443",
+      "sha256": "9dd9dcb25a8e4f25df365656678b0ae475f763baf03aa2f3135f2f4796171e23",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": true,
+      "creative": false
+    },
+    {
+      "id": "negs_kodak_aerocolor_2460",
+      "stock": "kodak_aerocolor_2460",
+      "sha256": "d2d0aac5d3d550746cff769481e4756627f4f4c1726a2efbeffb46736979921f",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_kodak_kodachrome_200",
+      "stock": "kodak_kodachrome_200",
+      "sha256": "ffd72e753b7041279ee3d9631be4fbce6c1d1732a3df08acbc626a7f508adf6b",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_kodak_kodachrome_25",
+      "stock": "kodak_kodachrome_25",
+      "sha256": "c6600945458075d317bcad8b0dd234913e99988c03f1fb491791d88019c5ddbf",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_kodak_kodacolor_100",
+      "stock": "kodak_kodacolor_100",
+      "sha256": "ebe6b2c5fc658b2b06d33035238d67653a27a69044db20bfe11e86f84e0a9fad",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_kodak_tmax_100_6min",
+      "stock": "kodak_tmax_100",
+      "sha256": "b8bb051bf838e64dc0a3b1e07a15c50f8127c81b03e7701dc9b648ddcbc45bec",
+      "minutes": 6.0,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_kodak_tmax_100_7p5min",
+      "stock": "kodak_tmax_100",
+      "sha256": "b8bb051bf838e64dc0a3b1e07a15c50f8127c81b03e7701dc9b648ddcbc45bec",
+      "minutes": 7.5,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_kodak_trix400_d76_8min_8min",
+      "stock": "kodak_trix400_d76_8min",
+      "sha256": "9f75031fbd6afe8a40b4ed91d4aa7d7855a536fba8487d92713698b18c57f381",
+      "minutes": 8.0,
+      "estimatedDevelopment": false,
+      "approximate": false,
+      "creative": false
+    },
+    {
+      "id": "negs_lomography_color_100",
+      "stock": "lomography_color_100",
+      "sha256": "35b3c397e75cf804ec98aa4a77cfde08c42dfd910b14818deba4d97255d8956c",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": true,
+      "creative": false
+    },
+    {
+      "id": "negs_lomography_lomochrome_metropolis",
+      "stock": "lomography_lomochrome_metropolis",
+      "sha256": "18e2b9273f2eb6f066515d5fc4f4486a2474ed1295e1a750c4ee58720c2a8c2f",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": true,
+      "creative": false
+    },
+    {
+      "id": "negs_lomography_lomochrome_turquoise",
+      "stock": "lomography_lomochrome_turquoise",
+      "sha256": "028e18574b493f3be0348e66f97973c976ea0f47625fc3f23a686c8154b3d820",
+      "minutes": null,
+      "estimatedDevelopment": false,
+      "approximate": true,
+      "creative": false
+    }
+  ]
+}

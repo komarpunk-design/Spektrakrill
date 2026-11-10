@@ -1390,6 +1390,7 @@ public class RawDecoderPlugin extends Plugin {
                         if (Double.isFinite(ev) && ev != 0.0) {
                             ImageConvert.applyGainInPlace(work, (float) Math.pow(2.0, ev));
                         }
+                NegsPrep.apply(work, paramsJson);
                         ImageConvert.applyDigitalTone(work, paramsJson);
                         int orient = paramsJson != null ? paramsJson.optInt("orientation", 0) : 0;
                         byte[] encoded = ImageConvert.linearToDisplayEncoded(

@@ -1,0 +1,1786 @@
+{
+  "negs_agfa_agfachrome_100": {
+    "grain": {
+      "rms_granularity": [
+        10.0,
+        10.0,
+        10.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.2048,
+        0.092,
+        0.2369
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.1295,
+        0.1394
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.0443,
+        0.0781
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.051,
+        0.22
+      ]
+    },
+    "monochrome": false,
+    "type": "positive",
+    "sourceStock": "agfa_agfachrome_100"
+  },
+  "negs_agfa_agfachrome_200": {
+    "grain": {
+      "rms_granularity": [
+        12.0,
+        12.0,
+        12.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.2146,
+        0.0964,
+        0.2483
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.1357,
+        0.1461
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.0465,
+        0.0819
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.0535,
+        0.2306
+      ]
+    },
+    "monochrome": false,
+    "type": "positive",
+    "sourceStock": "agfa_agfachrome_200"
+  },
+  "negs_agfa_agfachrome_50": {
+    "grain": {
+      "rms_granularity": [
+        10.0,
+        10.0,
+        10.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.206,
+        0.0925,
+        0.2384
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.1303,
+        0.1403
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.0446,
+        0.0786
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.0514,
+        0.2214
+      ]
+    },
+    "monochrome": false,
+    "type": "positive",
+    "sourceStock": "agfa_agfachrome_50"
+  },
+  "negs_cinestill_400d": {
+    "grain": {
+      "rms_granularity": [
+        4.0,
+        4.0,
+        4.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": false,
+    "type": "negative",
+    "sourceStock": "cinestill_400d"
+  },
+  "negs_cinestill_800t": {
+    "grain": {
+      "rms_granularity": [
+        9.0,
+        13.0,
+        30.0
+      ],
+      "uniformity": [
+        0.93,
+        0.97,
+        0.99
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.3,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": false,
+    "type": "negative",
+    "sourceStock": "cinestill_800t"
+  },
+  "negs_fotufilm_infrared_color": {
+    "grain": {
+      "rms_granularity": [
+        8.5,
+        8.5,
+        8.5
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.1281,
+        0.0576,
+        0.1483
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.081,
+        0.0873
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.0277,
+        0.0489
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.0319,
+        0.1377
+      ]
+    },
+    "monochrome": false,
+    "type": "positive",
+    "sourceStock": "fotufilm_infrared_color"
+  },
+  "negs_fujifilm_acros_100_ii_4min": {
+    "grain": {
+      "rms_granularity": [
+        7.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "fujifilm_acros_100_ii"
+  },
+  "negs_fujifilm_acros_100_ii_7min": {
+    "grain": {
+      "rms_granularity": [
+        7.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "fujifilm_acros_100_ii"
+  },
+  "negs_fujifilm_acros_100_ii_10min": {
+    "grain": {
+      "rms_granularity": [
+        7.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "fujifilm_acros_100_ii"
+  },
+  "negs_fujifilm_astia_100f": {
+    "grain": {
+      "rms_granularity": [
+        7.0,
+        7.0,
+        7.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.1816,
+        0.0815,
+        0.2101
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.1148,
+        0.1236
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.0393,
+        0.0693
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.0453,
+        0.1951
+      ]
+    },
+    "monochrome": false,
+    "type": "positive",
+    "sourceStock": "fujifilm_astia_100f"
+  },
+  "negs_fujifilm_eterna_500": {
+    "grain": {
+      "rms_granularity": [
+        3.5,
+        5.5,
+        7.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.4601,
+        0.4433,
+        0.4414
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4313,
+        0.3157
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.3145,
+        0.389
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.2423,
+        0.2506
+      ]
+    },
+    "monochrome": false,
+    "type": "negative",
+    "sourceStock": "fujifilm_eterna_500"
+  },
+  "negs_fujifilm_eterna_vivid_500": {
+    "grain": {
+      "rms_granularity": [
+        3.5,
+        5.5,
+        7.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.4601,
+        0.4433,
+        0.4414
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4313,
+        0.3157
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.3145,
+        0.389
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.2423,
+        0.2506
+      ]
+    },
+    "monochrome": false,
+    "type": "negative",
+    "sourceStock": "fujifilm_eterna_vivid_500"
+  },
+  "negs_fujifilm_f64d": {
+    "grain": {
+      "rms_granularity": [
+        2.5,
+        4.0,
+        5.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5456,
+        0.5434,
+        0.3766
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4263,
+        0.2781
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2051,
+        0.5015
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.295,
+        0.2449
+      ]
+    },
+    "monochrome": false,
+    "type": "negative",
+    "sourceStock": "fujifilm_f64d"
+  },
+  "negs_fujifilm_pro_160ns": {
+    "grain": {
+      "rms_granularity": [
+        3.0,
+        3.0,
+        3.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": false,
+    "type": "negative",
+    "sourceStock": "fujifilm_pro_160ns"
+  },
+  "negs_fujifilm_reala_100": {
+    "grain": {
+      "rms_granularity": [
+        4.0,
+        4.0,
+        4.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": false,
+    "type": "negative",
+    "sourceStock": "fujifilm_reala_100"
+  },
+  "negs_fujifilm_reala_500d": {
+    "grain": {
+      "rms_granularity": [
+        4.0,
+        6.0,
+        8.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5456,
+        0.5434,
+        0.3766
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4263,
+        0.2781
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2051,
+        0.5015
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.295,
+        0.2449
+      ]
+    },
+    "monochrome": false,
+    "type": "negative",
+    "sourceStock": "fujifilm_reala_500d"
+  },
+  "negs_fujifilm_superia_200": {
+    "grain": {
+      "rms_granularity": [
+        4.0,
+        4.0,
+        4.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.4632,
+        0.5328,
+        0.254
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.362,
+        0.2234
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.1999,
+        0.3896
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1642,
+        0.1615
+      ]
+    },
+    "monochrome": false,
+    "type": "negative",
+    "sourceStock": "fujifilm_superia_200"
+  },
+  "negs_fujifilm_velvia_50": {
+    "grain": {
+      "rms_granularity": [
+        9.0,
+        9.0,
+        9.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.1596,
+        0.0717,
+        0.1846
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.1009,
+        0.1087
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.0345,
+        0.0609
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.0398,
+        0.1715
+      ]
+    },
+    "monochrome": false,
+    "type": "positive",
+    "sourceStock": "fujifilm_velvia_50"
+  },
+  "negs_harman_phoenix_200": {
+    "grain": {
+      "rms_granularity": [
+        9.5,
+        9.5,
+        9.5
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.2695,
+        0.31,
+        0.1478
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.2107,
+        0.13
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.1163,
+        0.2267
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.0956,
+        0.094
+      ]
+    },
+    "monochrome": false,
+    "type": "negative",
+    "sourceStock": "harman_phoenix_200"
+  },
+  "negs_ilford_delta_3200_7min": {
+    "grain": {
+      "rms_granularity": [
+        19.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "ilford_delta_3200"
+  },
+  "negs_ilford_delta_3200_9min": {
+    "grain": {
+      "rms_granularity": [
+        19.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "ilford_delta_3200"
+  },
+  "negs_ilford_delta_3200_12min": {
+    "grain": {
+      "rms_granularity": [
+        19.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "ilford_delta_3200"
+  },
+  "negs_ilford_delta_3200_16min": {
+    "grain": {
+      "rms_granularity": [
+        19.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "ilford_delta_3200"
+  },
+  "negs_ilford_fp4_plus_6min": {
+    "grain": {
+      "rms_granularity": [
+        10.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "ilford_fp4_plus"
+  },
+  "negs_ilford_fp4_plus_8min": {
+    "grain": {
+      "rms_granularity": [
+        10.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "ilford_fp4_plus"
+  },
+  "negs_ilford_fp4_plus_9min": {
+    "grain": {
+      "rms_granularity": [
+        10.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "ilford_fp4_plus"
+  },
+  "negs_ilford_hp5_plus_6p5min": {
+    "grain": {
+      "rms_granularity": [
+        16.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "ilford_hp5_plus"
+  },
+  "negs_ilford_hp5_plus_9p5min": {
+    "grain": {
+      "rms_granularity": [
+        16.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "ilford_hp5_plus"
+  },
+  "negs_ilford_hp5_plus_14min": {
+    "grain": {
+      "rms_granularity": [
+        16.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "ilford_hp5_plus"
+  },
+  "negs_ilford_mgrc_deluxe_grade2_1min": {
+    "grain": {
+      "rms_granularity": [
+        14.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "ilford_mgrc_deluxe_grade2"
+  },
+  "negs_kodak_aerochrome_1443": {
+    "grain": {
+      "rms_granularity": [
+        23.0,
+        23.0,
+        23.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.0965,
+        0.0433,
+        0.1116
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.061,
+        0.0657
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.0209,
+        0.0368
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.024,
+        0.1037
+      ]
+    },
+    "monochrome": false,
+    "type": "positive",
+    "sourceStock": "kodak_aerochrome_1443"
+  },
+  "negs_kodak_aerocolor_2460": {
+    "grain": {
+      "rms_granularity": [
+        8.5,
+        8.5,
+        8.5
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": false,
+    "type": "negative",
+    "sourceStock": "kodak_aerocolor_2460"
+  },
+  "negs_kodak_kodachrome_200": {
+    "grain": {
+      "rms_granularity": [
+        16.0,
+        16.0,
+        16.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.1904,
+        0.0855,
+        0.2204
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.1205,
+        0.1297
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.0412,
+        0.0727
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.0475,
+        0.2047
+      ]
+    },
+    "monochrome": false,
+    "type": "positive",
+    "sourceStock": "kodak_kodachrome_200"
+  },
+  "negs_kodak_kodachrome_25": {
+    "grain": {
+      "rms_granularity": [
+        9.0,
+        9.0,
+        9.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.1833,
+        0.0823,
+        0.2121
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.1159,
+        0.1248
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.0397,
+        0.0699
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.0457,
+        0.197
+      ]
+    },
+    "monochrome": false,
+    "type": "positive",
+    "sourceStock": "kodak_kodachrome_25"
+  },
+  "negs_kodak_kodacolor_100": {
+    "grain": {
+      "rms_granularity": [
+        5.0,
+        5.0,
+        5.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": false,
+    "type": "negative",
+    "sourceStock": "kodak_kodacolor_100"
+  },
+  "negs_kodak_tmax_100_6min": {
+    "grain": {
+      "rms_granularity": [
+        8.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "kodak_tmax_100"
+  },
+  "negs_kodak_tmax_100_7p5min": {
+    "grain": {
+      "rms_granularity": [
+        8.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "kodak_tmax_100"
+  },
+  "negs_kodak_trix400_d76_8min_8min": {
+    "grain": {
+      "rms_granularity": [
+        17.0
+      ],
+      "uniformity": [
+        0.6
+      ],
+      "density_min": [
+        0.01
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": true,
+    "type": "negative",
+    "sourceStock": "kodak_trix400_d76_8min"
+  },
+  "negs_lomography_color_100": {
+    "grain": {
+      "rms_granularity": [
+        3.5,
+        3.5,
+        3.5
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": false,
+    "type": "negative",
+    "sourceStock": "lomography_color_100"
+  },
+  "negs_lomography_lomochrome_metropolis": {
+    "grain": {
+      "rms_granularity": [
+        6.0,
+        6.0,
+        6.0
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": false,
+    "type": "negative",
+    "sourceStock": "lomography_lomochrome_metropolis"
+  },
+  "negs_lomography_lomochrome_turquoise": {
+    "grain": {
+      "rms_granularity": [
+        6.5,
+        6.5,
+        6.5
+      ],
+      "uniformity": [
+        0.97,
+        0.97,
+        0.97
+      ],
+      "density_min": [
+        0.03,
+        0.03,
+        0.03
+      ],
+      "particle_scale_sublayers": [
+        1.0,
+        0.4,
+        0.25
+      ]
+    },
+    "couplers": {
+      "gamma_samelayer_rgb": [
+        0.5159,
+        0.5934,
+        0.2829
+      ],
+      "gamma_interlayer_r_to_gb": [
+        0.4032,
+        0.2488
+      ],
+      "gamma_interlayer_g_to_rb": [
+        0.2227,
+        0.434
+      ],
+      "gamma_interlayer_b_to_rg": [
+        0.1829,
+        0.1799
+      ]
+    },
+    "monochrome": false,
+    "type": "negative",
+    "sourceStock": "lomography_lomochrome_turquoise"
+  }
+}

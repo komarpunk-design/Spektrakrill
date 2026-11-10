@@ -215,7 +215,7 @@ export function rmsParticleAreas(profile: FilmProfile, e: ExperimentalParams): V
           const frac = maximum[l] / total;
           if (!(frac > 0)) return sum;
           const d = layer[c] + frac * floor;
-          return sum + (scale[l] / frac) * d * (maximum[l] + frac * floor - u * d);
+          return sum + (scale[Math.min(l,2)] / frac) * d * (maximum[l] + frac * floor - u * d);
         }, 0),
       ),
     );

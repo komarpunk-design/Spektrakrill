@@ -41,6 +41,7 @@
 #include "runtime/stage_timer.h"
 #include "spektra.h"
 #include "model/negative_calibration.h"
+#include "model/negs_prep.h"
 
 #define JNI(ret, name) extern "C" JNIEXPORT ret JNICALL \
     Java_com_spectrafilm_engine_SpektraEngine_##name
@@ -2138,3 +2139,9 @@ JNI(jstring, nativeCalibrateNegative)(JNIEnv* env,jclass,jstring profile,jstring
     std::string result=spk::calibrate_negative(jstr(env,profile),jstr(env,params),samples,base!=0);
     return env->NewStringUTF(result.c_str());
 } catch(const std::bad_alloc&){throw_native_oom(env);return nullptr;} catch(const std::exception& e){throw_runtime(env,e.what());return nullptr;}
+
+JNI(void, nativeApplyNegsPrep)(JNIEnv* env,jclass,jobject buffer,jint width,jint height,jstring params) try {
+ auto* rgb=static_cast<float*>(env->GetDirectBufferAddress(buffer));const jlong capacity=env->GetDirectBufferCapacity(buffer);
+ if(!rgb||width<1||height<1||static_cast<int64_t>(width)*height>INT32_MAX||capacity<static_cast<int64_t>(width)*height*12){throw_runtime(env,"Invalid Prep image buffer");return;}
+ auto config=spk::read_negs_prep(jstr(env,params).c_str());spk::apply_negs_prep(rgb,width,height,config);
+} catch(const std::bad_alloc&){throw_native_oom(env);} catch(const std::exception& e){throw_runtime(env,e.what());}

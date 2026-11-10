@@ -30,6 +30,7 @@
 #include "model/diffusion.h"
 #include "model/grain.h"
 #include "model/experimental.h"
+#include "model/negs_grain.h"
 #include "runtime/stages/autoexposure.h"
 #include "model/spectral.h"
 
@@ -626,7 +627,7 @@ void expose_impl(const Src& src, int width, int height,
     // byte-identical; and no full-resolution float64 `raw` exists at all
     // (~288 MB at 12 MP, EXPORT_FASTPATH item 4). Any active effect takes the
     // materialized path below, unchanged.
-    const bool pointwise_fused = !params.raw_auto_exposure &&
+    const bool pointwise_fused = !params.prep.active() && !params.raw_auto_exposure &&
         !(params.halation.boost_ev > 0.0) &&        // apply_highlight_boost gate
         !params.diffusion_filter.active &&           // diffusion filter gate
         !(params.lens_blur_um > 0.0 && params.pixel_size_um > 0.0 &&
@@ -637,7 +638,7 @@ void expose_impl(const Src& src, int width, int height,
     // been written and the CPU loop below runs over the same memory. The latch
     // is off unless the caller set it, so the default route is unchanged.
     const bool gpu_expose_ok =
-        params.allow_gpu_filming && !params.experimental_projection_active && tc_lut.shape.size() == 3 &&
+        params.allow_gpu_filming && !params.prep.active() && !params.experimental_projection_active && tc_lut.shape.size() == 3 &&
         tc_lut.shape[0] >= 2 && tc_lut.shape[0] == tc_lut.shape[1] &&
         tc_lut.shape[2] == 3;
 
@@ -690,7 +691,7 @@ void expose_impl(const Src& src, int width, int height,
             raw, /*out_log_raw=*/nullptr, &gd);
         note_gpu_filming("expose", gd);
     }
-    if (!done)
+    if (!done && (!params.prep.active() || params.raw_auto_exposure))
     parallel_for(0, npix, [&](int lo, int hi) {
         for (int p = lo; p < hi; ++p) {
             double in[3];
@@ -704,9 +705,20 @@ void expose_impl(const Src& src, int width, int height,
         }
     }); }
 
+    double prep_auto_gain=1;
     if(params.raw_auto_exposure){
         const double ev=measure_raw_autoexposure_ev(raw,width,height,params.raw_auto_exposure_method),gain=std::pow(2.,ev);
+        prep_auto_gain=gain;
         parallel_for(0,npix,[&](int lo,int hi){for(int i=lo;i<hi;i++)for(int c=0;c<3;c++){raw[i*3+c]*=gain;raw[i*3+c]*=exp_mult;}});
+    }
+
+    if(params.prep.active()){
+        // Negs Prep is after camera placement and before spectral film exposure.
+        // The existing raw metering above intentionally reads the unprepared input.
+        std::vector<float> prepared(static_cast<size_t>(npix)*3);
+        parallel_for(0,npix,[&](int begin,int end){for(int i=begin;i<end;i++){double rgb[3];src.load(i,rgb);for(int c=0;c<3;c++)prepared[i*3+c]=rgb[c]*exp_mult*prep_auto_gain;}});
+        apply_negs_prep(prepared.data(),width,height,params.prep);
+        parallel_for(0,npix,[&](int begin,int end){for(int i=begin;i<end;i++){double rgb[3]={prepared[i*3],prepared[i*3+1],prepared[i*3+2]},b;Vec2 tc;prophoto_rgb_to_tc_b(rgb,&tc,&b,params.experimental_projection_active?params.experimental_projection:nullptr);double rr[3];cubic_interp_lut_at_2d(tc_lut,tc.x*scale,tc.y*scale,rr);for(int c=0;c<3;c++)raw[i*3+c]=rr[c]*b;}});
     }
 
     // Highlight boost (numba_boost_hightlights.boost_highlights), applied on the
@@ -906,7 +918,9 @@ void develop(const float* log_raw, int width, int height, const Profile& film,
         // are required for the sublayer branch).
         const bool have_layers =
             static_cast<int>(film.density_curves_layers.size()) == n * 9;
-        if (grain.sublayers_active && have_layers) {
+        if (apply_negs_grain(film,ndc.data(),density_cmy_out,width,height,params.pixel_size_um,grain)) {
+            // Dynamic BW layer count from the source model; no layer merging.
+        } else if (grain.sublayers_active && have_layers) {
             double density_max_layers[9];
             for (int sl = 0; sl < 3; ++sl) {
                 for (int c = 0; c < 3; ++c) {

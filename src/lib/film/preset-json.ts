@@ -1,5 +1,10 @@
+import negsPresets from "./negs-presets.json" with {type:"json"};
+import negsFamilies from "./negs-families.json" with {type:"json"};
+import {stockParamsForFilm} from "./stock-look.ts";
+import {sanitizePrep} from "./negs-prep.ts";
 import experimentalProfileIds from "./experimental-profile-ids.json" with {type:"json"};
-import families from "./experimental-families.json" with {type:"json"};
+import experimentalFamilies from "./experimental-families.json" with {type:"json"};
+const families=[...experimentalFamilies,...negsFamilies];
 import { sanitizeExperimental } from "./experimental.ts";
 import { defaultParams, sanitizeDiffusion, sanitizeWb } from "./defaults.ts";
 import type {
@@ -270,6 +275,7 @@ function applyScalar(out: Record<string, unknown>, key: string, v: unknown) {
     if (g) out.outputGamutCompress = g;
     return;
   }
+  if(alias==="prep"){out.prep=sanitizePrep(v);return;}
   if(alias === "experimental"){out.experimental=sanitizeExperimental(v);return;}
   if (v && typeof v === "object") return;
   out[alias] = v;
@@ -426,6 +432,16 @@ export function spektraToParams(raw: Record<string, unknown>): DarkroomParams {
 
   put(out, "filmStock", pickFilmStock(p));
   put(out, "printPaper", pickPrintPaper(p));
+  const negs=negsPresets as unknown as Record<string,{sourceStock:string}>;
+  const resolveNegs=(raw:unknown)=>{
+    const stock=String(raw??'');if(negs[stock])return stock;
+    const family=negsFamilies.find(f=>f.stock===stock);
+    return family?family.members[Math.floor((family.members.length-1)/2)].id:Object.keys(negs).find(id=>negs[id].sourceStock===stock);
+  };
+  const negsFilm=resolveNegs(out.filmStock),negsPaper=resolveNegs(out.printPaper);
+  if(negsFilm)Object.assign(out,stockParamsForFilm(negsFilm,{...out,filmStock:"none"} as unknown as DarkroomParams));
+  if(negsPaper)out.printPaper=negsPaper;
+
 
   for (const [k, v] of Object.entries(p)) {
     if (!PARAM_KEYS.has(k) || v === undefined) continue;
@@ -622,7 +638,7 @@ export function spektraToParams(raw: Record<string, unknown>): DarkroomParams {
     const minutes=num(val((prefix==='film'?chemistry:paperChem)??{},'developmentTime'));
     const key=prefix==='film'?'filmStock':'printPaper',stock=String(out[key]??'').replace(/^exp_/,'');
     const family=families.find(f=>f.stock===stock||f.members.some(m=>m.id===out[key]));
-    if(family&&minutes!==undefined){const member=family.members.find(m=>m.minutes===minutes);if(member)out[key]=member.id;}
+    if(family&&minutes!==undefined){const member=family.members.reduce((best,m)=>Math.abs(m.minutes-minutes)<Math.abs(best.minutes-minutes)?m:best);if(member)out[key]=member.id;}
   }
   const convert=asRec(film ? val(film,'convert') : null);
   if(convert)for(const [source,dest] of Object.entries({scanIlluminant:'scanIlluminant',basePercentile:'scanBasePercentile',exposureCompensationEv:'scanExposure',calibration:'scanCalibration'}))copy(convert,source,dest);
@@ -636,10 +652,15 @@ export function spektraToParams(raw: Record<string, unknown>): DarkroomParams {
   const route=str(val(asRec(p.workflow)??{},'route'));
   if(route?.includes('convert-film'))experimental.workflow=route.endsWith('scan-minus-base')?'negative-clear':route.includes('print')?'negative-print':'negative-scan';
   else if(route)put(out,'scanFilm',route==='input > film > scan');
+  const resolvedFilm=resolveNegs(out.filmStock),resolvedPaper=resolveNegs(out.printPaper);
+  if(resolvedFilm)out.filmStock=resolvedFilm;if(resolvedPaper)out.printPaper=resolvedPaper;
   if(p.film_render||p.print_render||p.workflow){
     for(const key of ['filmStock','printPaper']){const id=String(out[key]??'');if(experimentalProfileIds.includes('exp_'+id))out[key]='exp_'+id;}
   }
   out.experimental=sanitizeExperimental(experimental);
+
+  const prep=asRec(p.prep);
+  if(prep)out.prep=sanitizePrep({...prep,exposure:val(prep,'exposure','exposureEv'),colorBoost:val(prep,'colorBoost'),detail:val(prep,'detail','midtoneDetail')});
 
   const tc = asRec(p.toneCurve);
   if (tc) {
@@ -686,6 +707,16 @@ export function spektraToParams(raw: Record<string, unknown>): DarkroomParams {
   if (sim) {
     put(out, "filmStock", pickFilmStock(p));
     put(out, "printPaper", pickPrintPaper(p));
+  const negs=negsPresets as unknown as Record<string,{sourceStock:string}>;
+  const resolveNegs=(raw:unknown)=>{
+    const stock=String(raw??'');if(negs[stock])return stock;
+    const family=negsFamilies.find(f=>f.stock===stock);
+    return family?family.members[Math.floor((family.members.length-1)/2)].id:Object.keys(negs).find(id=>negs[id].sourceStock===stock);
+  };
+  const negsFilm=resolveNegs(out.filmStock),negsPaper=resolveNegs(out.printPaper);
+  if(negsFilm)Object.assign(out,stockParamsForFilm(negsFilm,{...out,filmStock:"none"} as unknown as DarkroomParams));
+  if(negsPaper)out.printPaper=negsPaper;
+
     applyPrintBlock(out, sim);
     const simCs = mapColorSpace(val(sim, "outputColorSpace", "savingColorSpace"));
     if (simCs) out.exportColorSpace = simCs;

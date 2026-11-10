@@ -3183,3 +3183,7 @@ a.lab-set-go {
 .emulsion-controls h2{font-size:24px;margin:8px 0;}
 .emulsion-controls .lab-note{padding:0;font-size:11px;line-height:1.6;}
 .emulsion-controls .lab-slider-row{padding:0;}
+
+.lab-stock-title-row {display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.lab-stock-star {flex:none;border:1px solid var(--line,#333b3c);border-radius:8px;background:transparent;color:var(--accent,#cce18c);width:36px;height:36px;font-size:24px;cursor:pointer;}
+.lab-model-note {color:#d7c78d!important;font-size:11px;line-height:1.6;}

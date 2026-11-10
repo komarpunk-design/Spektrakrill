@@ -192,6 +192,7 @@ public final class ExportWorker {
                 if (Double.isFinite(evComp) && evComp != 0.0) {
                     ImageConvert.applyGainInPlace(image, (float) Math.pow(2.0, evComp));
                 }
+                NegsPrep.apply(image, paramsJson);
                 ImageConvert.applyDigitalTone(image, paramsJson);
                 bmp = ImageConvert.linearToDisplayBitmap(image, 0);
             } else {

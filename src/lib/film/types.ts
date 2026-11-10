@@ -1,3 +1,4 @@
+import type { PrepParams } from "./negs-prep.ts";
 import type { ExperimentalParams } from "./experimental.ts";
 export type Vec3 = [number, number, number];
 export type Mat3 = [Vec3, Vec3, Vec3];
@@ -15,6 +16,10 @@ export interface ProfileMeta {
   referenceIlluminant: string;
   user?: boolean;
   experimental?: boolean;
+  negs?: boolean;
+  approximate?: boolean;
+  creative?: boolean;
+  estimatedDevelopment?: boolean;
 }
 
 export interface FilmProfile extends ProfileMeta {
@@ -100,6 +105,7 @@ export interface DiffusionState {
 }
 
 export interface DarkroomParams {
+  prep: PrepParams;
   experimental: ExperimentalParams;
   filmStock: string;
   printPaper: string;
@@ -254,6 +260,7 @@ export type FilmPack = "none" | "kodak" | "fuji" | "cine" | "slide";
 
 export function filmPack(id: string): FilmPack {
   if (id.startsWith("exp_")) id=id.slice(4);
+  if (id.startsWith("negs_")) id=id.slice(5);
   if (isFilmBypass(id)) return "none";
   if (id.startsWith("fujifilm")) {
     if (id.includes("velvia") || id.includes("provia")) return "slide";

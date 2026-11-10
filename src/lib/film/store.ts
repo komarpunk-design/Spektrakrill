@@ -12,6 +12,7 @@ export type ToolId =
   | "film"
   | "development"
   | "emulsion"
+  | "prep"
   | "tone"
   | "presets"
   | "camera"
@@ -26,6 +27,7 @@ export type ToolId =
   | "settings";
 
 export type AppPrefs = {
+  favoriteStocks: string[];
   showToolLabels: boolean;
   confirmExport: boolean;
   resetOnOpen: boolean;
@@ -35,6 +37,7 @@ export type AppPrefs = {
 };
 
 export const defaultAppPrefs = (): AppPrefs => ({
+  favoriteStocks: [],
   showToolLabels: true,
   confirmExport: false,
   resetOnOpen: true,
@@ -109,6 +112,7 @@ const TOOL_IDS: ToolId[] = [
   "film",
   "development",
   "emulsion",
+  "prep",
   "tone",
   "presets",
   "camera",
@@ -409,7 +413,7 @@ export const useDarkroom = create<DarkroomStore>()(
           const look = findLook(s.looks, s.imported, id);
           if (!look) return s;
           return {
-            params: sanitizeParams(look.params),
+            params: {...sanitizeParams(look.params),prep:s.params.prep},
             appliedLookId: look.id,
             undoStack: pushUndo(s.undoStack, s.params),
             redoStack: [],
@@ -558,6 +562,7 @@ export const useDarkroom = create<DarkroomStore>()(
           ...defaultAppPrefs(),
           ...(state.prefs ?? {}),
         };
+        state.prefs.favoriteStocks=Array.isArray(state.prefs.favoriteStocks)?state.prefs.favoriteStocks.filter((id:unknown)=>typeof id==="string"&&id.length<128).slice(0,256):[];
         state.prefs.showToolLabels = state.prefs.showToolLabels !== false;
         state.prefs.confirmExport = Boolean(state.prefs.confirmExport);
         state.prefs.resetOnOpen = state.prefs.resetOnOpen !== false;

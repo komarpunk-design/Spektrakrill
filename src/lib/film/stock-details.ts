@@ -5,6 +5,7 @@ import detailsJson from "./stock-details.json" with { type: "json" };
 type Detail = { manufacturer: string; group: string; kind: string; balance: string | null; year: string; summary: string };
 const details: Record<string, Detail> = detailsJson;
 const groups: Record<string, string> = {
+  bw_negative:"Чёрно-белый негатив",
   color_negative: "Цветной негатив", color_reversal: "Цветной слайд", cine_negative: "Киноплёнка",
   motion_picture: "Киноплёнка", motion_picture_negative: "Киноплёнка", print_film: "Копировальная плёнка", print_paper: "Фотобумага",
 };

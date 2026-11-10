@@ -57,3 +57,26 @@ objectives. Android calibration uses its own bounded LM optimizer. Exact scope,
 numerical checks and remaining differences are documented in
 `docs/EXPERIMENTAL_PARITY.md`. No upstream Chinese localization or binaries are
 included. Original upstream photo-frame attribution above remains applicable.
+
+## Negs / Fotufilm integration (version 9.49)
+
+Film data, stock defaults and Prep algorithms are adapted from
+[Negs by Noah Haasis, commit 26c903be9064b4fbfd46a8396620ba7e1e9bc1df](https://github.com/noahhaasis/negs/tree/26c903be9064b4fbfd46a8396620ba7e1e9bc1df).
+Negs code is GPLv3. Prep originated in yosoyelchris's `prep-raw-scopes` fork,
+commit d2a144d, as credited by Negs; its guide-base and recovered control math
+are ported to C++/TypeScript here. This is not a complete Resolve RAW pipeline.
+
+The 29 Fotufilm film profiles were converted for Negs from MUAStudio Inc.'s
+[Fotufilm engine, commit 96623ba0831a52dbddcda35727a206d4123a8b5f](https://github.com/DhaliwalX/fotufilm-engine/tree/96623ba0831a52dbddcda35727a206d4123a8b5f).
+They and Negs' additional datasheet-derived BW film/paper data are CC BY-SA 4.0.
+Original per-profile attribution, licence, datasource and approximate flags
+are retained. Full upstream notices, change log, BW sources and input hashes
+are in `docs/upstream/negs/`.
+
+Our changes: namespaces, evaluation of existing fitted curves, development-time
+selection, three-channel BW working representation with one physical dye OD,
+BB3200 adaptation, dynamic four-layer grain support, browser RGB approximations,
+Russian controls/descriptions and application-state integration. No new stock
+measurements or fitted profiles were invented. Film/brand names remain their
+owners' trademarks and imply no endorsement. Integration scope and validation
+are recorded in `docs/NEGS_INTEGRATION.md`.

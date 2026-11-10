@@ -1,3 +1,4 @@
+import { defaultPrep, sanitizePrep } from "./negs-prep.ts";
 import { defaultExperimental, sanitizeExperimental } from "./experimental.ts";
 import { sanitizeFrameStyle } from "./photo-frame.ts";
 import type { DarkroomParams, DiffusionFamily, DiffusionState } from "./types.ts";
@@ -83,6 +84,7 @@ export function sanitizeParams(raw: unknown): DarkroomParams {
   const p = raw && typeof raw === "object" ? (raw as Partial<DarkroomParams>) : {};
   const merged: DarkroomParams = { ...base, ...p };
   merged.experimental=sanitizeExperimental(p.experimental);
+  merged.prep=sanitizePrep(p.prep);
   merged.filmGamma = Number.isFinite(merged.filmGamma) && merged.filmGamma > 0 ? merged.filmGamma : 1;
   merged.exposureCompensationEv = Number.isFinite(merged.exposureCompensationEv) ? merged.exposureCompensationEv : 0;
   merged.frameNumber = Number.isFinite(merged.frameNumber) ? Math.max(1,Math.min(99,Math.trunc(merged.frameNumber))) : 18;
@@ -136,6 +138,7 @@ export function sanitizeParams(raw: unknown): DarkroomParams {
 
 export const defaultParams = (): DarkroomParams => ({
   experimental: defaultExperimental(),
+  prep: defaultPrep(),
   filmStock: "none",
   printPaper: "kodak_portra_endura",
   exposureCompensationEv: 0,

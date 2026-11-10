@@ -73,6 +73,7 @@
 #include "runtime/color_reference.h"
 #include "runtime/params.h"
 #include "model/experimental.h"
+#include "model/negs_projection.h"
 #include "model/negative.h"
 #include "model/experimental_projection.h"
 #include "kernels/spectral_upsampling.h"
@@ -743,7 +744,7 @@ static spk::TcLutCache::Lease engine_tc_lut(
         // so tungsten stocks white-balance under a normal camera WB. Everything
         // else stays on the baked D55 the daylight stocks were shipped with.
         const double* illuminant =
-            film.reference_illuminant == "T" ? kTIlluminant : kD55Illuminant;
+            film.reference_illuminant == "T" ? kTIlluminant : film.reference_illuminant=="BB3200"?spk::negs_spd_BB3200:kD55Illuminant;
         if(!film.experimental_method.empty()){
             auto spectra=engine_experimental_spectra(eng,film.experimental_method);
             auto result=spk::build_experimental_tc_lut(film,*spectra,illuminant,spectral_gaussian_blur,apply_window,apply_surface,filter_uv,filter_ir);
@@ -1881,6 +1882,7 @@ const char* pointwise_route_ineligibility(
         fparams.dir_couplers.diffusion_size_um > 0.0)
         return "dir_diffusion";
     if (fparams.experimental_projection_active) return "experimental_projection";
+    if (fparams.prep.active()) return "negs_prep";
     if (fparams.dir_couplers.langmuir) return "langmuir_couplers";
     if (fparams.grain.active) return "grain";
     if (fparams.halation.active) return "halation";
@@ -2257,6 +2259,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
     // gamma matrices stay film-specific (baked by the digest). diffusion_size_um
     // <= 0 self-gates to the pointwise path.
     spk::configure_experimental_projection(fparams,film);
+    fparams.prep=spk::read_negs_prep(p->experimental_json);
     fparams.raw_auto_exposure=!film.experimental_method.empty() && p->auto_exposure!=0;
     fparams.raw_auto_exposure_method=p->auto_exposure_method;
     apply_user_dir_couplers(fparams.dir_couplers, p);
@@ -2633,7 +2636,7 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
         // defaults {0,0,0}, mirroring the Python FileNotFoundError branch.
         spk::ScopedStage _t(spk::STG_PRINT_DIGEST);
         std::vector<char> nf;
-        if (spk_read_asset(eng, (film.experimental_source||prnt.experimental_source)?"filters/neutral_print_filters_experimental.json":kNeutralFiltersRel, nf,
+        if (spk_read_asset(eng, ((p->film_profile&&std::string(p->film_profile).rfind("negs_",0)==0)||(p->print_profile&&std::string(p->print_profile).rfind("negs_",0)==0))?"filters/neutral_print_filters_negs.json":(film.experimental_source||prnt.experimental_source)?"filters/neutral_print_filters_experimental.json":kNeutralFiltersRel, nf,
                            spk::json::kMaxInputBytes)) {
             if (!pointwise_test_fault(6)) {
                 (void)spk::resolve_neutral_cc_string(
@@ -2804,6 +2807,7 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
     fparams.density_curve_gamma[1] = fg;
     fparams.density_curve_gamma[2] = fg;
     spk::configure_experimental_projection(fparams,film);
+    fparams.prep=spk::read_negs_prep(p->experimental_json);
     fparams.raw_auto_exposure=!film.experimental_method.empty() && p->auto_exposure!=0;
     fparams.raw_auto_exposure_method=p->auto_exposure_method;
     apply_user_dir_couplers(fparams.dir_couplers, p);

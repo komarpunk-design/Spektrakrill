@@ -6,6 +6,7 @@
 #include "model/density_curves.h"
 #include "model/couplers.h"
 #include "model/experimental_projection.h"
+#include "model/negs_projection.h"
 #include "io/npy_lut.h"
 #include "runtime/stages/autoexposure.h"
 #include <fstream>
@@ -59,7 +60,7 @@ int main(int argc,char** argv){try{
  }
  if(argc>=6&&std::string(argv[1])=="--spectral"){
   auto p=spk::load_profile_file(argv[2]);spk::select_experimental_spectral_method(p,argv[3]);
-  const auto spectra=spk::load_npy(argv[4]);const double* illuminant=p.reference_illuminant=="T"?spk::experimental_spd_T:spk::experimental_spd_D55;
+  const auto spectra=spk::load_npy(argv[4]);const double* illuminant=p.reference_illuminant=="T"?spk::experimental_spd_T:p.reference_illuminant=="BB3200"?spk::negs_spd_BB3200:spk::experimental_spd_D55;
   const float uv[3]={0,410,8},ir[3]={0,675,15};const auto raw=spk::build_experimental_tc_lut(p,spectra,illuminant,0,true,false,uv,ir);
   std::ofstream stream(argv[5],std::ios::binary);stream.write(reinterpret_cast<const char*>(raw.data.data()),raw.data.size()*sizeof(double));
   std::cout<<raw.shape[0]<<' '<<raw.shape[1]<<' '<<raw.shape[2]<<'\n';return 0;

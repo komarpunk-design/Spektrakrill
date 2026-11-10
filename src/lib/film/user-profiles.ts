@@ -227,8 +227,9 @@ export function shelfGroups(
   const known = new Set(base.flatMap((g) => g.ids));
   const experimental = (kind === "film" ? catalog.films : catalog.papers).filter(x=>x.experimental).map(x=>x.id);
   experimental.forEach(id=>known.add(id));
+  const negs=(kind==="film"?catalog.films:catalog.papers).filter(x=>x.negs).map(x=>x.id);negs.forEach(id=>known.add(id));
   const extra = (kind === "film" ? catalog.films : catalog.papers)
     .filter((x) => !known.has(x.id) && x.id !== "none")
     .map((x) => x.id);
-  return [...base, ...(experimental.length?[{label:"Spektrafilm · experimental",ids:experimental}]:[]), ...(extra.length?[{label:"Импорт",ids:extra}]:[])];
+  return [...base, ...(negs.length?[{label:"Negs · Fotufilm",ids:negs}]:[]), ...(experimental.length?[{label:"Spektrafilm · experimental",ids:experimental}]:[]), ...(extra.length?[{label:"Импорт",ids:extra}]:[])];
 }
