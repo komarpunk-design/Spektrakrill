@@ -1,3 +1,5 @@
+import {WorkflowTools} from "@/components/darkroom/workflow-ui";
+import {WORKFLOW_STAGES,TOOL_GUIDE,stageForTool} from "@/lib/film/workflow-guide";
 import { TestPrint } from "@/components/darkroom/test-print";
 import { printTrialParams, type PrintTrialImage } from "@/lib/film/test-print";
 import { nativeTestPrint, jpegB64ToObjectUrl } from "@/lib/film/native-raw";
@@ -113,6 +115,10 @@ const TOOL_ICONS: Record<ToolId, LucideIcon> = {
   development: FlaskConical,
   emulsion: Aperture,
   prep: SlidersHorizontal,
+  outputs: Printer,
+  texture: Aperture,
+  negative: Film,
+  frame: Crop,
   tone: SlidersHorizontal,
   presets: Bookmark,
   camera: Camera,
@@ -307,7 +313,7 @@ function snapFromVelocity(px: number, vel: number, m = sheetMetrics()): SheetId 
 
 function snapForTool(tool: string): SheetId {
   if (tool === "gallery" || tool === "stock") return "peek";
-  if (tool === "presets" || tool === "settings" || tool === "log" || tool === "lab" || tool === "development" || tool === "emulsion" || tool === "prep") return "full";
+  if (tool === "presets" || tool === "settings" || tool === "log" || tool === "lab" || tool === "development" || tool === "emulsion" || tool === "prep" || tool === "texture" || tool === "negative") return "full";
   return "half";
 }
 
@@ -364,6 +370,8 @@ export function DarkroomApp() {
   const setShowOriginal = useDarkroom((s) => s.setShowOriginal);
   const scrubbing = useDarkroom((s) => s.scrubbing);
   const tool = useDarkroom((s) => s.tool);
+  const stageMemory=useRef<Record<string,ToolId>>({});
+  useEffect(()=>{stageMemory.current[stageForTool(tool).id]=tool;},[tool]);
   const prefs = useDarkroom((s) => s.prefs);
   const setTool = useDarkroom((s) => s.setTool);
   const chromeHidden = useDarkroom((s) => s.chromeHidden);
@@ -1787,7 +1795,8 @@ export function DarkroomApp() {
     flashNote("Отменено");
   }, [flashNote]);
 
-  const toolLabel = TOOLS.find((t) => t.id === tool)?.label ?? "";
+  const toolLabel=TOOL_GUIDE[tool].title;
+  const currentStage=stageForTool(tool);
   const canUndo = undoStack.length > 0;
   const canSave = !!(procUrl || full || preview) && !exporting && !batching && !testPrinting;
   const canStock = !!(fileName || origUrl || full || preview);
@@ -2140,7 +2149,7 @@ export function DarkroomApp() {
         </div>
       </aside>
       {tool === "gallery" || tool === "stock" ? (
-        <div className="lab-stage is-gallery">
+        <div className="lab-stage is-gallery"><WorkflowTools tool={tool} select={selectTool}/>
           {tool === "stock" ? (
             <StockPane
               items={stockItems}
@@ -2320,9 +2329,9 @@ export function DarkroomApp() {
           onPointerCancel={onSheetUp}
           onClick={onSheetClick}
         />
-        <div className="lab-dock-head">
+        <div className="workflow-dock-heading"><WorkflowTools tool={tool} select={selectTool}/><div className="lab-dock-head">
           <span className="lab-dock-title">
-            {tool === "settings" ? "Опции" : toolLabel || "Develop"}
+            {TOOL_GUIDE[tool].short}
           </span>
           {tool === "settings" ? (
             <button
@@ -2351,8 +2360,9 @@ export function DarkroomApp() {
             </IconBtn>
           ) : null}
         </div>
+        </div>
         {tool !== "gallery" && tool !== "stock" ? (
-          <div className="lab-sliders" key={params.rawEngine}>
+          <div className="lab-sliders" key={`${params.rawEngine}-${tool}`}>
             <Panel
               catalog={catalog}
               onSave={() => void saveFrame()}
@@ -2386,61 +2396,17 @@ export function DarkroomApp() {
           Ctrl O — открыть · Ctrl S — экспорт · Ctrl Z — отменить
         </span>
       </footer>
-      <nav
-        className={prefs.showToolLabels ? "lab-rail has-labels" : "lab-rail"}
-        aria-label="Инструменты"
-      >
-        {dockTools(params.rawEngine, params.filmStock, prefs.showLabTabs, tool).map((item) => {
-          const Icon = TOOL_ICONS[item.id];
-          const on = tool === item.id;
-          const changes = toolChangeCount(params, item.id);
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className={on ? "lab-tool is-on" : "lab-tool"}
-              aria-pressed={on}
-              aria-label={item.label}
-              title={changes ? `${item.label}: изменено параметров — ${changes}` : item.label}
-              aria-description={changes ? `Изменено параметров: ${changes}` : "Без изменений"}
-              onPointerDown={() => onToolHoldDown(item.id)}
-              onPointerUp={onToolHoldUp}
-              onPointerCancel={onToolHoldUp}
-              onClick={() => {
-                if (holdResetFired.current) return;
-                if (on && sheet === "peek") {
-                  animateSheet("half");
-                  return;
-                }
-                selectTool(item.id);
-              }}
-            >
-              <Icon className="size-5" strokeWidth={1.6} />
-              {changes > 0 ? <span className="lab-edited-dot" aria-hidden="true" /> : null}
-              {item.id === "stock" && pendingStock > 0 ? (
-                <span className="lab-tool-badge">{pendingStock > 9 ? "9+" : pendingStock}</span>
-              ) : null}
-              {prefs.showToolLabels ? <span className="lab-tool-label">{item.label}</span> : null}
-            </button>
-          );
-        })}
-        <button
-          type="button"
-          className={tool === "settings" ? "lab-tool is-on" : "lab-tool"}
-          aria-pressed={tool === "settings"}
-          aria-label="Опции"
-          title="Опции"
-          onClick={() => {
-            if (tool === "settings") {
-              selectTool(params.rawEngine === "spektrafilm" ? "film" : "tone");
-              return;
-            }
-            selectTool("settings");
-          }}
-        >
-          <Settings className="size-5" strokeWidth={1.6} />
-          {prefs.showToolLabels ? <span className="lab-tool-label">Опции</span> : null}
-        </button>
+      <nav className="lab-rail has-labels workflow-rail" aria-label="Этапы обработки">
+      {WORKFLOW_STAGES.map(stage=>{
+        const first=stage.defaultTool as ToolId;
+        const Icon=TOOL_ICONS[first];
+        const on=currentStage.id===stage.id;
+        const changes=stage.tools.reduce((sum,id)=>sum+toolChangeCount(params,id),0);
+        return <button key={stage.id} type="button" className={on?'lab-tool is-on':'lab-tool'} aria-pressed={on} aria-label={stage.label} title={stage.label} onClick={()=>{
+          if(on){animateSheet(sheet==='peek'?'half':sheet);return;}
+          selectTool(stageMemory.current[stage.id]??first);
+        }}><Icon className="size-5" strokeWidth={1.6}/>{changes>0?<span className="lab-edited-dot" aria-label="Есть изменения"/>:null}<span className="lab-tool-label">{stage.label}</span></button>;
+      })}
       </nav>
     </div>
   );

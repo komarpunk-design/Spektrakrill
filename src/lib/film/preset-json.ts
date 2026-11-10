@@ -1,3 +1,4 @@
+import {sanitizeOutput} from "./output-model.ts";
 import negsPresets from "./negs-presets.json" with {type:"json"};
 import negsFamilies from "./negs-families.json" with {type:"json"};
 import {stockParamsForFilm} from "./stock-look.ts";
@@ -275,6 +276,7 @@ function applyScalar(out: Record<string, unknown>, key: string, v: unknown) {
     if (g) out.outputGamutCompress = g;
     return;
   }
+  if(alias==="output"){out.output=sanitizeOutput(v);return;}
   if(alias==="prep"){out.prep=sanitizePrep(v);return;}
   if(alias === "experimental"){out.experimental=sanitizeExperimental(v);return;}
   if (v && typeof v === "object") return;

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { defaultParams } from "./defaults.ts";
-import { TOOL_KEYS, toolChangeCount } from "./tool-state.ts";
+import { TOOL_KEYS, toolChangeCount, resetToolParams } from "./tool-state.ts";
 
 describe("edited tool indicators", () => {
   it("starts clear for every default tool", () => {
@@ -18,4 +18,13 @@ describe("edited tool indicators", () => {
     const changed = { ...defaultParams(), filmStock: "kodak_portra_400" };
     for (const id of ["gallery", "presets", "stock"] as const) assert.equal(toolChangeCount(changed, id), 0);
   });
+});
+
+describe('workflow reset ownership',()=>{
+ it('resets grain independently of development, paper, frames and input preparation',()=>{
+ const p=defaultParams();p.experimental.grainRmsRed=31;p.experimental.filmRed=1.4;p.experimental.printBaseScale=1.2;p.prep.shadows=20;p.frameStyle='135';p.filmStock='negs_cinestill_800t';
+ const out=resetToolParams(p,'texture');assert.equal(out.experimental.grainRmsRed,defaultParams().experimental.grainRmsRed);assert.equal(out.experimental.filmRed,1.4);assert.equal(out.experimental.printBaseScale,1.2);assert.equal(out.prep.shadows,20);assert.equal(out.frameStyle,'135');assert.equal(out.filmStock,p.filmStock);assert.equal(p.experimental.grainRmsRed,31);
+ });
+ it('resets output without resetting paper or photographic frame',()=>{const p=defaultParams();p.output.mode='lab-scan';p.printExposure=2;p.frameStyle='120';const out=resetToolParams(p,'outputs');assert.equal(out.output.mode,'paper');assert.equal(out.printExposure,2);assert.equal(out.frameStyle,'120');});
+ it('separates crop from film edges',()=>{const p=defaultParams();p.crop=true;p.frameStyle='135';p.whitePadding=.1;const out=resetToolParams(p,'crop');assert.equal(out.crop,false);assert.equal(out.frameStyle,'135');assert.equal(out.whitePadding,.1);assert.equal(resetToolParams(p,'frame').whitePadding,defaultParams().whitePadding);});
 });

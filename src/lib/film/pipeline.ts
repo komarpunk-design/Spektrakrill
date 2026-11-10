@@ -1,3 +1,4 @@
+import {scanOutput} from "./output-model.ts";
 import {applyPrep} from "./negs-prep.ts";
 import { applyLangmuirCouplers } from "./experimental-couplers.ts";
 import { withExperimentalProfile, rmsParticleAreas } from "./experimental-math.ts";
@@ -717,7 +718,7 @@ function takeOut(w: number, h: number): PlanarImage {
 export function simulate(e: PlanarImage, t: FilmProfile | null, n: FilmProfile | null, r: DarkroomParams, i = false): PlanarImage {
   if (!e || e.w < 1 || e.h < 1 || !e.r || e.r.length < e.w * e.h) return e;
   const experiment=r.experimental;
-  if(experiment?.workflow&&experiment.workflow!=="normal")throw new Error("Обработка сканов негативов доступна в Android APK. В меню «Эмульсия» выберите обычную фотографию для браузерного предпросмотра.");
+  if(experiment?.workflow&&experiment.workflow!=="normal")throw new Error("Обработка сканов негативов доступна в Android APK. В меню «Сканы негативов» выберите обычную фотографию для браузерного предпросмотра.");
   const filmGamma=experiment?.filmChemistry?1:r.filmGamma;
   if(t&&experiment)t=withExperimentalProfile(t,experiment,true,experiment.filmChemistry?{gamma:r.filmGamma,fast:experiment.filmFast,slow:experiment.filmSlow,red:experiment.filmRed,green:experiment.filmGreen,blue:experiment.filmBlue,exhaustion:experiment.filmExhaustion}:undefined);
   if(n&&experiment){
@@ -835,7 +836,10 @@ export function simulate(e: PlanarImage, t: FilmProfile | null, n: FilmProfile |
     }
     NEG = { key: fkey, c: v, m: y, y: b };
   }
-  if (r.scanFilm || isPaperBypass(r.printPaper) || !n) {
+  const outputMode=r.output?.mode??"paper";
+  if (outputMode!=="paper"&&outputMode!=="negative"&&t.type!=="positive") {
+    [a.r,a.g,a.b]=scanOutput([v,y,b],t,r.output,filmGamma);
+  } else if (outputMode!=="paper" || r.scanFilm || isPaperBypass(r.printPaper) || !n) {
     let e = t.type === 'positive' ? 0.52 : 1;
     for (let n = 0; n < o; n++) {
       let r = cmyToRgbOd(v[n], y[n], b[n], t.dyeToRgb, t.baseRgbOd);
@@ -1021,7 +1025,7 @@ export function simulate(e: PlanarImage, t: FilmProfile | null, n: FilmProfile |
       j = Math.max(de[2], 1e-4);
     for (let e = 0; e < o; e++) ((a.r[e] /= k), (a.g[e] /= A), (a.b[e] /= j));
   }
-  if (!i && r.glareActive && r.glarePercent > 0 && !r.scanFilm && !isPaperBypass(r.printPaper)) {
+  if (!i && r.glareActive && r.glarePercent > 0 && outputMode==="paper" && !r.scanFilm && !isPaperBypass(r.printPaper)) {
     let e = r.glarePercent,
       t = r.glareRoughness,
       n = blurRgb(a.r, a.g, a.b, a.w, a.h, Math.max(0.4, r.glareBlur));
@@ -1050,7 +1054,7 @@ export function simulate(e: PlanarImage, t: FilmProfile | null, n: FilmProfile |
         (a.g[r] += (a.g[r] - t[r]) * i),
         (a.b[r] += (a.b[r] - n[r]) * i));
   }
-  if (r.scanWhiteCorrection || r.scanBlackCorrection) {
+  if (["paper","negative"].includes(outputMode) && (r.scanWhiteCorrection || r.scanBlackCorrection)) {
     let e = 1 / 0,
       t = 0;
     for (let n = 0; n < o; n++) {

@@ -1,13 +1,15 @@
 import { defaultParams } from "./defaults.ts";
 import type { DarkroomParams } from "./types.ts";
+import type { ExperimentalParams } from "./experimental.ts";
 import type { ToolId } from "./store.ts";
 
 export const TOOL_KEYS: Record<ToolId, (keyof DarkroomParams)[]> = {
   prep: ["prep"],
-  emulsion: ["experimental", "filmGamma", "grainActive", "grainBlur", "grainDyeCloudsUm", "couplersActive", "gammaSamelayer", "gammaRtoGB", "gammaGtoRB", "gammaBtoRG", "couplerDiffusionUm"],
+  outputs: ["output"],
+  emulsion: [],
   development: ["filmGamma", "exposureCompensationEv", "autoExposure", "printExposureCompensation"],
-  film: [
-    "filmStock",
+  film: ["filmStock"],
+  texture: [
     "grainActive",
     "grainParticleArea",
     "grainBlur",
@@ -35,7 +37,10 @@ export const TOOL_KEYS: Record<ToolId, (keyof DarkroomParams)[]> = {
     "inhibitionInterlayer",
     "inhibitionSamelayer",
     "couplerDiffusionUm",
+    "gammaSamelayer","gammaRtoGB","gammaGtoRB","gammaBtoRG",
   ],
+  negative: [],
+  frame: ["frameStyle","frameNumber","frameBarcode","frameDate","whitePadding"],
   tone: [
     "toneBrightness",
     "toneContrast",
@@ -104,10 +109,6 @@ export const TOOL_KEYS: Record<ToolId, (keyof DarkroomParams)[]> = {
     "cropAspect",
     "orientation",
     "gray18Canvas",
-  "frameStyle",
-  "frameNumber",
-  "frameBarcode",
-  "frameDate",
   ],
   stock: [],
   gallery: [],
@@ -123,14 +124,34 @@ export const TOOL_KEYS: Record<ToolId, (keyof DarkroomParams)[]> = {
     "lutResolution",
     "useFastStats",
     "applyCctfDecoding",
+    "inputGamutCompress",
+    "outputGamutCompress",
+    "upscaleFactor",
   ],
-  export: ["exportFormat", "exportQuality", "exportMaxEdge", "exportColorSpace", "outputCctf"],
+  export: ["exportFormat", "exportQuality", "exportMaxEdge", "exportColorSpace", "outputCctf", "gamutCompress"],
   log: [],
   settings: ["rawEngine", "rawEngineStyle"],
 };
 
-/** The reset button and edited indicator deliberately use the same parameter registry. */
-export function toolChangeCount(params: DarkroomParams, tool: ToolId): number {
-  const baseline = defaultParams();
-  return TOOL_KEYS[tool].filter(key => JSON.stringify(params[key]) !== JSON.stringify(baseline[key])).length;
+
+const experimentalKeys=Object.keys(defaultParams().experimental) as (keyof ExperimentalParams)[];
+export const TOOL_EXPERIMENTAL_KEYS:Partial<Record<ToolId,(keyof ExperimentalParams)[]>>={
+ development:experimentalKeys.filter(k=>k==='filmChemistry'||k.startsWith('film')&&!k.startsWith('filmBase')),
+ texture:experimentalKeys.filter(k=>k.startsWith('grain')||k.startsWith('dir')),
+ emulsion:experimentalKeys.filter(k=>k.startsWith('filmBase')||k==='spectralMethod'||k==='colorFilter'),
+ negative:experimentalKeys.filter(k=>k.startsWith('scan')||k==='workflow'||k.startsWith('filmBase')),
+ print:experimentalKeys.filter(k=>k.startsWith('printBase')),
+};
+/** Ownership is shared by the edited badge and reset; nested groups are isolated. */
+export function toolChangeCount(params:DarkroomParams,tool:ToolId):number{
+ const baseline=defaultParams();
+ return TOOL_KEYS[tool].filter(k=>JSON.stringify(params[k])!==JSON.stringify(baseline[k])).length+
+ (TOOL_EXPERIMENTAL_KEYS[tool]??[]).filter(k=>JSON.stringify(params.experimental?.[k])!==JSON.stringify(baseline.experimental[k])).length;
+}
+export function resetToolParams(params:DarkroomParams,tool:ToolId):DarkroomParams{
+ const baseline=defaultParams(),next={...params};
+ for(const k of TOOL_KEYS[tool])(next as unknown as Record<string,unknown>)[k]=baseline[k];
+ const nested=TOOL_EXPERIMENTAL_KEYS[tool]??[];
+ if(nested.length){next.experimental={...params.experimental};for(const k of nested)(next.experimental as Record<string,unknown>)[k]=baseline.experimental[k];}
+ return next;
 }

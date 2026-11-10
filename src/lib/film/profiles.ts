@@ -1,3 +1,4 @@
+import scannerSpectra from "../../../public/profiles/scanner-spectra.json";
 import catalogJson from "../../../public/profiles/catalog.json";
 import { useEffect, useState } from "react";
 import {
@@ -26,6 +27,7 @@ export async function loadProfile(id: string): Promise<FilmProfile> {
   const r = await fetch(`/profiles/${id}.json`);
   if (!r.ok) throw new Error(`Missing profile ${id}`);
   const p = (await r.json()) as FilmProfile;
+  p.scannerSpectra=(scannerSpectra as Record<string,FilmProfile["scannerSpectra"]>)[id];
   putCachedProfile(p);
   return p;
 }
