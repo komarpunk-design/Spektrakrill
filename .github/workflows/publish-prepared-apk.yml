@@ -1,0 +1,28 @@
+name: Publish prepared experimental APK
+on:
+  push:
+    branches: [apk-delivery-9-48-59547fc]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify, publish and download the complete APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '1c8f6ac67bd50dc3991c9e59cd6ee0e6ca278668cf4f8bbd8e29d8f303ee75a9  release-payload/SpektrafilmLab-9.48-arm64.apk' | sha256sum --check
+          if ! gh release view v9.48-build118 >/dev/null 2>&1; then
+            gh release create v9.48-build118 --target 59547fc832db579378d5901b53472b82c0c1b872 --prerelease --title 'Spektrafilm 9.48 — experimental tools · ARM64' --notes-file release-payload/notes.md
+          fi
+          if ! gh release view v9.48-build118 --json assets --jq '.assets[].name' | grep -Fxq 'SpektrafilmLab-9.48-arm64.apk'; then
+            gh release upload v9.48-build118 release-payload/SpektrafilmLab-9.48-arm64.apk
+          fi
+          mkdir downloaded
+          gh release download v9.48-build118 --pattern SpektrafilmLab-9.48-arm64.apk --dir downloaded
+          echo '1c8f6ac67bd50dc3991c9e59cd6ee0e6ca278668cf4f8bbd8e29d8f303ee75a9  downloaded/SpektrafilmLab-9.48-arm64.apk' | sha256sum --check
