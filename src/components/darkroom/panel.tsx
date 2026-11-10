@@ -1,3 +1,4 @@
+import { EmulsionControls } from "@/components/darkroom/emulsion-controls";
 import { DevelopmentControls } from "@/components/darkroom/development-controls";
 import { FRAME_STYLES, isOriginalEdge } from "@/lib/film/photo-frame";
 import { stockDetail, stockSpec, stockCategory } from "@/lib/film/stock-details";
@@ -44,6 +45,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 export const TOOLS = [
   { id: "film" as const, label: "Плёнка" },
   { id: "development" as const, label: "Push / Pull" },
+  { id: "emulsion" as const, label: "Эмульсия" },
   { id: "tone" as const, label: "Тон" },
   { id: "presets" as const, label: "Пресеты" },
   { id: "camera" as const, label: "Камера" },
@@ -81,7 +83,7 @@ export function dockTools(
 ): { id: (typeof TOOLS)[number]["id"]; label: string }[] {
   const spektra = engine === "spektrafilm";
   const bypass = isFilmBypass(filmStock);
-  const order = ["gallery", "presets", "film", "development", "tone", "camera", "print", "scan", "crop", "stock", "export", "lab", "log"];
+  const order = ["gallery", "presets", "film", "development", "emulsion", "tone", "camera", "print", "scan", "crop", "stock", "export", "lab", "log"];
   return TOOLS.filter((t) => {
     if (t.id === "settings") return false;
 
@@ -510,6 +512,7 @@ export function Panel({
         void file.text().then((t) => onImportText(t, file.name));
       }}
     >
+      {tool === "emulsion" ? <EmulsionControls /> : null}
       {tool === "development" ? <DevelopmentControls /> : null}
       {tool === "film" ? (
         <>
@@ -1604,6 +1607,8 @@ export function Panel({
                   { value: "aces_rgc", label: "ACES RGC" },
                   { value: "oklch", label: "Oklch" },
                   { value: "oklrab", label: "Oklrab" },
+                  { value: "jzazbz", label: "Jzazbz · Android" },
+                  { value: "cam16ucs", label: "CAM16-UCS · Android" },
                 ]}
               />
             </Field>
@@ -1733,8 +1738,8 @@ function SettingsPane({ onNotice, onOpenEnlarger }: { onNotice?: (msg: string) =
           <div className="lab-about">
             <p className="lab-about-name">{APP_NAME}</p>
             <p className="lab-about-ver">Версия {APP_VERSION}</p>
-            <p className="lab-about-copy">Улучшения по материалам Spektrafilm for Android. Лицензия GPLv3.</p>
-            {[{name: "Spektrafilm for Android — Akshay Sharma", url: "https://github.com/thetechgeekko/Spektrafilm-android"}, {name: "Моделирование плёнки — Andrea Volpato", url: "https://github.com/andreavolpato/spektrafilm"}, {name: "Использованный форк — hwx959", url: "https://github.com/hwx959/Spektrafilm-android"}].map(credit => <a key={credit.url} className="lab-credit" href={credit.url} target="_blank" rel="noopener noreferrer" onClick={event => { event.preventDefault(); void openExternalUrl(credit.url); }}>{credit.name}</a>)}
+            <p className="lab-about-copy">Движок Spektrafilm for Android и функции ветки experimental Andrea Volpato (28bf883). Код GPLv3, данные профилей CC BY-SA 4.0.</p>
+            {[{name:"Spektrafilm · experimental 28bf883",url:"https://github.com/andreavolpato/spektrafilm/tree/28bf883e1672e884307edc75852549376e13644e"},{name: "Spektrafilm for Android — Akshay Sharma", url: "https://github.com/thetechgeekko/Spektrafilm-android"}, {name: "Моделирование плёнки — Andrea Volpato", url: "https://github.com/andreavolpato/spektrafilm"}, {name: "Использованный форк — hwx959", url: "https://github.com/hwx959/Spektrafilm-android"}].map(credit => <a key={credit.url} className="lab-credit" href={credit.url} target="_blank" rel="noopener noreferrer" onClick={event => { event.preventDefault(); void openExternalUrl(credit.url); }}>{credit.name}</a>)}
             {APP_COPY.map((p) => (
               <p key={p.slice(0, 24)} className="lab-about-copy">
                 {p}

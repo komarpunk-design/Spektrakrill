@@ -1,3 +1,4 @@
+#include "runtime/stages/autoexposure.h"
 /*
  * Spektrafilm for Android — native engine: print-route digest implementation.
  * Copyright (C) 2026 Spektrafilm Android contributors.
@@ -43,7 +44,8 @@ inline double clip01(double v) { return v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v); }
 
 // _rgb_to_tc_b for color_space='sRGB', apply_cctf_decoding=False,
 // reference_illuminant='D55'.
-void srgb_rgb_to_tc_b(const double rgb[3], Vec2* out_tc, double* out_b) {
+void srgb_rgb_to_tc_b(const double rgb[3], Vec2* out_tc, double* out_b,const double* custom=nullptr) {
+    if(custom){double xyz[3]={};for(int r=0;r<3;r++)for(int c=0;c<3;c++)xyz[r]+=custom[r*3+c]*rgb[c];const double b=xyz[0]+xyz[1]+xyz[2];*out_b=std::isnan(b)?0:b;*out_tc=tri2quad({xyz[0]/std::fmax(b,1e-10),xyz[1]/std::fmax(b,1e-10)});return;}
     double xyz[3];
     for (int r = 0; r < 3; ++r) {
         xyz[r] = kSRGBToXyzD55[r][0] * rgb[0] + kSRGBToXyzD55[r][1] * rgb[1] +
@@ -138,14 +140,22 @@ double exposure_factor_for_gray(const Profile& film, const Profile& print_profil
     const double rgb_mid[3] = {gray, gray, gray};
     Vec2 tc;
     double b;
-    srgb_rgb_to_tc_b(rgb_mid, &tc, &b);
+    srgb_rgb_to_tc_b(rgb_mid, &tc, &b,film.experimental_method.empty()?nullptr:film.experimental_srgb_projection);
     const int L = filming_tc_lut.shape[0];
     const double scale = static_cast<double>(L - 1);
     double raw[3];
     cubic_interp_lut_at_2d(filming_tc_lut, tc.x * scale, tc.y * scale, raw);
+    double auto_scale=1;
+    if(film.experimental_auto_exposure){
+        const double neutral_rgb[3]={.184,.184,.184};Vec2 neutral_tc;double neutral_b;
+        srgb_rgb_to_tc_b(neutral_rgb,&neutral_tc,&neutral_b,film.experimental_srgb_projection);
+        double neutral_raw[3];cubic_interp_lut_at_2d(filming_tc_lut,neutral_tc.x*scale,neutral_tc.y*scale,neutral_raw);
+        for(int c=0;c<3;c++)neutral_raw[c]*=neutral_b;
+        auto_scale=std::pow(2.,measure_raw_autoexposure_ev(neutral_raw,1,1,film.experimental_meter_method.c_str()));
+    }
     float log_raw[3];
     for (int c = 0; c < 3; ++c) {
-        double r = raw[c] * b;
+        double r = raw[c] * b * auto_scale;
         log_raw[c] = static_cast<float>(std::log10(r + 1e-10));
     }
 

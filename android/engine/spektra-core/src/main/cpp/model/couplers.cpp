@@ -122,6 +122,17 @@ double fast_interp_channel(double x, const double* xa, const double* y, int n,
     return y[low] + t * (y[low + 1] - y[low]);
 }
 
+// Experimental @28bf883: amplitude-matched donor/receiver saturation.
+struct Langmuir {
+    bool enabled,positive;double ceiling[3]={0,0,0},k[3],ref[3],kr[3],rref[3];
+    Langmuir(const DirCouplersParams& p,const float* dc,int n,const double* matrix,bool reverse):enabled(p.langmuir),positive(reverse){
+        for(int i=0;i<n;i++)for(int c=0;c<3;c++)if(std::isfinite(dc[i*3+c]))ceiling[c]=std::max(ceiling[c],static_cast<double>(dc[i*3+c]));
+        for(int c=0;c<3;c++){ref[c]=ceiling[c]/2;k[c]=p.langmuir_donor_k[c]*ceiling[c];rref[c]=0;for(int j=0;j<3;j++)rref[c]+=ref[j]*matrix[j*3+c]/(p.amount!=0?p.amount:1);kr[c]=p.langmuir_receiver_k[c]*2*rref[c];}
+    }
+    double donor(double d,int c)const{if(!enabled||positive)return d;const double den=k[c]+d;return den!=0?d*(k[c]+ref[c])/den:0;}
+    double receiver(double d,int c)const{if(!enabled||!positive)return d;const double den=kr[c]+d;return den!=0?d*(kr[c]+rref[c])/den:0;}
+};
+
 }  // namespace
 
 // np.interp(x[:nx], xp[:n], fp[:n]) -> out[:nx]. Endpoints clamp to fp[0]/fp[n-1].
@@ -191,6 +202,7 @@ void apply_density_correction_dir_couplers(const float* density_cmy, int npix,
 
     double M[9];
     compute_dir_couplers_matrix(params, M);
+    const Langmuir saturation(params,density_curves,n,M,positive_film);
 
     // log_exposure axis in double.
     std::vector<double> le(n);
@@ -217,6 +229,7 @@ void apply_density_correction_dir_couplers(const float* density_cmy, int npix,
     } else {
         silver_curve = dc;
     }
+    if(params.langmuir)for(size_t i=0;i<silver_curve.size();i++)silver_curve[i]=saturation.donor(silver_curve[i],i%3);
 
     // couplers_amount_curves[j,m] = sum_k silver_curve[j,k] * M[k,m]
     // log_exposure_0[j,m] = le[j] - couplers_amount_curves[j,m]
@@ -229,7 +242,7 @@ void apply_density_correction_dir_couplers(const float* density_cmy, int npix,
         for (int j = 0; j < n; ++j) {
             double amt = 0.0;
             for (int k = 0; k < 3; ++k) amt += silver_curve[j * 3 + k] * M[k * 3 + c];
-            le0[j] = le[j] - amt;
+            le0[j] = le[j] - saturation.receiver(amt,c);
             // negative: y = dc[:,c]; positive: interp on -dc, then negate.
             ycol[j] = positive_film ? -dc[j * 3 + c] : dc[j * 3 + c];
         }
@@ -289,12 +302,12 @@ void apply_density_correction_dir_couplers(const float* density_cmy, int npix,
                 double s = static_cast<double>(density_cmy[p * 3 + k]);
                 if (positive_film) s = dmax_cmy[k] - s;
                 if (shift != 0.0) s += shift * s * s;
-                silver[k] = s;
+                silver[k] = saturation.donor(s,k);
             }
             for (int c = 0; c < 3; ++c) {
                 double correction = 0.0;
                 for (int k = 0; k < 3; ++k) correction += silver[k] * M[k * 3 + c];
-                double log_raw_0 = static_cast<double>(log_raw[p * 3 + c]) - correction;
+                double log_raw_0 = static_cast<double>(log_raw[p * 3 + c]) - saturation.receiver(correction,c);
                 out[p * 3 + c] = static_cast<float>(fast_interp_channel(
                     log_raw_0, axis_c[c].data(), curve_c[c].data(), n, ua_c[c]));
             }
@@ -320,6 +333,7 @@ void apply_density_correction_dir_couplers_spatial(
 
     double M[9];
     compute_dir_couplers_matrix(params, M);
+    const Langmuir saturation(params,density_curves,n,M,positive_film);
 
     std::vector<double> le(n);
     for (int k = 0; k < n; ++k) le[k] = static_cast<double>(log_exposure[k]);
@@ -341,6 +355,7 @@ void apply_density_correction_dir_couplers_spatial(
     } else {
         silver_curve = dc;
     }
+    if(params.langmuir)for(size_t i=0;i<silver_curve.size();i++)silver_curve[i]=saturation.donor(silver_curve[i],i%3);
     std::vector<double> dc0(static_cast<size_t>(n) * 3);
     {
         std::vector<double> le0(n), ycol(n), vbuf(n);
@@ -348,7 +363,7 @@ void apply_density_correction_dir_couplers_spatial(
             for (int j = 0; j < n; ++j) {
                 double amt = 0.0;
                 for (int k = 0; k < 3; ++k) amt += silver_curve[j * 3 + k] * M[k * 3 + c];
-                le0[j] = le[j] - amt;
+                le0[j] = le[j] - saturation.receiver(amt,c);
                 ycol[j] = positive_film ? -dc[j * 3 + c] : dc[j * 3 + c];
             }
             np_interp_array(le.data(), n, le0.data(), ycol.data(), n, vbuf.data());
@@ -380,7 +395,7 @@ void apply_density_correction_dir_couplers_spatial(
                 double s = static_cast<double>(density_cmy[p * 3 + k]);
                 if (positive_film) s = dmax_cmy[k] - s;
                 if (shift != 0.0) s += shift * s * s;
-                silver[k] = s;
+                silver[k] = saturation.donor(s,k);
             }
             for (int c = 0; c < 3; ++c) {
                 double corr = 0.0;
@@ -501,7 +516,7 @@ void apply_density_correction_dir_couplers_spatial(
         for (int p = lo; p < hi; ++p) {
             for (int c = 0; c < 3; ++c) {
                 double log_raw_0 =
-                    static_cast<double>(log_raw[p * 3 + c]) - correction[p * 3 + c];
+                    static_cast<double>(log_raw[p * 3 + c]) - saturation.receiver(correction[p * 3 + c],c);
                 out[p * 3 + c] = static_cast<float>(fast_interp_channel(
                     log_raw_0, axis_c[c].data(), curve_c[c].data(), n, ua_c[c]));
             }

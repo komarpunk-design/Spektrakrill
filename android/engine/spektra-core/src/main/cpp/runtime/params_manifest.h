@@ -249,6 +249,7 @@ inline std::string named_inventory(const spk_params& p) {
     SPK_MANIFEST_STR(input_color_space);
     SPK_MANIFEST_I32(camera_diffusion_family);
     SPK_MANIFEST_I32(enlarger_diffusion_family);
+    SPK_MANIFEST_STR(experimental_json);
 
 #undef SPK_MANIFEST_I32
 #undef SPK_MANIFEST_F32
@@ -261,8 +262,8 @@ inline std::string named_inventory(const spk_params& p) {
 
 // The manifest intentionally ends at the ABI tail. Appending a field without
 // extending named_inventory must make every native build fail loudly.
-static_assert(offsetof(spk_params, enlarger_diffusion_family) +
-                  sizeof(((spk_params*)nullptr)->enlarger_diffusion_family) ==
+static_assert(offsetof(spk_params, experimental_json) +
+                  sizeof(((spk_params*)nullptr)->experimental_json) ==
               sizeof(spk_params));
 
 }  // namespace spk::params_manifest

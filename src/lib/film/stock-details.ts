@@ -16,6 +16,6 @@ export function stockSpec(item: { id: string; iso?: number | null }): string {
 }
 export function stockCategory(id: string): string {
   const item = stockDetail(id);
-  if (!item) return "Пользовательский профиль";
+  if (!item) return id.startsWith("exp_") ? "Профиль experimental" : "Пользовательский профиль";
   return groups[item.group] || (item.kind === "print_paper" ? "Фотобумага" : item.kind === "print_film" ? "Копировальная плёнка" : "Фотоплёнка");
 }

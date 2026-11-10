@@ -856,6 +856,9 @@ class SpektraEngine private constructor(
         internal fun debugMarshalledParams(params: Any?): String =
             nativeDebugMarshalledParams(params)
 
+        /** Experimental scan calibration; bounded samples, no engine state mutation. */
+        @JvmStatic external fun nativeCalibrateNegative(profile: String, params: String, samples: FloatArray, base: Boolean): String
+
         @JvmStatic private external fun nativeSetBigCores(mode: Int)
         @JvmStatic private external fun nativeSetParallelPool(mode: Int)
         @JvmStatic private external fun nativeParallelPoolWorkers(): Int

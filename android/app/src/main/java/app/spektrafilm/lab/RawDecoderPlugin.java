@@ -536,6 +536,41 @@ public class RawDecoderPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void calibrateNegative(PluginCall call) {
+        final JSONObject params = call.getObject("params");
+        final boolean detectBase = Boolean.TRUE.equals(call.getBoolean("base", true));
+        work.execute(() -> { synchronized (lock) {
+            LinearImage image = null;
+            try {
+                if (linearData == null || params == null) throw new Exception("Сначала откройте скан негатива");
+                final String id = params.optString("filmStock", "none");
+                if (!UserProfiles.validId(id)) throw new Exception("Выберите профиль цветного негатива");
+                File user = UserProfiles.file(getContext(), id);
+                String profile;
+                try (InputStream input = user.isFile() ? new FileInputStream(user) : getContext().getAssets().open("spektra/profiles/" + id + ".json")) {
+                    java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+                    byte[] block = new byte[8192]; int count;
+                    while ((count = input.read(block)) > 0) { bytes.write(block, 0, count); if (bytes.size() > 1000000) throw new Exception("Профиль слишком большой"); }
+                    profile = new String(bytes.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
+                }
+                ensureWbBase(WhiteBalance.needed(params), 640);
+                ensurePreviewSource(640);
+                image = copyLinear(previewBaseFor(640));
+                if (WhiteBalance.needed(params)) WhiteBalance.applyInPlace(image, params);
+                if (RawEngine.needed(params)) RawEngine.applyInPlace(image, params);
+                java.nio.FloatBuffer rgb = Images.bytes(image).order(ByteOrder.nativeOrder()).asFloatBuffer();
+                int pixels = image.getWidth() * image.getHeight();
+                int sampleCount = Math.min(1500, pixels); float[] sample = new float[sampleCount * 3];
+                for (int i=0;i<sampleCount;i++) { int offset=(int)((long)i*(pixels-1)/Math.max(1,sampleCount-1))*3; for(int c=0;c<3;c++)sample[i*3+c]=rgb.get(offset+c); }
+                JSONObject experimental = params.optJSONObject("experimental");
+                String result = SpektraEngine.nativeCalibrateNegative(profile, experimental == null ? "{}" : experimental.toString(), sample, detectBase);
+                call.resolve(new JSObject(result));
+            } catch(Throwable error) { call.reject(friendlyError(error)); }
+            finally { if(image != null) image.close(); }
+        }});
+    }
+
+    @PluginMethod
     public void wbBase(PluginCall call) {
         final int edge = call.getInt("maxEdge", 0);
         work.execute(() -> {

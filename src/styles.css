@@ -3178,3 +3178,8 @@ a.lab-set-go {
 .development-controls .lab-slider-row {padding:0;}
 .development-controls summary {cursor:pointer;font-size:11px;color:var(--color-muted);padding:8px 0;}
 .development-controls details p {margin:10px 0 0;}
+
+.emulsion-controls {display:flex;flex-direction:column;gap:16px;padding:14px;}
+.emulsion-controls h2{font-size:24px;margin:8px 0;}
+.emulsion-controls .lab-note{padding:0;font-size:11px;line-height:1.6;}
+.emulsion-controls .lab-slider-row{padding:0;}

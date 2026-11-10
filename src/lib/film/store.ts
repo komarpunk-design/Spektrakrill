@@ -11,6 +11,7 @@ export type SourceKind = "none" | "file";
 export type ToolId =
   | "film"
   | "development"
+  | "emulsion"
   | "tone"
   | "presets"
   | "camera"
@@ -107,6 +108,7 @@ function debounceLocalStorage(ms: number): StateStorage {
 const TOOL_IDS: ToolId[] = [
   "film",
   "development",
+  "emulsion",
   "tone",
   "presets",
   "camera",

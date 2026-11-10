@@ -369,6 +369,7 @@ typedef struct {
     const char* input_color_space;      /* only "ProPhoto RGB" is supported */
     int32_t camera_diffusion_family;    /* spk_diffusion_family */
     int32_t enlarger_diffusion_family;  /* spk_diffusion_family */
+    const char* experimental_json; /* Optional bounded experimental parameter tree. */
 } spk_params;
 
 /* Initialise `p` to the physical defaults that mirror a default-constructed

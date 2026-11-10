@@ -1,0 +1,64 @@
+[
+  {
+    "stock": "kodak_2302",
+    "name": "Kodak Print Film 2302",
+    "members": [
+      {
+        "id": "exp_kodak_2302_2min",
+        "minutes": 2.0
+      },
+      {
+        "id": "exp_kodak_2302_3p5min",
+        "minutes": 3.5
+      },
+      {
+        "id": "exp_kodak_2302_5min",
+        "minutes": 5.0
+      },
+      {
+        "id": "exp_kodak_2302_7min",
+        "minutes": 7.0
+      },
+      {
+        "id": "exp_kodak_2302_9min",
+        "minutes": 9.0
+      }
+    ]
+  },
+  {
+    "stock": "kodak_doublex",
+    "name": "Kodak Double-X Negative Film 5222",
+    "members": [
+      {
+        "id": "exp_kodak_doublex_4min",
+        "minutes": 4.0
+      },
+      {
+        "id": "exp_kodak_doublex_5min",
+        "minutes": 5.0
+      },
+      {
+        "id": "exp_kodak_doublex_6p5min",
+        "minutes": 6.5
+      },
+      {
+        "id": "exp_kodak_doublex_9min",
+        "minutes": 9.0
+      },
+      {
+        "id": "exp_kodak_doublex_12min",
+        "minutes": 12.0
+      }
+    ]
+  },
+  {
+    "stock": "kodak_trix",
+    "name": "Kodak Tri-X Reversal Film 7266",
+    "members": [
+      {
+        "id": "exp_kodak_trix_1min",
+        "minutes": 1.0
+      }
+    ]
+  }
+]

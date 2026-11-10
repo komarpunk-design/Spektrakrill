@@ -55,6 +55,9 @@ add_library(spektra SHARED
         model/glare.cpp
         model/diffusion.cpp                  # in-emulsion scatter + halation (spatial)
         model/grain.cpp                      # AgX particle grain model (M6)
+        model/negative_calibration.cpp
+        model/negative.cpp
+        model/experimental.cpp
         model/morph_curves.cpp               # opt-in s023 print density-curve morph (default OFF)
         model/gamut_compression.cpp          # opt-in gamut compression: ACES RGC v1.3 output + radial-to-locus input (default OFF)
         model/color_output.cpp               # XYZ->output RGB + CCTF (M3)

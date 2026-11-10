@@ -46,6 +46,7 @@ const SKIP = new Set<keyof DarkroomParams>([
 ]);
 
 const LABELS: Partial<Record<keyof DarkroomParams, string>> = {
+  experimental: "Эмульсия experimental",
   filmStock: "Плёнка",
   printPaper: "Бумага",
   filmGamma: "Гамма плёнки",

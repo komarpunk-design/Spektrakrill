@@ -1,3 +1,4 @@
+import { morphDensityCurves } from "@/lib/film/experimental-math";
 import { useEffect, useState } from "react";
 import { SliderRow, ToggleRow } from "@/components/ui/control";
 import { developmentCurve, developmentMode, exposureIndexRatio } from "@/lib/film/development";
@@ -6,18 +7,20 @@ import { useDarkroom } from "@/lib/film/store";
 import { isFilmBypass, type FilmProfile } from "@/lib/film/types";
 
 function DensityDiagram({
+  reference,
   profile,
   gamma,
   ev,
 }: {
+  reference: FilmProfile;
   profile: FilmProfile;
   gamma: number;
   ev: number;
 }) {
   const { min, max } = profile.logExposure;
-  const top = Math.max(0.1, ...profile.densityCurves.flat());
-  const path = (channel: number, g: number, e: number) =>
-    developmentCurve(profile, g, e, channel)
+  const top = Math.max(0.1, ...profile.densityCurves.flat(),...reference.densityCurves.flat());
+  const path = (channel: number, g: number, e: number, source=profile) =>
+    developmentCurve(source, g, e, channel)
       .map(
         ([x, y], i) =>
           `${i ? "L" : "M"}${(24 + ((x - min) / (max - min)) * 256).toFixed(2)},${(144 - (y / top) * 128).toFixed(2)}`,
@@ -39,7 +42,7 @@ function DensityDiagram({
         {[0, 1, 2].map((channel) => (
           <path
             key={`base${channel}`}
-            d={path(channel, 1, ev)}
+            d={path(channel, 1, ev,reference)}
             fill="none"
             stroke="currentColor"
             opacity=".4"
@@ -94,6 +97,10 @@ export function DevelopmentControls() {
   }, [params.filmStock]);
   const ratio = exposureIndexRatio(params.exposureCompensationEv);
   const mode = developmentMode(params.filmGamma);
+  const chemistry=params.experimental?.filmChemistry&&!!profile?.densityModel;
+  const x=params.experimental;
+  const diagramProfile=chemistry&&profile?{...profile,densityCurves:morphDensityCurves(profile,{gamma:params.filmGamma,fast:x.filmFast,slow:x.filmSlow,red:x.filmRed,green:x.filmGreen,blue:x.filmBlue,exhaustion:x.filmExhaustion})}:profile;
+
   const disabled =
     params.rawEngine !== "spektrafilm" ||
     isFilmBypass(params.filmStock) ||
@@ -101,6 +108,7 @@ export function DevelopmentControls() {
     profile.type !== "negative";
   return (
     <section className="development-controls" aria-label="Настройки Push / Pull">
+      <button className="lab-ghost" type="button" onClick={()=>setTool("emulsion")}>Химия по слоям и основа →</button>
       <header>
         <span className="development-kicker">ПРОЯВКА НЕГАТИВА</span>
         <h2>Push / Pull</h2>
@@ -182,14 +190,15 @@ export function DevelopmentControls() {
               disabled={params.filmGamma === 1}
               onClick={() => setParam("filmGamma", 1)}
             >
-              Нормальная проявка · γ 1
+              {chemistry?"Общий коэффициент · γ 1":"Нормальная проявка · γ 1"}
             </button>
             <p className="lab-note">γ — коэффициент кривой негатива, не количество ступеней EV.</p>
             <details>
               <summary>Кривые плотности</summary>
               <DensityDiagram
-                profile={profile}
-                gamma={params.filmGamma}
+                reference={profile}
+                profile={diagramProfile!}
+                gamma={chemistry?1:params.filmGamma}
                 ev={params.exposureCompensationEv}
               />
             </details>

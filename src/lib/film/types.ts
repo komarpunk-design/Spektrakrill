@@ -1,3 +1,4 @@
+import type { ExperimentalParams } from "./experimental.ts";
 export type Vec3 = [number, number, number];
 export type Mat3 = [Vec3, Vec3, Vec3];
 
@@ -13,9 +14,17 @@ export interface ProfileMeta {
   iso: number | null;
   referenceIlluminant: string;
   user?: boolean;
+  experimental?: boolean;
 }
 
 export interface FilmProfile extends ProfileMeta {
+  densityLayers?: Vec3[][];
+  takingFilters?: Record<string,{matrix:Mat3;gain:Vec3}>;
+  monochrome?: boolean;
+  densityModel?: { model_type:string; centers:number[][]; amplitudes:number[][]; sigmas:number[][]; alphas?:number[][]|null };
+  baseSpectrum?: (number|null)[];
+  wavelengths?: number[];
+  sourceStock?: string;
   viewingIlluminant: string;
   logExposure: { min: number; max: number; n: number };
   densityCurves: Vec3[];
@@ -74,7 +83,7 @@ export type RawEngineStyle =
 
 export type InputGamutMode = "off" | "xy";
 
-export type OutputGamutMode = "legacy_clip" | "off" | "aces_rgc" | "oklch" | "oklrab";
+export type OutputGamutMode = "legacy_clip" | "off" | "aces_rgc" | "oklch" | "oklrab" | "jzazbz" | "cam16ucs";
 
 export interface DiffusionState {
   active: boolean;
@@ -91,6 +100,7 @@ export interface DiffusionState {
 }
 
 export interface DarkroomParams {
+  experimental: ExperimentalParams;
   filmStock: string;
   printPaper: string;
   exposureCompensationEv: number;
@@ -243,6 +253,7 @@ export function isPaperBypass(id: string | null | undefined): boolean {
 export type FilmPack = "none" | "kodak" | "fuji" | "cine" | "slide";
 
 export function filmPack(id: string): FilmPack {
+  if (id.startsWith("exp_")) id=id.slice(4);
   if (isFilmBypass(id)) return "none";
   if (id.startsWith("fujifilm")) {
     if (id.includes("velvia") || id.includes("provia")) return "slide";

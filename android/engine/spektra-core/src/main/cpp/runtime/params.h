@@ -40,6 +40,10 @@ enum class InputColorSpace {
 // Digested parameters the filming stage needs. Mirrors the relevant fields of
 // the Python digested RuntimePhotoParams for the parity toggles.
 struct FilmingParams {
+    bool raw_auto_exposure = false;
+    const char* raw_auto_exposure_method = nullptr;
+    bool experimental_projection_active = false;
+    double experimental_projection[9] = {};
     InputColorSpace input_color_space = InputColorSpace::kProPhotoRGB;
     bool input_cctf_decoding = false;
 

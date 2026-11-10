@@ -13,7 +13,7 @@ const AH_OK = new Set<ProfileMeta["antihalation"]>(["strong", "weak", "no"]);
 const VIEW_OK = new Set(["D50", "K75P"]);
 const REF_OK = new Set(["D55", "T", "TH-KG3"]);
 
-const DONOR = portraJs as FilmProfile;
+const DONOR = portraJs as unknown as FilmProfile;
 
 function asRec(v: unknown): Record<string, unknown> | null {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
