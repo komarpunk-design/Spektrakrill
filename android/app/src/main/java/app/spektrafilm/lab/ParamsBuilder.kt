@@ -62,6 +62,7 @@ object ParamsBuilder {
         val paperOff = isBypass(paperRaw)
         val workflow = p.optJSONObject("experimental")?.optString("workflow", "normal") ?: "normal"
         val negative = workflow != "normal"
+        val outputMode = p.optJSONObject("output")?.optString("mode", "paper") ?: "paper"
         val filmRaw = firstStr(p, "kodak_portra_400", "filmStock", "filmProfile", "film_profile")
         require(!negative || !isBypass(filmRaw)) { "Для конвертации негатива выберите цветную негативную плёнку" }
         require(workflow != "negative-print" || !paperOff) { "Для печати негатива выберите фотобумагу" }
@@ -69,6 +70,7 @@ object ParamsBuilder {
             experimentalJson = JSONObject(p.optJSONObject("experimental")?.toString() ?: "{}").apply {
                 if (optString("spectralMethod", "legacy") == "legacy" && p.optString("rgbToRawMethod", "hanatos2025") == "mallett2019") put("spectralMethod", "mallett2019")
                 put("negsPrep", p.optJSONObject("prep") ?: JSONObject())
+                if (!negative) put("outputModel", p.optJSONObject("output") ?: JSONObject())
                 if (forExport) put("scanUseLut", false)
                 put("printChemistry", p.optBoolean("chemistryActive", false))
                 put("printGamma", p.optDouble("printGamma", 1.0))
@@ -130,7 +132,7 @@ object ParamsBuilder {
                 cropSize = p.optDouble("cropSizeX", 0.35).toFloat() to
                     p.optDouble("cropSizeY", 0.35).toFloat(),
                 upscaleFactor = if (forExport) 1f else p.optDouble("upscaleFactor", 1.0).toFloat(),
-                scanFilm = if (negative) workflow != "negative-print" else p.optBoolean("scanFilm", false) || paperOff,
+                scanFilm = if (negative) workflow != "negative-print" else outputMode != "paper" || p.optBoolean("scanFilm", false) || paperOff,
             ),
             settings = SettingsParams(
                 rgbToRawMethod = if (p.optString("rgbToRawMethod", "hanatos2025") == "mallett2019")

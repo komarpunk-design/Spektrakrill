@@ -1,4 +1,4 @@
-import { TOOL_KEYS } from "./tool-state.ts";
+import { TOOL_KEYS, resetToolParams } from "./tool-state.ts";
 import { create } from "zustand";
 import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
 import { defaultParams, sanitizeParams } from "./defaults";
@@ -12,6 +12,10 @@ export type ToolId =
   | "film"
   | "development"
   | "emulsion"
+  | "outputs"
+  | "texture"
+  | "frame"
+  | "negative"
   | "prep"
   | "tone"
   | "presets"
@@ -27,6 +31,7 @@ export type ToolId =
   | "settings";
 
 export type AppPrefs = {
+  showControlHelp: boolean;
   favoriteStocks: string[];
   showToolLabels: boolean;
   confirmExport: boolean;
@@ -37,6 +42,7 @@ export type AppPrefs = {
 };
 
 export const defaultAppPrefs = (): AppPrefs => ({
+  showControlHelp: true,
   favoriteStocks: [],
   showToolLabels: true,
   confirmExport: false,
@@ -112,6 +118,10 @@ const TOOL_IDS: ToolId[] = [
   "film",
   "development",
   "emulsion",
+  "outputs",
+  "texture",
+  "frame",
+  "negative",
   "prep",
   "tone",
   "presets",
@@ -334,10 +344,7 @@ export const useDarkroom = create<DarkroomStore>()(
               redoStack: [],
             };
           }
-          const next = { ...s.params };
-          for (const k of TOOL_KEYS[s.tool]) {
-            (next as Record<string, unknown>)[k] = d[k];
-          }
+          const next = resetToolParams(s.params,s.tool);
           return {
             params: next,
             appliedLookId: null,

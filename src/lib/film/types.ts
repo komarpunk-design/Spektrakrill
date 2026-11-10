@@ -23,6 +23,7 @@ export interface ProfileMeta {
 }
 
 export interface FilmProfile extends ProfileMeta {
+  scannerSpectra?:{wavelengths:number[];dyes:number[][];base:number[]};
   densityLayers?: Vec3[][];
   takingFilters?: Record<string,{matrix:Mat3;gain:Vec3}>;
   monochrome?: boolean;
@@ -106,6 +107,7 @@ export interface DiffusionState {
 
 export interface DarkroomParams {
   prep: PrepParams;
+  output: import("./output-model.ts").OutputParams;
   experimental: ExperimentalParams;
   filmStock: string;
   printPaper: string;

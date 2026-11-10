@@ -1,8 +1,16 @@
+import {controlHelp} from "@/lib/film/control-guide";
 import { cn } from "@/lib/utils";
 import { useDarkroom } from "@/lib/film/store";
 import { haptic, hapticSlider } from "@/lib/film/haptic";
 import { ChevronDown, ChevronRight, Minus, Plus } from "lucide-react";
-import { useEffect, useRef, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, useId, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+
+
+function ControlHint({label,id}:{label:string;id?:string}){
+ const tool=useDarkroom(s=>s.tool),show=useDarkroom(s=>s.prefs.showControlHelp),text=controlHelp(label,tool);
+ if(!text)return null;
+ return show!==false?<span id={id} className="control-help">{text}</span>:<details className="control-help-disclosure"><summary aria-label={`Для чего: ${label}`}>ⓘ Пояснение</summary><span id={id} className="control-help">{text}</span></details>;
+}
 
 export function Field({
   label,
@@ -22,6 +30,7 @@ export function Field({
         ) : null}
       </span>
       {children}
+      <ControlHint label={label}/>
     </div>
   );
 }
@@ -276,6 +285,7 @@ export function SliderRow({
   value: number;
   onChange: (v: number) => void;
 }) {
+  const helpId=useId();
   const setScrubbing = useDarkroom((s) => s.setScrubbing);
   const wrapRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -410,6 +420,7 @@ export function SliderRow({
         role="slider"
         tabIndex={0}
         aria-label={label}
+        aria-describedby={controlHelp(label)?helpId:undefined}
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={value}
@@ -426,6 +437,7 @@ export function SliderRow({
         {zeroPct != null ? <i className="lab-range-zero" style={{ left: `${zeroPct}%` }} /> : null}
         <i className="lab-range-thumb" style={{ left: `${fill}%` }} />
       </div>
+      <ControlHint label={label} id={helpId}/>
     </div>
   );
 }
@@ -470,10 +482,11 @@ export function ToggleRow({
 }) {
   return (
     <div className="flex min-h-12 items-center justify-between gap-3 px-4 py-1.5">
-      <span className="min-w-0">
+      <div className="min-w-0">
         <span className="block text-xs font-medium text-muted">{label}</span>
         {hint ? <span className="mt-0.5 block text-[0.65rem] leading-snug text-subtle">{hint}</span> : null}
-      </span>
+        <ControlHint label={label}/>
+      </div>
       <Toggle checked={checked} onChange={onChange} label={label} />
     </div>
   );

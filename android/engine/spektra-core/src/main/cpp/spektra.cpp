@@ -73,6 +73,7 @@
 #include "runtime/color_reference.h"
 #include "runtime/params.h"
 #include "model/experimental.h"
+#include "model/output_models.h"
 #include "model/negs_projection.h"
 #include "model/negative.h"
 #include "model/experimental_projection.h"
@@ -2484,7 +2485,8 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
 
     final_rgb->assign(static_cast<size_t>(npix) * 3, 0.0f);
     if(negative.workflow=="negative-clear")std::fill(film.base_density.begin(),film.base_density.end(),0);
-    spk::scan(film, sparams, density_cmy.data(), width, height, final_rgb->data());
+    if(!spk::outputs::scan(film, spk::outputs::read_params(p->experimental_json), density_cmy.data(), width, height, final_rgb->data(), g, p->output_color_space, p->output_cctf_encoding!=0, sparams.lens_blur, sparams.unsharp_sigma, sparams.unsharp_amount))
+        spk::scan(film, sparams, density_cmy.data(), width, height, final_rgb->data());
     if (film.monochrome && !film.experimental_source) force_monochrome_rgb(*final_rgb);
     if (cancellation_requested(cancel, cancel_user_data)) {
         final_rgb->clear();

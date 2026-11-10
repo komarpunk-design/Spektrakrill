@@ -1,3 +1,4 @@
+import {ControlSection} from "@/components/darkroom/workflow-ui";
 import { isNativeRawAvailable, nativeCalibrateNegative } from "@/lib/film/native-raw";
 import { useEffect, useState } from "react";
 import { Field, Select, SliderRow, ToggleRow } from "@/components/ui/control";
@@ -15,7 +16,7 @@ import {
   experimentalCouplersPreset,
 } from "@/lib/film/experimental";
 
-export function EmulsionControls() {
+export function EmulsionControls({mode="advanced"}:{mode?:"advanced"|"negative"|"chemistry"|"grain"|"dir"|"paper"}) {
   const params = useDarkroom((s) => s.params),
     setParam = useDarkroom((s) => s.setParam),
     setTool = useDarkroom((s) => s.setTool),
@@ -102,24 +103,14 @@ export function EmulsionControls() {
 
   const family = families.find((f) => f.members.some((m) => m.id === params.filmStock));
   const paperFamily = families.find((f) => f.members.some((m) => m.id === params.printPaper));
-  return (
-    <section className="emulsion-controls" aria-label="Эмульсия и спектральные фильтры">
-      <header>
-        <span className="development-kicker">SPEKTRAFILM · EXPERIMENTAL</span>
-        <h2>Эмульсия</h2>
-        <p className="lab-note">Проявка, слои, основа и реальные спектральные съёмочные фильтры.</p>
-      </header>
-      {params.rawEngine !== "spektrafilm" ? (
-        <p className="lab-note">
-          Эти параметры работают с движком Spektrafilm и выбранной плёнкой.
-        </p>
-      ) : null}
-      <div className="development-section">
+  return (<section className="emulsion-controls" aria-label="Материал и спектральные настройки">
+    {params.rawEngine!=="spektrafilm"?<p className="lab-note">Для этих инструментов выберите движок Spektrafilm в настройках приложения.</p>:null}
+{mode==="negative"?<div className="development-section">
         <h3>Обработка скана негатива</h3>
-        <Field label="Источник изображения">
+        <p className="lab-note">Здесь нужен скан или пересъёмка настоящего негатива. Для обычного кадра используйте выбор плёнки.</p><Field label="Источник изображения">
           <Select
             ariaLabel="Источник изображения"
-            disabled={!isNativeRawAvailable()}
+            disabled={!isNativeRawAvailable() && e.workflow==="normal"}
             value={e.workflow}
             onChange={(v) => change("workflow", v)}
             options={[
@@ -184,7 +175,7 @@ export function EmulsionControls() {
                 {calibrationNote}
               </p>
             ) : null}
-            <Field label="Матрица устройства · 9 чисел">
+            <ControlSection title="Матрица сканера" description="Ручная коррекция цветового отклика устройства. Обычно достаточно автоматического подбора."><Field label="Матрица устройства · 9 чисел">
               <input
                 aria-label="Матрица устройства"
                 className="lab-input"
@@ -196,13 +187,33 @@ export function EmulsionControls() {
               RGB × матрица. При неверной записи используется единичная матрица. Маску настраивайте
               ниже в «Основа плёнки».
             </p>
-            <button type="button" className="lab-ghost" onClick={() => setTool("print")}>
+            </ControlSection><button type="button" className="lab-ghost" onClick={() => setTool("print")}>
               Выбрать фотобумагу →
             </button>
           </>
         ) : null}
-      </div>
-      <div className="development-section">
+      </div>:null}
+{mode==="advanced"?<><ControlSection title="Цветной фильтр перед объективом" description="Меняет проходящий через объектив свет, особенно заметно на чёрно-белой плёнке." defaultOpen><div className="development-section">
+        <h3>Цветной съёмочный фильтр</h3>
+        <Field label="Фильтр перед объективом">
+          <Select
+            value={e.colorFilter}
+            onChange={(v) => change("colorFilter", v)}
+            options={[
+              { value: "none", label: "Без фильтра" },
+              { value: "hoya_x0", label: "Hoya X0 · жёлто-зелёный" },
+              { value: "hoya_x1", label: "Hoya X1 · зелёный" },
+              { value: "hoya_y2", label: "Hoya Y2 · жёлтый" },
+              { value: "hoya_ya3", label: "Hoya YA3 · насыщенный жёлтый" },
+              { value: "hoya_r1", label: "Hoya R1 · красный" },
+            ]}
+          />
+        </Field>
+        <p className="lab-note">
+          Пропускание фильтра применяется к спектральной чувствительности плёнки до проявки. Без
+          выбранной плёнки фильтр не действует.
+        </p>
+      </div></ControlSection><ControlSection title="Восстановление спектра" description="Выбор способа расчёта света из RGB. По умолчанию достаточно «Авто»." keys={["experimental.spectralMethod"]}><div className="development-section">
         <h3>Восстановление спектра</h3>
         <Field label="Метод спектральной реконструкции">
           <Select
@@ -225,29 +236,8 @@ export function EmulsionControls() {
           Полный спектральный расчёт выполняется в Android APK. В браузере доступен сокращённый
           RGB-предпросмотр. У профилей experimental режим «Авто» использует Hanatos этой ветки.
         </p>
-      </div>
-      <div className="development-section">
-        <h3>Цветной съёмочный фильтр</h3>
-        <Field label="Фильтр перед объективом">
-          <Select
-            value={e.colorFilter}
-            onChange={(v) => change("colorFilter", v)}
-            options={[
-              { value: "none", label: "Без фильтра" },
-              { value: "hoya_x0", label: "Hoya X0 · жёлто-зелёный" },
-              { value: "hoya_x1", label: "Hoya X1 · зелёный" },
-              { value: "hoya_y2", label: "Hoya Y2 · жёлтый" },
-              { value: "hoya_ya3", label: "Hoya YA3 · насыщенный жёлтый" },
-              { value: "hoya_r1", label: "Hoya R1 · красный" },
-            ]}
-          />
-        </Field>
-        <p className="lab-note">
-          Пропускание фильтра применяется к спектральной чувствительности плёнки до проявки. Без
-          выбранной плёнки фильтр не действует.
-        </p>
-      </div>
-      <div className="development-section">
+      </div></ControlSection></>:null}
+{mode==="chemistry"?<ControlSection title="Химия и время проявки" description="Измеренные времена и отдельные коэффициенты чувствительных слоёв." keys={["experimental.filmChemistry","experimental.filmFast","experimental.filmSlow","experimental.filmExhaustion"]}><div className="development-section">
         <h3>Проявление негатива</h3>
         <button type="button" className="development-stock" onClick={() => setTool("film")}>
           <strong>{profile?.name ?? "Выбрать плёнку"}</strong>
@@ -263,8 +253,7 @@ export function EmulsionControls() {
           </Field>
         ) : (
           <p className="lab-note">
-            Время выбирается у профилей Double‑X и 2302 из группы experimental. Для остальных плёнок
-            доступны коэффициенты проявки.
+            Время доступно у серий Double‑X, 2302 и чёрно-белых профилей Negs. Оценённые авторами времена отмечены отдельно.
           </p>
         )}
         <ToggleRow
@@ -306,8 +295,8 @@ export function EmulsionControls() {
             </p>
           </>
         ) : null}
-      </div>
-      <div className="development-section">
+      </div></ControlSection>:null}
+{mode==="dir"?<ControlSection title="Нелинейное взаимодействие · Langmuir" description="Насыщение ингибиторов и длинный хвост их распространения в эмульсии." keys={["experimental.dirLangmuir","experimental.dirDonorRed","experimental.dirTailUm"]}><div className="development-section">
         <h3>DIR · насыщение ингибиторов</h3>
         {profile ? (
           <button
@@ -318,11 +307,7 @@ export function EmulsionControls() {
             {profile.negs?"Взять DIR из профиля Negs":"Взять DIR из профиля experimental"}
           </button>
         ) : null}
-        <ToggleRow
-          label="DIR-каплеры"
-          checked={params.couplersActive}
-          onChange={(v) => setParam("couplersActive", v)}
-        />
+
         <ToggleRow
           label="Нелинейная модель Langmuir"
           checked={e.dirLangmuir}
@@ -359,8 +344,8 @@ export function EmulsionControls() {
             </p>
           </>
         ) : null}
-      </div>
-      <div className="development-section">
+      </div></ControlSection>:null}
+{mode==="grain"?<ControlSection title="Модель зерна · RMS" description="Штатное зерно Negs и experimental задаётся гранулярностью; ручной размер частицы используется при выключенном RMS." keys={["experimental.grainRms","experimental.grainRmsRed","experimental.grainUsmAmount"]}><div className="development-section">
         <h3>Зерно · модель RMS</h3>
         <ToggleRow
           label="Зернистость по RMS"
@@ -416,8 +401,8 @@ export function EmulsionControls() {
             </p>
           </>
         ) : null}
-      </div>
-      {paperFamily ? (
+      </div></ControlSection>:null}
+{mode==="paper"?<>      {paperFamily ? (
         <div className="development-section">
           <Field label="Время проявки печатной плёнки">
             <Select
@@ -428,7 +413,8 @@ export function EmulsionControls() {
           </Field>
         </div>
       ) : null}
-      {(["film", "print"] as const).map((kind) => {
+</>:null}
+{["advanced","negative","paper"].includes(mode)?<ControlSection title={mode==="paper"?"Основа бумаги":"Основа и маска плёнки"} description={mode==="paper"?"Плотность и оттенок подложки фотобумаги.":"Цвет и плотность подложки. Для негативов это настройка оранжевой маски."} keys={[mode==="paper"?"experimental.printBaseActive":"experimental.filmBaseActive"]}>      {(mode==="paper"?["print"] as const:["film"] as const).map((kind) => {
         const prefix = kind === "film" ? "filmBase" : "printBase";
         const active = (prefix + "Active") as keyof ExperimentalParams;
         return (
@@ -456,10 +442,6 @@ export function EmulsionControls() {
           </div>
         );
       })}
-      <p className="development-limit">
-        Функции experimental добавлены к существующему движку и включаются отдельно. Профили этой
-        ветки находятся в отдельной группе каталога.
-      </p>
-    </section>
-  );
+</ControlSection>:null}
+</section>);
 }
