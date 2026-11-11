@@ -5,11 +5,42 @@ import type { ToolId } from "./store.ts";
 
 export const TOOL_KEYS: Record<ToolId, (keyof DarkroomParams)[]> = {
   prep: ["prep"],
+  fotufilm:["output","transport"],
+  negs:["prep","filmFormatMm","grainActive","couplersActive"],
   edit: ["printPaper","whiteBalance","temperature","grainActive","halationActive","halationAmount","halationSpatialScale","transport","output"],
   outputs: ["output"],
   emulsion: [],
   development: ["filmGamma", "exposureCompensationEv", "autoExposure", "printExposureCompensation"],
-  film: ["filmStock"],
+  film: [
+    "filmStock",
+    "grainActive",
+    "grainParticleArea",
+    "grainBlur",
+    "grainScaleR",
+    "grainScaleG",
+    "grainScaleB",
+    "grainDensityMin",
+    "grainUniformity",
+    "grainDyeCloudsUm",
+    "grainSublayers",
+    "grainSubLayersN",
+    "halationActive",
+    "halationAmount",
+    "halationSpatialScale",
+    "scatterAmount",
+    "scatterSpatialScale",
+    "boostEv",
+    "protectEv",
+    "boostRange",
+    "halationNBounces",
+    "halationBounceDecay",
+    "halationRenormalize",
+    "couplersActive",
+    "couplersAmount",
+    "inhibitionInterlayer",
+    "inhibitionSamelayer",
+    "couplerDiffusionUm",
+  ],
   texture: [
     "transport",
     "grainActive",
@@ -103,6 +134,7 @@ export const TOOL_KEYS: Record<ToolId, (keyof DarkroomParams)[]> = {
     "scanBlackLevel",
   ],
   crop: [
+    "frameStyle","frameNumber","frameBarcode","frameDate","whitePadding",
     "crop",
     "cropCenterX",
     "cropCenterY",
@@ -138,21 +170,23 @@ export const TOOL_KEYS: Record<ToolId, (keyof DarkroomParams)[]> = {
 
 const experimentalKeys=Object.keys(defaultParams().experimental) as (keyof ExperimentalParams)[];
 export const TOOL_EXPERIMENTAL_KEYS:Partial<Record<ToolId,(keyof ExperimentalParams)[]>>={
+ negs:experimentalKeys.filter(k=>k.startsWith("grain")||k.startsWith("dir")),
  development:experimentalKeys.filter(k=>k==='filmChemistry'||k.startsWith('film')&&!k.startsWith('filmBase')),
  texture:experimentalKeys.filter(k=>k.startsWith('grain')||k.startsWith('dir')),
  emulsion:experimentalKeys.filter(k=>k.startsWith('filmBase')||k==='spectralMethod'||k==='colorFilter'),
  negative:experimentalKeys.filter(k=>k.startsWith('scan')||k==='workflow'||k.startsWith('filmBase')),
  print:experimentalKeys.filter(k=>k.startsWith('printBase')),
 };
+function ownedKeys(params:DarkroomParams,tool:ToolId){return tool==='film'&&params.transport.model==='layered'?TOOL_KEYS.film.filter(k=>!['halationActive','halationAmount','halationSpatialScale'].includes(k)):TOOL_KEYS[tool];}
 /** Ownership is shared by the edited badge and reset; nested groups are isolated. */
 export function toolChangeCount(params:DarkroomParams,tool:ToolId):number{
  const baseline=defaultParams();
- return (tool==="edit"&&params.prep.exposure!==baseline.prep.exposure?1:0)+TOOL_KEYS[tool].filter(k=>JSON.stringify(params[k])!==JSON.stringify(baseline[k])).length+
+ return (tool==="edit"&&params.prep.exposure!==baseline.prep.exposure?1:0)+ownedKeys(params,tool).filter(k=>JSON.stringify(params[k])!==JSON.stringify(baseline[k])).length+
  (TOOL_EXPERIMENTAL_KEYS[tool]??[]).filter(k=>JSON.stringify(params.experimental?.[k])!==JSON.stringify(baseline.experimental[k])).length;
 }
 export function resetToolParams(params:DarkroomParams,tool:ToolId):DarkroomParams{
  const baseline=defaultParams(),next={...params};
- for(const k of TOOL_KEYS[tool])(next as unknown as Record<string,unknown>)[k]=baseline[k];
+ for(const k of ownedKeys(params,tool))(next as unknown as Record<string,unknown>)[k]=baseline[k];
  if(tool==="edit")next.prep={...params.prep,exposure:baseline.prep.exposure};
  const nested=TOOL_EXPERIMENTAL_KEYS[tool]??[];
  if(nested.length){next.experimental={...params.experimental};for(const k of nested)(next.experimental as Record<string,unknown>)[k]=baseline.experimental[k];}

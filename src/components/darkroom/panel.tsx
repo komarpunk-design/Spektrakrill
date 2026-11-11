@@ -1,10 +1,8 @@
-import {EditWorkspace} from "./edit-workspace";
-import {OutputControls} from "./output-controls";
-import {ToolIntro,ToolLinks,ControlSection} from "@/components/darkroom/workflow-ui";
-import {TextureControls} from "@/components/darkroom/texture-controls";
-import {NEGS_FILM_FORMATS} from "@/lib/film/negs-film-formats";
-import { PrepControls } from "@/components/darkroom/prep-controls";
-import { EmulsionControls } from "@/components/darkroom/emulsion-controls";
+import {FotufilmControls,NegsControls,SpektrafilmExtras,SourceBack} from './source-controls';
+import {EmulsionControls} from './emulsion-controls';
+import {PrepControls} from './prep-controls';
+import {TextureControls} from './texture-controls';
+import {OutputControls} from './output-controls';
 import { DevelopmentControls } from "@/components/darkroom/development-controls";
 import { FRAME_STYLES, isOriginalEdge } from "@/lib/film/photo-frame";
 import { stockDetail, stockSpec, stockCategory } from "@/lib/film/stock-details";
@@ -49,15 +47,17 @@ import { Copy, RotateCcw, RotateCw, Search, Trash2, ChevronRight, ChevronLeft, I
 import { useEffect, useMemo, useRef, useState } from "react";
 
 export const TOOLS = [
-  {id:"edit" as const,label:"Обработка"},
-  {id:"outputs" as const,label:"Outputs"},
+  {id:'fotufilm' as const,label:'Fotufilm'},
+  {id:'negs' as const,label:'Negs'},
+  {id:'emulsion' as const,label:'Эмульсия'},
+  {id:'negative' as const,label:'Сканы негативов'},
+  {id:'prep' as const,label:'Подготовка'},
+  {id:'texture' as const,label:'Фактура'},
+  {id:'outputs' as const,label:'Outputs'},
+  {id:'frame' as const,label:'Рамки'},
+  {id:'edit' as const,label:'Обработка'},
   { id: "film" as const, label: "Плёнка" },
   { id: "development" as const, label: "Push / Pull" },
-  { id: "emulsion" as const, label: "Спектр" },
-  { id: "texture" as const, label: "Фактура" },
-  { id: "negative" as const, label: "Сканы негативов" },
-  { id: "frame" as const, label: "Рамки" },
-  { id: "prep" as const, label: "Подготовка" },
   { id: "tone" as const, label: "Тон" },
   { id: "presets" as const, label: "Пресеты" },
   { id: "camera" as const, label: "Камера" },
@@ -95,14 +95,14 @@ export function dockTools(
 ): { id: (typeof TOOLS)[number]["id"]; label: string }[] {
   const spektra = engine === "spektrafilm";
   const bypass = isFilmBypass(filmStock);
-  const order = ["gallery", "presets", "film", "prep", "development", "emulsion", "outputs", "texture", "negative", "frame", "tone", "camera", "print", "scan", "crop", "stock", "export", "lab", "log"];
+  const order = ["gallery", "presets", "film", "development", "tone", "camera", "print", "scan", "crop", "stock", "export", "lab", "log", "negs", "fotufilm"];
   return TOOLS.filter((t) => {
-    if (t.id === "settings") return false;
+    if (["settings","emulsion","negative","prep","texture","outputs","frame","edit"].includes(t.id)) return false;
 
     if (t.id === "tone") return !spektra;
-    if (t.id === "film") return true;
-    if (t.id === "print" || t.id === "scan") return true;
-    if (t.id === "lab" || t.id === "log") return true;
+    if (t.id === "film") return spektra;
+    if (t.id === "print" || t.id === "scan") return spektra && !bypass;
+    if (t.id === "lab" || t.id === "log") return showLab || current === t.id;
     return true;
   }).sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 }
@@ -342,7 +342,6 @@ export function Panel({
   canSave,
   onNotice,
   onOpenEnlarger,
-  onOpen,
   onAutoWb,
   onPickWb,
   pickingWb,
@@ -356,7 +355,6 @@ export function Panel({
   canSave?: boolean;
   onNotice?: (msg: string) => void;
   onOpenEnlarger?: () => void;
-  onOpen?: () => void;
   onAutoWb?: () => void;
   onPickWb?: () => void;
   pickingWb?: boolean;
@@ -368,6 +366,7 @@ export function Panel({
   const setParam = useDarkroom((s) => s.setParam);
   const patch = useDarkroom((s) => s.patch);
   const applyFilmDefaults = useDarkroom((s) => s.applyFilmDefaults);
+  const advanced = useDarkroom((s) => s.advanced);
   const tool = useDarkroom((s) => s.tool);
   const setTool = useDarkroom((s) => s.setTool);
   const looks = useDarkroom((s) => s.looks);
@@ -378,6 +377,7 @@ export function Panel({
   const deleteLook = useDarkroom((s) => s.deleteLook);
   const deleteImported = useDarkroom((s) => s.deleteImported);
   const applyParams = useDarkroom((s) => s.applyParams);
+  const setAdvanced = useDarkroom((s) => s.setAdvanced);
   const frameW = useDarkroom((s) => s.frameW);
   const frameH = useDarkroom((s) => s.frameH);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -538,14 +538,14 @@ export function Panel({
         void file.text().then((t) => onImportText(t, file.name));
       }}
     >
-      {tool!=="edit"?<ToolIntro tool={tool}/>:null}
-      {tool==="edit"?<EditWorkspace hasImage={hasImage} onOpen={onOpen}/>:null}
-      {tool === "emulsion" ? <EmulsionControls /> : null}
-      {tool === "texture" ? <TextureControls /> : null}
-      {tool === "negative" ? <EmulsionControls mode="negative" /> : null}
-      {tool === "outputs" ? <OutputControls/> : null}
-      {tool === "prep" ? <PrepControls /> : null}
-      {tool === "development" ? <><DevelopmentControls /><EmulsionControls mode="chemistry" /></> : null}
+      {tool==='fotufilm'?<FotufilmControls/>:null}
+      {tool==='negs'?<NegsControls/>:null}
+      {tool==='prep'?<><SourceBack source="negs"/><PrepControls/></>:null}
+      {tool==='texture'?<><SourceBack source="negs"/><TextureControls/></>:null}
+      {tool==='emulsion'?<><SourceBack source="film"/><EmulsionControls/></>:null}
+      {tool==='negative'?<><SourceBack source="film"/><EmulsionControls mode="negative"/></>:null}
+      {tool==='outputs'?<><SourceBack source="fotufilm"/><OutputControls/></>:null}
+      {tool==='development'?<><DevelopmentControls/><EmulsionControls mode="chemistry"/></>:null}
       {tool === "film" ? (
         <>
           <div className="lab-film-head">
@@ -573,7 +573,6 @@ export function Panel({
               className="lab-find"
               value={find}
               onChange={(e) => setFind(e.target.value)}
-              onKeyDown={(e)=>{if(e.key==='Escape'){e.preventDefault();setFind('');}else if(e.key==='Enter'){e.preventDefault();document.querySelector<HTMLButtonElement>('.lab-shelf-track .lab-box')?.click();}}}
               placeholder="Portra, C200, Vision…"
               autoCapitalize="off"
               autoCorrect="off"
@@ -608,7 +607,245 @@ export function Panel({
               {dropArmed ? "Точно удалить кассету?" : "Удалить свою кассету"}
             </button>
           ) : null}
-          <ToolLinks tools={["development","texture","emulsion","negative"]}/>
+          {isFilmBypass(params.filmStock) ? (
+            <p className="lab-note">
+              Плёнка не применена. Кадр как снято. Движок RAW — в Опциях.
+            </p>
+          ) : (
+            <>
+          {params.experimental.grainRms?<div className="source-active-note">Используется RMS-зерно Negs / experimental.<button type="button" onClick={()=>setTool('negs')}>Настроить зерно Negs →</button><button type="button" onClick={()=>setParam('experimental',{...params.experimental,grainRms:false})}>Использовать прежнюю модель зерна</button></div>:<>          <ToggleRow label="Зерно" checked={params.grainActive} onChange={(v) => setParam("grainActive", v)} />
+          {params.grainActive ? (
+            <>
+              <SliderRow
+                label="Частица, µm²"
+                hint={fmt(params.grainParticleArea, 2)}
+                min={0.04}
+                max={1.2}
+                step={0.02}
+                value={params.grainParticleArea}
+                onChange={(v) => setParam("grainParticleArea", v)}
+              />
+              <SliderRow
+                label="Размытие"
+                hint={fmt(params.grainBlur)}
+                min={0}
+                max={1.4}
+                step={0.05}
+                value={params.grainBlur}
+                onChange={(v) => setParam("grainBlur", v)}
+              />
+              {advanced ? (
+                <>
+                  <ToggleRow
+                    label="Подслои"
+                    checked={params.grainSublayers}
+                    onChange={(v) => setParam("grainSublayers", v)}
+                  />
+                  <SliderRow
+                    label="Равномерность"
+                    hint={fmt(params.grainUniformity)}
+                    min={0.85}
+                    max={0.995}
+                    step={0.005}
+                    value={params.grainUniformity}
+                    onChange={(v) => setParam("grainUniformity", v)}
+                  />
+                  <SliderRow
+                    label="Dmin зерна"
+                    hint={fmt(params.grainDensityMin, 3)}
+                    min={0}
+                    max={0.3}
+                    step={0.01}
+                    value={params.grainDensityMin}
+                    onChange={(v) => setParam("grainDensityMin", v)}
+                  />
+                  <SliderRow
+                    label="Облака, µm"
+                    hint={fmt(params.grainDyeCloudsUm)}
+                    min={0}
+                    max={4}
+                    step={0.1}
+                    value={params.grainDyeCloudsUm}
+                    onChange={(v) => setParam("grainDyeCloudsUm", v)}
+                  />
+                  <SliderRow
+                    label="Масштаб R"
+                    hint={fmt(params.grainScaleR)}
+                    min={0.4}
+                    max={4}
+                    step={0.05}
+                    value={params.grainScaleR}
+                    onChange={(v) => setParam("grainScaleR", v)}
+                  />
+                  <SliderRow
+                    label="Масштаб G"
+                    hint={fmt(params.grainScaleG)}
+                    min={0.4}
+                    max={4}
+                    step={0.05}
+                    value={params.grainScaleG}
+                    onChange={(v) => setParam("grainScaleG", v)}
+                  />
+                  <SliderRow
+                    label="Масштаб B"
+                    hint={fmt(params.grainScaleB)}
+                    min={0.4}
+                    max={5}
+                    step={0.05}
+                    value={params.grainScaleB}
+                    onChange={(v) => setParam("grainScaleB", v)}
+                  />
+                </>
+              ) : null}
+            </>
+          ) : null}
+</>}
+          {params.transport.model==='layered'?<div className="source-active-note">Активна галяция Fotufilm · Layered Transport.<button type="button" onClick={()=>setTool('fotufilm')}>Открыть Fotufilm →</button><button type="button" onClick={()=>setParam('transport',{...params.transport,model:'legacy'})}>Использовать галяцию Spektrafilm</button></div>:<>          <ToggleRow label="Галяция" checked={params.halationActive} onChange={(v) => setParam("halationActive", v)} />
+          {params.halationActive ? (
+            <>
+              <SliderRow
+                label="Сила"
+                hint={fmt(params.halationAmount)}
+                min={0}
+                max={3}
+                step={0.05}
+                value={params.halationAmount}
+                onChange={(v) => setParam("halationAmount", v)}
+              />
+              <SliderRow
+                label="Размер"
+                hint={fmt(params.halationSpatialScale)}
+                min={0.2}
+                max={3}
+                step={0.1}
+                value={params.halationSpatialScale}
+                onChange={(v) => setParam("halationSpatialScale", v)}
+              />
+              <SliderRow
+                label="Рассеяние"
+                hint={fmt(params.scatterAmount)}
+                min={0}
+                max={2}
+                step={0.05}
+                value={params.scatterAmount}
+                onChange={(v) => setParam("scatterAmount", v)}
+              />
+              {advanced ? (
+                <>
+                  <SliderRow
+                    label="Масштаб рассеяния"
+                    hint={fmt(params.scatterSpatialScale)}
+                    min={0.2}
+                    max={3}
+                    step={0.1}
+                    value={params.scatterSpatialScale}
+                    onChange={(v) => setParam("scatterSpatialScale", v)}
+                  />
+                  <SliderRow
+                    label="Подсветка EV"
+                    hint={fmt(params.boostEv, 1)}
+                    min={0}
+                    max={4}
+                    step={0.5}
+                    value={params.boostEv}
+                    onChange={(v) => setParam("boostEv", v)}
+                  />
+                  <SliderRow
+                    label="Защита EV"
+                    hint={fmt(params.protectEv, 1)}
+                    min={0}
+                    max={8}
+                    step={0.5}
+                    value={params.protectEv}
+                    onChange={(v) => setParam("protectEv", v)}
+                  />
+                  <SliderRow
+                    label="Диапазон"
+                    hint={fmt(params.boostRange, 2)}
+                    min={0.05}
+                    max={1}
+                    step={0.05}
+                    value={params.boostRange}
+                    onChange={(v) => setParam("boostRange", v)}
+                  />
+                  <SliderRow
+                    label="Отскоки"
+                    hint={String(params.halationNBounces)}
+                    min={1}
+                    max={5}
+                    step={1}
+                    value={params.halationNBounces}
+                    onChange={(v) => setParam("halationNBounces", v)}
+                  />
+                  <SliderRow
+                    label="Затухание"
+                    hint={fmt(params.halationBounceDecay, 2)}
+                    min={0.1}
+                    max={0.95}
+                    step={0.05}
+                    value={params.halationBounceDecay}
+                    onChange={(v) => setParam("halationBounceDecay", v)}
+                  />
+                  <ToggleRow
+                    label="Нормализация"
+                    checked={params.halationRenormalize}
+                    onChange={(v) => setParam("halationRenormalize", v)}
+                  />
+                </>
+              ) : null}
+            </>
+          ) : null}
+</>}
+          {params.experimental.dirLangmuir?<div className="source-active-note">Активна модель взаимодействия слоёв Langmuir.<button type="button" onClick={()=>setTool('negs')}>Открыть Negs / DIR →</button><button type="button" onClick={()=>setParam('experimental',{...params.experimental,dirLangmuir:false})}>Использовать DIR Spektrafilm</button></div>:<>          <ToggleRow
+            label="DIR-каплеры"
+            checked={params.couplersActive}
+            onChange={(v) => setParam("couplersActive", v)}
+          />
+          {params.couplersActive ? (
+            <>
+              <SliderRow
+                label="Количество"
+                hint={fmt(params.couplersAmount)}
+                min={0}
+                max={2.5}
+                step={0.05}
+                value={params.couplersAmount}
+                onChange={(v) => setParam("couplersAmount", v)}
+              />
+              <SliderRow
+                label="Межслойное"
+                hint={fmt(params.inhibitionInterlayer)}
+                min={0}
+                max={2}
+                step={0.05}
+                value={params.inhibitionInterlayer}
+                onChange={(v) => setParam("inhibitionInterlayer", v)}
+              />
+              <SliderRow
+                label="Свой слой"
+                hint={fmt(params.inhibitionSamelayer)}
+                min={0}
+                max={2}
+                step={0.05}
+                value={params.inhibitionSamelayer}
+                onChange={(v) => setParam("inhibitionSamelayer", v)}
+              />
+              {advanced ? (
+                <SliderRow
+                  label="Диффузия, µm"
+                  hint={fmt(params.couplerDiffusionUm, 0)}
+                  min={0}
+                  max={80}
+                  step={5}
+                  value={params.couplerDiffusionUm}
+                  onChange={(v) => setParam("couplerDiffusionUm", v)}
+                />
+              ) : null}
+            </>
+          ) : null}
+</>}
+            </>
+          )}
         </>
       ) : null}
       {tool === "tone" ? (
@@ -743,7 +980,6 @@ export function Panel({
               </Field>
             </div>
           ) : null}
-          <Field label="Формат кадра · Negs"><Select ariaLabel="Формат кадра" value={String(params.filmFormatMm)} onChange={value=>setParam('filmFormatMm',Number(value))} options={[...(!NEGS_FILM_FORMATS.some(f=>f.mm===params.filmFormatMm)?[{value:String(params.filmFormatMm),label:`Свой · ${fmt(params.filmFormatMm)} мм`}]:[]),...NEGS_FILM_FORMATS.map(f=>({value:String(f.mm),label:f.label}))]}/></Field>
           <SliderRow
             label="Формат, мм"
             hint={fmt(params.filmFormatMm, 0)}
@@ -871,7 +1107,7 @@ export function Panel({
                 value={params.cameraDiffusion.strength}
                 onChange={(v) => patch({ cameraDiffusion: { ...params.cameraDiffusion, strength: v } })}
               />
-              <ControlSection title="Размер светового ореола" description="Масштаб рассеяния света выбранным диффузионным фильтром.">{(
+              {advanced ? (
                 <SliderRow
                   label="Масштаб PSF"
                   hint={fmt(params.cameraDiffusion.spatialScale, 2)}
@@ -881,13 +1117,13 @@ export function Panel({
                   value={params.cameraDiffusion.spatialScale}
                   onChange={(v) => patch({ cameraDiffusion: { ...params.cameraDiffusion, spatialScale: v } })}
                 />
-              )}</ControlSection>
+              ) : null}
             </>
           ) : null}
         </>
       ) : null}
       {tool === "print" ? (
-        params.output.mode!=="paper" ? <div className="output-notice">Сейчас выбран цифровой результат. Чтобы настройки бумаги применялись к изображению, включите печать.<button type="button" className="lab-btn is-solid" onClick={()=>patch({output:{...params.output,mode:"paper"},scanFilm:false})}>Включить печать на бумаге</button><ToolLinks tools={["outputs"]}/></div> : <>
+        params.output.mode!=='paper'?<div className="source-active-note">Активен цифровой результат Fotufilm. Печать Spektrafilm сейчас не используется.<button type="button" onClick={()=>setTool('fotufilm')}>Открыть Fotufilm →</button><button type="button" onClick={()=>patch({output:{...params.output,mode:'paper'},scanFilm:false})}>Включить печать Spektrafilm</button></div>:<>
           <div className="lab-film-head">
             <button
               type="button"
@@ -913,7 +1149,6 @@ export function Panel({
               className="lab-find"
               value={find}
               onChange={(e) => setFind(e.target.value)}
-              onKeyDown={(e)=>{if(e.key==='Escape'){e.preventDefault();setFind('');}else if(e.key==='Enter'){e.preventDefault();document.querySelector<HTMLButtonElement>('.lab-shelf-track .lab-box')?.click();}}}
               placeholder="Endura, Crystal, 2383…"
               autoCapitalize="off"
               autoCorrect="off"
@@ -980,7 +1215,7 @@ export function Panel({
             onChange={(v) => setParam("printExposure", v)}
           />
           <ToggleRow
-            label="Компенсация экспозиции печати"
+            label="Автоэкспозиция"
             checked={params.printExposureCompensation}
             onChange={(v) => setParam("printExposureCompensation", v)}
           />
@@ -1011,7 +1246,7 @@ export function Panel({
             value={params.preflashExposure}
             onChange={(v) => setParam("preflashExposure", v)}
           />
-          <ControlSection title="Цвет предвспышки" description="Подкрашивание предварительной засветки бумаги для коррекции теней.">{(
+          {advanced ? (
             <>
               <SliderRow
                 label="Предвспышка Y"
@@ -1032,7 +1267,7 @@ export function Panel({
                 onChange={(v) => setParam("preflashMShift", v)}
               />
             </>
-          )}</ControlSection>
+          ) : null}
           <ToggleRow
             label="Химия бумаги"
             checked={params.chemistryActive}
@@ -1049,7 +1284,7 @@ export function Panel({
               onChange={(v) => setParam("developerExhaustion", v)}
             />
           ) : null}
-          {params.chemistryActive ? (<ControlSection title="Характер проявления бумаги" description="Контраст быстрых и медленных слоёв бумаги.">{(
+          {advanced && params.chemistryActive ? (
             <>
               <SliderRow
                 label="γ быстрая"
@@ -1097,7 +1332,7 @@ export function Panel({
                 onChange={(v) => setParam("printGammaB", v)}
               />
             </>
-          )}</ControlSection>) : null}
+          ) : null}
           <ToggleRow
             label="Диффузия печати"
             checked={params.printDiffusion.active}
@@ -1130,7 +1365,7 @@ export function Panel({
                 value={params.printDiffusion.strength}
                 onChange={(v) => patch({ printDiffusion: { ...params.printDiffusion, strength: v } })}
               />
-              <ControlSection title="Размер светового ореола" description="Масштаб рассеяния света выбранным диффузионным фильтром.">{(
+              {advanced ? (
                 <SliderRow
                   label="Масштаб PSF"
                   hint={fmt(params.printDiffusion.spatialScale, 2)}
@@ -1140,7 +1375,7 @@ export function Panel({
                   value={params.printDiffusion.spatialScale}
                   onChange={(v) => patch({ printDiffusion: { ...params.printDiffusion, spatialScale: v } })}
                 />
-              )}</ControlSection>
+              ) : null}
             </>
           ) : null}
           <ToggleRow label="Блик" checked={params.glareActive} onChange={(v) => setParam("glareActive", v)} />
@@ -1155,7 +1390,7 @@ export function Panel({
               onChange={(v) => setParam("glarePercent", v)}
             />
           ) : null}
-          {params.glareActive ? (<ControlSection title="Фактура отражённого света" description="Шероховатость бумаги и мягкость блика.">{(
+          {advanced && params.glareActive ? (
             <>
               <SliderRow
                 label="Шероховатость"
@@ -1176,7 +1411,7 @@ export function Panel({
                 onChange={(v) => setParam("glareBlur", v)}
               />
             </>
-          )}</ControlSection>) : null}
+          ) : null}
             </>
           ) : null}
           <EmulsionControls mode="paper"/>
@@ -1184,7 +1419,12 @@ export function Panel({
       ) : null}
       {tool === "scan" ? (
         <>
-          <ToolLinks tools={["outputs"]}/>
+          {params.output.mode!=='paper'?<div className="source-active-note">Выбран результат Fotufilm. Здесь остаются общие резкость и мягкость скана.<button type="button" onClick={()=>setTool('fotufilm')}>Открыть Fotufilm →</button><button type="button" onClick={()=>patch({output:{...params.output,mode:'paper'},scanFilm:true})}>Использовать прямой скан Spektrafilm</button></div>:null}
+          {params.output.mode==='paper'?<>          <ToggleRow
+            label="Скан как плёнка"
+            checked={params.scanFilm}
+            onChange={(v) => setParam("scanFilm", v)}
+          /></>:null}
           <SliderRow
             label="Unsharp σ"
             hint={fmt(params.scanUnsharpSigma)}
@@ -1212,7 +1452,7 @@ export function Panel({
             value={params.scanLensBlur}
             onChange={(v) => setParam("scanLensBlur", v)}
           />
-          {["paper","negative"].includes(params.output.mode)?<>
+          {params.output.mode==='paper'||params.output.mode==='negative'?<>
           <ToggleRow
             label="Коррекция белого"
             checked={params.scanWhiteCorrection}
@@ -1223,7 +1463,7 @@ export function Panel({
             checked={params.scanBlackCorrection}
             onChange={(v) => setParam("scanBlackCorrection", v)}
           />
-          <ControlSection title="Крайние тона скана" description="Точное положение белой и чёрной точки готового изображения.">{(
+          {advanced ? (
             <>
               <SliderRow
                 label="Белая точка"
@@ -1244,8 +1484,8 @@ export function Panel({
                 onChange={(v) => setParam("scanBlackLevel", v)}
               />
             </>
-          )}</ControlSection>
-          </>:<p className="lab-note px-4">Цифровые модели используют собственную шкалу тонов. Плотность и цвет регулируются в Outputs; здесь задаётся резкость скана.</p>}
+          ) : null}
+          </>:null}
         </>
       ) : null}
       {tool === "crop" ? (
@@ -1337,9 +1577,6 @@ export function Panel({
             checked={params.gray18Canvas}
             onChange={(v) => setParam("gray18Canvas", v)}
           />
-        </>
-      ) : null}
-      {tool === "frame" ? (<>
           <div className="lab-frame-picker" role="group" aria-label="Рамка фотографии">
             <p>Оформление фотографии</p>
             {FRAME_STYLES.map(style => <button key={style.value} type="button" className={params.frameStyle === style.value ? "is-selected" : ""} aria-pressed={params.frameStyle === style.value} onClick={() => setParam("frameStyle", style.value)}><span className={`lab-frame-swatch is-${style.value}`} /><span>{style.label}</span></button>)}
@@ -1351,9 +1588,11 @@ export function Panel({
             <label className="lab-frame-date">Дата на снимке<input aria-label="Дата на снимке" maxLength={32} value={params.frameDate} placeholder="Не печатать" onChange={e=>setParam("frameDate",e.target.value)} /></label>
             <p className="px-4 py-2 text-xs text-muted">Пропорции края соответствуют оригиналу: 135, 120 или минималистичная кромка.</p>
           </> : null}
-</>) : null}
+        </>
+      ) : null}
       {tool === "lab" ? (
         <>
+          <SpektrafilmExtras/>
           <div className="px-4 py-1.5">
             <Field label="RGB → спектр">
               <Select
@@ -1408,13 +1647,11 @@ export function Panel({
                   { value: "aces_rgc", label: "ACES RGC" },
                   { value: "oklch", label: "Oklch" },
                   { value: "oklrab", label: "Oklrab" },
-                  { value: "jzazbz", label: "Jzazbz · Android" },
-                  { value: "cam16ucs", label: "CAM16-UCS · Android" },
                 ]}
               />
             </Field>
           </div>
-          <ControlSection title="Точность и скорость" description="Разрешение таблицы предпросмотра, масштаб и декодирование входного цвета.">{(
+          {advanced ? (
             <>
               <SliderRow
                 label="LUT превью"
@@ -1440,12 +1677,11 @@ export function Panel({
                 onChange={(v) => setParam("applyCctfDecoding", v)}
               />
             </>
-          )}</ControlSection>
+          ) : null}
         </>
       ) : null}
       {tool === "export" ? (
         <>
-          <ToolLinks tools={["frame"]}/>
           <div className="px-4 py-1.5">
             <Field label="Формат">
               <Segmented
@@ -1505,6 +1741,7 @@ export function Panel({
 function SettingsPane({ onNotice, onOpenEnlarger }: { onNotice?: (msg: string) => void; onOpenEnlarger?:()=>void }) {
   const params = useDarkroom((s) => s.params);
   const setParam = useDarkroom((s) => s.setParam);
+  const advanced = useDarkroom((s) => s.advanced);
   const setAdvanced = useDarkroom((s) => s.setAdvanced);
   const prefs = useDarkroom((s) => s.prefs);
   const setPref = useDarkroom((s) => s.setPref);
@@ -1539,7 +1776,7 @@ function SettingsPane({ onNotice, onOpenEnlarger }: { onNotice?: (msg: string) =
           <div className="lab-about">
             <p className="lab-about-name">{APP_NAME}</p>
             <p className="lab-about-ver">Версия {APP_VERSION}</p>
-            <p className="lab-about-copy">Движок Spektrafilm for Android и функции ветки experimental Andrea Volpato (28bf883). Код GPLv3, данные профилей CC BY-SA 4.0.</p>
+            <p className="lab-about-copy">Улучшения по материалам Spektrafilm for Android. Лицензия GPLv3.</p>
             {[{name:"Fotufilm · Layered Transport: Apache-2.0, конструкции CC BY-SA 4.0",url:"https://github.com/DhaliwalX/fotufilm-engine/tree/b9049f3e8897a51ab8f917edb39f023cb340d2e2"},{name:"Negs — Noah Haasis · Prep и плёнки",url:"https://github.com/noahhaasis/negs/tree/26c903be9064b4fbfd46a8396620ba7e1e9bc1df"},{name:"Fotufilm · Lab Scan: Apache-2.0 · MUAStudio Inc.",url:"https://github.com/DhaliwalX/fotufilm-engine/tree/b9049f3e8897a51ab8f917edb39f023cb340d2e2"},{name:"Fotufilm — MUAStudio Inc. · данные CC BY-SA 4.0",url:"https://github.com/DhaliwalX/fotufilm-engine/tree/96623ba0831a52dbddcda35727a206d4123a8b5f"},{name:"Spektrafilm · experimental 28bf883",url:"https://github.com/andreavolpato/spektrafilm/tree/28bf883e1672e884307edc75852549376e13644e"},{name: "Spektrafilm for Android — Akshay Sharma", url: "https://github.com/thetechgeekko/Spektrafilm-android"}, {name: "Моделирование плёнки — Andrea Volpato", url: "https://github.com/andreavolpato/spektrafilm"}, {name: "Использованный форк — hwx959", url: "https://github.com/hwx959/Spektrafilm-android"}].map(credit => <a key={credit.url} className="lab-credit" href={credit.url} target="_blank" rel="noopener noreferrer" onClick={event => { event.preventDefault(); void openExternalUrl(credit.url); }}>{credit.name}</a>)}
             {APP_COPY.map((p) => (
               <p key={p.slice(0, 24)} className="lab-about-copy">
@@ -1608,8 +1845,26 @@ function SettingsPane({ onNotice, onOpenEnlarger }: { onNotice?: (msg: string) =
         {prefs.experimentalEnlarger ? <button type="button" className="lab-set-go" onClick={onOpenEnlarger}>Открыть пробную печать</button> : null}
       </div>
       <p className="lab-kicker">Интерфейс</p>
+      <ToggleRow label="Пояснения к параметрам" hint="Подсказки под параметрами Spektrafilm. Во вкладке Fotufilm пояснения показаны всегда." checked={prefs.showControlHelp} onChange={v=>setPref("showControlHelp",v)}/>
       <div className="lab-set-card">
-        <ToggleRow label="Пояснения к настройкам" hint="Короткая подсказка под каждым параметром. Точные параметры раскрываются внутри своей группы." checked={prefs.showControlHelp!==false} onChange={v=>setPref("showControlHelp",v)}/>
+        <ToggleRow
+          label="Подписи вкладок"
+          hint="Названия под иконками справа"
+          checked={prefs.showToolLabels}
+          onChange={(v) => setPref("showToolLabels", v)}
+        />
+        <ToggleRow
+          label="Лаб и журнал в рейке"
+          hint="Иначе открываются из этой вкладки"
+          checked={prefs.showLabTabs}
+          onChange={(v) => setPref("showLabTabs", v)}
+        />
+        <ToggleRow
+          label="Точные ползунки"
+          hint="Мелкий шаг и скрытые параметры"
+          checked={advanced}
+          onChange={setAdvanced}
+        />
         <ToggleRow
           label="Касание прячет панели"
           hint="Тап по кадру — полный экран"

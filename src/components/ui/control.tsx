@@ -9,7 +9,7 @@ import { useEffect, useRef, useId, type KeyboardEvent, type PointerEvent as Reac
 function ControlHint({label,id}:{label:string;id?:string}){
  const tool=useDarkroom(s=>s.tool),show=useDarkroom(s=>s.prefs.showControlHelp),text=controlHelp(label,tool);
  if(!text)return null;
- return show!==false?<span id={id} className="control-help">{text}</span>:<details className="control-help-disclosure"><summary aria-label={`Для чего: ${label}`}>ⓘ Пояснение</summary><span id={id} className="control-help">{text}</span></details>;
+ return show!==false||tool==="fotufilm"||tool==="negs"?<span id={id} className="control-help">{text}</span>:null;
 }
 
 export function Field({

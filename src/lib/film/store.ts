@@ -9,6 +9,8 @@ import type { DarkroomParams } from "./types";
 
 export type SourceKind = "none" | "file";
 export type ToolId =
+  | "fotufilm"
+  | "negs"
   | "edit"
   | "film"
   | "development"
@@ -40,10 +42,12 @@ export type AppPrefs = {
   showLabTabs: boolean;
   experimentalEnlarger: boolean;
   tapHidesChrome: boolean;
+  restored947?:boolean;
 };
 
 export const defaultAppPrefs = (): AppPrefs => ({
-  showControlHelp: true,
+  restored947:true,
+  showControlHelp: false,
   favoriteStocks: [],
   showToolLabels: true,
   confirmExport: false,
@@ -116,6 +120,7 @@ function debounceLocalStorage(ms: number): StateStorage {
 }
 
 const TOOL_IDS: ToolId[] = [
+  "fotufilm", "negs",
   "edit",
   "film",
   "development",
@@ -265,7 +270,7 @@ export const useDarkroom = create<DarkroomStore>()(
       showOriginal: false,
       advanced: false,
       scrubbing: false,
-      tool: "edit",
+      tool: "film",
       prefs: defaultAppPrefs(),
       chromeHidden: false,
       undoStack: [],
@@ -565,12 +570,16 @@ export const useDarkroom = create<DarkroomStore>()(
         state.params.exportMaxEdge = 0;
         state.params.gpuExport = true;
         state.params.upscaleFactor = 1;
-        const mapped = LEGACY_TOOLS[String(state.tool)] ?? state.tool;
+        const oldTool=String(state.tool);
+        const mapped = ({edit:"film",outputs:"fotufilm",frame:"crop"} as Record<string,ToolId>)[oldTool] ?? LEGACY_TOOLS[oldTool] ?? state.tool;
         state.tool = TOOL_IDS.includes(mapped as ToolId) ? (mapped as ToolId) : "film";
+        const restored947=state.prefs?.restored947===true;
         state.prefs = {
           ...defaultAppPrefs(),
           ...(state.prefs ?? {}),
         };
+        if(!restored947)state.prefs.showControlHelp=false;
+        state.prefs.restored947=true;
         state.prefs.favoriteStocks=Array.isArray(state.prefs.favoriteStocks)?state.prefs.favoriteStocks.filter((id:unknown)=>typeof id==="string"&&id.length<128).slice(0,256):[];
         state.prefs.showToolLabels = state.prefs.showToolLabels !== false;
         state.prefs.confirmExport = Boolean(state.prefs.confirmExport);

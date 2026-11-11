@@ -1,12 +1,10 @@
-import {ToolsMenu} from "./tools-menu";
-import {WorkflowTools} from "@/components/darkroom/workflow-ui";
-import {TOOL_GUIDE} from "@/lib/film/workflow-guide";
 import { TestPrint } from "@/components/darkroom/test-print";
 import { printTrialParams, type PrintTrialImage } from "@/lib/film/test-print";
 import { nativeTestPrint, jpegB64ToObjectUrl } from "@/lib/film/native-raw";
 import { frameImageData, edgeLabel } from "@/lib/film/photo-frame";
+import { toolChangeCount } from "@/lib/film/tool-state";
 import { Histogram } from "@/components/darkroom/histogram";
-import { Panel, dockTools } from "@/components/darkroom/panel";
+import { Panel, TOOLS, dockTools } from "@/components/darkroom/panel";
 import { GalleryPane } from "@/components/darkroom/gallery";
 import { StockPane } from "@/components/darkroom/stock";
 import { Viewer } from "@/components/darkroom/viewer";
@@ -111,15 +109,9 @@ const ACCEPT =
   "image/jpeg,image/jpg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp,.heic,.dng,.cr2,.cr3,.nef,.arw,.raf,.rw2,.orf,.pef";
 
 const TOOL_ICONS: Record<ToolId, LucideIcon> = {
-  edit: SlidersHorizontal,
+  fotufilm:Aperture,negs:FlaskConical,edit:SlidersHorizontal,emulsion:Aperture,prep:SlidersHorizontal,texture:Aperture,negative:Film,outputs:Printer,frame:Crop,
   film: Film,
   development: FlaskConical,
-  emulsion: Aperture,
-  prep: SlidersHorizontal,
-  outputs: Printer,
-  texture: Aperture,
-  negative: Film,
-  frame: Crop,
   tone: SlidersHorizontal,
   presets: Bookmark,
   camera: Camera,
@@ -314,7 +306,7 @@ function snapFromVelocity(px: number, vel: number, m = sheetMetrics()): SheetId 
 
 function snapForTool(tool: string): SheetId {
   if (tool === "gallery" || tool === "stock") return "peek";
-  if (tool === "edit" || tool === "presets" || tool === "settings" || tool === "log" || tool === "lab" || tool === "development" || tool === "emulsion" || tool === "prep" || tool === "texture" || tool === "negative") return "full";
+  if (tool === "presets" || tool === "settings" || tool === "log" || tool === "lab" || tool === "development" || tool === "fotufilm" || tool === "negs" || tool === "emulsion" || tool === "negative" || tool === "prep" || tool === "texture") return "full";
   return "half";
 }
 
@@ -363,8 +355,6 @@ function asNativeParams(p: DarkroomParams): Record<string, unknown> {
 }
 
 export function DarkroomApp() {
-  const [toolsOpen,setToolsOpen]=useState(false);
-  const closeTools=useCallback(()=>setToolsOpen(false),[]);
   const params = useDarkroom((s) => s.params);
   const setSource = useDarkroom((s) => s.setSource);
   const canRedo = useDarkroom((state) => state.redoStack.length > 0);
@@ -931,7 +921,7 @@ export function DarkroomApp() {
   }, [tool, clearToasts, stopWbPick]);
 
   useEffect(() => {
-    const ids = dockTools(params.rawEngine, params.filmStock, prefs.showLabTabs, tool).map(
+    const ids = TOOLS.map(
       (t) => t.id,
     );
     if (tool !== "settings" && !ids.includes(tool)) {
@@ -1796,7 +1786,7 @@ export function DarkroomApp() {
     flashNote("Отменено");
   }, [flashNote]);
 
-  const toolLabel=TOOL_GUIDE[tool].title;
+  const toolLabel = TOOLS.find((t) => t.id === tool)?.label ?? "";
   const canUndo = undoStack.length > 0;
   const canSave = !!(procUrl || full || preview) && !exporting && !batching && !testPrinting;
   const canStock = !!(fileName || origUrl || full || preview);
@@ -1919,7 +1909,7 @@ export function DarkroomApp() {
         if (file) void onPickedFile(file);
       }}
       className={[
-        "lab-app text-fg simple-editor",
+        "lab-app text-fg",
         scrubbing && "is-scrubbing",
         chromeHidden && "is-chrome-hidden",
         sheetLive && "is-sheet-live",
@@ -2149,7 +2139,7 @@ export function DarkroomApp() {
         </div>
       </aside>
       {tool === "gallery" || tool === "stock" ? (
-        <div className="lab-stage is-gallery"><WorkflowTools tool={tool} select={selectTool}/>
+        <div className="lab-stage is-gallery">
           {tool === "stock" ? (
             <StockPane
               items={stockItems}
@@ -2329,9 +2319,9 @@ export function DarkroomApp() {
           onPointerCancel={onSheetUp}
           onClick={onSheetClick}
         />
-        <div className="workflow-dock-heading"><WorkflowTools tool={tool} select={selectTool}/><div className="lab-dock-head">
+        <div className="lab-dock-head">
           <span className="lab-dock-title">
-            {TOOL_GUIDE[tool].short}
+            {tool === "settings" ? "Опции" : toolLabel || "Develop"}
           </span>
           {tool === "settings" ? (
             <button
@@ -2360,7 +2350,6 @@ export function DarkroomApp() {
             </IconBtn>
           ) : null}
         </div>
-        </div>
         {tool !== "gallery" && tool !== "stock" ? (
           <div className="lab-sliders" key={`${params.rawEngine}-${tool}`}>
             <Panel
@@ -2370,7 +2359,6 @@ export function DarkroomApp() {
               canSave={canSave}
               onNotice={flashNote}
               onOpenEnlarger={()=>setEnlargerOpen(true)}
-              onOpen={()=>void openNativeOrPicker()}
               onAutoWb={() => void runAutoWb()}
               onPickWb={togglePickWb}
               pickingWb={pickingWb}
@@ -2397,10 +2385,61 @@ export function DarkroomApp() {
           Ctrl O — открыть · Ctrl S — экспорт · Ctrl Z — отменить
         </span>
       </footer>
-      {toolsOpen?<ToolsMenu close={closeTools} select={selectTool}/>:null}
-      <nav className="lab-rail has-labels workflow-rail simple-rail" aria-label="Основные действия">
-      {([{id:'gallery',label:'Фото',icon:Images},{id:'film',label:'Плёнка',icon:Film},{id:'edit',label:'Обработка',icon:SlidersHorizontal},{id:'export',label:'Сохранить',icon:ImageDown}] as const).map(item=><button key={item.id} type="button" className={tool===item.id?'lab-tool is-on':'lab-tool'} aria-label={item.label} aria-pressed={tool===item.id} onClick={()=>{selectTool(item.id);animateSheet(item.id==='gallery'?'peek':item.id==='edit'?'full':'half');}}><item.icon className="size-5"/><span className="lab-tool-label">{item.label}</span></button>)}
-      <button type="button" className={!['gallery','film','edit','export'].includes(tool)?'lab-tool is-on':'lab-tool'} aria-label="Все инструменты" onClick={()=>setToolsOpen(true)}><Aperture className="size-5"/><span className="lab-tool-label">Инструменты</span></button>
+      <nav
+        className={prefs.showToolLabels ? "lab-rail has-labels" : "lab-rail"}
+        aria-label="Инструменты"
+      >
+        {dockTools(params.rawEngine, params.filmStock, prefs.showLabTabs, tool).map((item) => {
+          const Icon = TOOL_ICONS[item.id];
+          const on = tool === item.id;
+          const changes = toolChangeCount(params, item.id);
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={on ? "lab-tool is-on" : "lab-tool"}
+              aria-pressed={on}
+              aria-label={item.label}
+              title={changes ? `${item.label}: изменено параметров — ${changes}` : item.label}
+              aria-description={changes ? `Изменено параметров: ${changes}` : "Без изменений"}
+              onPointerDown={() => onToolHoldDown(item.id)}
+              onPointerUp={onToolHoldUp}
+              onPointerCancel={onToolHoldUp}
+              onClick={() => {
+                if (holdResetFired.current) return;
+                if (on && sheet === "peek") {
+                  animateSheet("half");
+                  return;
+                }
+                selectTool(item.id);
+              }}
+            >
+              <Icon className="size-5" strokeWidth={1.6} />
+              {changes > 0 ? <span className="lab-edited-dot" aria-hidden="true" /> : null}
+              {item.id === "stock" && pendingStock > 0 ? (
+                <span className="lab-tool-badge">{pendingStock > 9 ? "9+" : pendingStock}</span>
+              ) : null}
+              {prefs.showToolLabels ? <span className="lab-tool-label">{item.label}</span> : null}
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          className={tool === "settings" ? "lab-tool is-on" : "lab-tool"}
+          aria-pressed={tool === "settings"}
+          aria-label="Опции"
+          title="Опции"
+          onClick={() => {
+            if (tool === "settings") {
+              selectTool(params.rawEngine === "spektrafilm" ? "film" : "tone");
+              return;
+            }
+            selectTool("settings");
+          }}
+        >
+          <Settings className="size-5" strokeWidth={1.6} />
+          {prefs.showToolLabels ? <span className="lab-tool-label">Опции</span> : null}
+        </button>
       </nav>
     </div>
   );
