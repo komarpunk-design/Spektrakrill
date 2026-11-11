@@ -1,3 +1,4 @@
+import {defaultParams} from "@/lib/film/defaults";
 import { morphDensityCurves } from "@/lib/film/experimental-math";
 import { useEffect, useState } from "react";
 import { SliderRow, ToggleRow } from "@/components/ui/control";
@@ -147,7 +148,7 @@ export function DevelopmentControls() {
               max={Math.max(6, params.exposureCompensationEv)}
               step={0.1}
               value={params.exposureCompensationEv}
-              onChange={(value) => setParam("exposureCompensationEv", value)}
+              onChange={(value) => setParam("exposureCompensationEv", value)} defaultValue={defaultParams().exposureCompensationEv}
             />
             <div className="development-exposures" aria-label="Ступени экспозиции">
               {[-2, -1, 0, 1, 2].map((ev) => (
@@ -178,7 +179,7 @@ export function DevelopmentControls() {
               max={Math.max(2, params.filmGamma)}
               step={0.05}
               value={params.filmGamma}
-              onChange={(value) => setParam("filmGamma", value)}
+              onChange={(value) => setParam("filmGamma", value)} defaultValue={defaultParams().filmGamma}
             />
             <div className="development-scale">
               <span>Pull · меньше контраст</span>

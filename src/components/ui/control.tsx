@@ -1,15 +1,42 @@
-import {controlHelp} from "@/lib/film/control-guide";
+import { quantizeControl as clampStep } from "@/lib/film/control-number";
+import { NumberEditor } from "./number-editor";
+import { controlDefault } from "@/lib/film/control-default";
+import { controlHelp } from "@/lib/film/control-guide";
 import { cn } from "@/lib/utils";
 import { useDarkroom } from "@/lib/film/store";
 import { haptic, hapticSlider } from "@/lib/film/haptic";
 import { ChevronDown, ChevronRight, Minus, Plus } from "lucide-react";
-import { useEffect, useRef, useId, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useId,
+  useState,
+  type KeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 
+const FieldLabel = createContext<string | undefined>(undefined);
 
-function ControlHint({label,id}:{label:string;id?:string}){
- const tool=useDarkroom(s=>s.tool),show=useDarkroom(s=>s.prefs.showControlHelp),text=controlHelp(label,tool);
- if(!text)return null;
- return show!==false||tool==="fotufilm"||tool==="negs"?<span id={id} className="control-help">{text}</span>:null;
+function ControlHint({ label, id }: { label: string; id?: string }) {
+  const tool = useDarkroom((s) => s.tool),
+    show = useDarkroom((s) => s.prefs.showControlHelp),
+    text = controlHelp(label, tool);
+  if (!text) return null;
+  return show !== false || tool === "fotufilm" || tool === "negs" ? (
+    <span id={id} className="control-help">
+      {text}
+    </span>
+  ) : (
+    <details className="control-help-disclosure">
+      <summary>Что делает «{label}»?</summary>
+      <span id={id} className="control-help">
+        {text}
+      </span>
+    </details>
+  );
 }
 
 export function Field({
@@ -22,30 +49,20 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <div className="grid gap-2">
-      <span className="flex items-baseline justify-between gap-3">
-        <span className="text-xs font-medium text-muted">{label}</span>
-        {hint ? (
-          <span className="text-xs tabular-nums text-subtle">{hint}</span>
-        ) : null}
-      </span>
-      {children}
-      <ControlHint label={label}/>
-    </div>
+    <FieldLabel.Provider value={label}>
+      <div className="grid gap-2" data-control-label={label}>
+        <span className="flex items-baseline justify-between gap-3">
+          <span className="text-xs font-medium text-muted">{label}</span>
+          {hint ? <span className="text-xs tabular-nums text-subtle">{hint}</span> : null}
+        </span>
+        {children}
+        <ControlHint label={label} />
+      </div>
+    </FieldLabel.Provider>
   );
 }
 
-function snap(value: number, step: number): number {
-  const n = Math.round(value / step) * step;
-  const decimals = (String(step).split(".")[1] ?? "").length;
-  return Number(n.toFixed(Math.min(6, decimals)));
-}
-
 const TAP_SLOP = 6;
-
-function clampStep(value: number, min: number, max: number, step: number): number {
-  return Math.min(max, Math.max(min, snap(value, step)));
-}
 
 export function Stepper({
   min,
@@ -178,7 +195,7 @@ export function Select({
   value,
   onChange,
   options,
-  disabled=false,
+  disabled = false,
   ariaLabel,
 }: {
   value: string;
@@ -187,6 +204,7 @@ export function Select({
   disabled?: boolean;
   ariaLabel?: string;
 }) {
+  const fieldLabel = useContext(FieldLabel);
   const groups = new Map<string, { value: string; label: string }[]>();
   for (const o of options) {
     const g = o.group ?? "";
@@ -197,7 +215,7 @@ export function Select({
     <div className="lab-select-wrap">
       <select
         disabled={disabled}
-        aria-label={ariaLabel}
+        aria-label={ariaLabel ?? fieldLabel}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="lab-select"
@@ -253,13 +271,7 @@ export function Segmented<T extends string>({
   );
 }
 
-export function Group({
-  title,
-  children,
-}: {
-  title?: string;
-  children: ReactNode;
-}) {
+export function Group({ title, children }: { title?: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-4 border-b border-border px-4 py-4">
       {title ? <p className="text-xs font-medium text-muted">{title}</p> : null}
@@ -276,7 +288,8 @@ export function SliderRow({
   step,
   value,
   onChange,
-  disabled=false,
+  disabled = false,
+  defaultValue,
 }: {
   label: string;
   hint?: string;
@@ -285,9 +298,13 @@ export function SliderRow({
   step: number;
   value: number;
   onChange: (v: number) => void;
-  disabled?:boolean;
+  disabled?: boolean;
+  defaultValue?: number;
 }) {
-  const helpId=useId();
+  const helpId = useId();
+  const tool = useDarkroom((s) => s.tool);
+  const [editing, setEditing] = useState(false);
+  const baseline = defaultValue ?? controlDefault(label, tool, min, max, step);
   const setScrubbing = useDarkroom((s) => s.setScrubbing);
   const wrapRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -308,7 +325,7 @@ export function SliderRow({
   const fillWidth = zeroPct == null ? fill : Math.abs(fill - zeroPct);
 
   const commit = (next: number) => {
-    if (disabled||next === valueRef.current) return;
+    if (disabled || next === valueRef.current) return;
     hapticSlider(valueRef.current, next, min, max);
     valueRef.current = next;
     onChange(next);
@@ -343,7 +360,7 @@ export function SliderRow({
   };
 
   const onDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if(disabled)return;
+    if (disabled) return;
     if (e.button != null && e.button !== 0) return;
     const rect = wrapRef.current?.getBoundingClientRect();
     drag.current = {
@@ -374,7 +391,7 @@ export function SliderRow({
   };
 
   const setToMin = () => {
-    if(disabled)return;
+    if (disabled) return;
     const next = clampStep(min, min, max, step);
     if (Math.abs(valueRef.current - next) <= 1e-9) return;
     haptic(Math.abs(next) <= 1e-9 ? "zero" : "edge");
@@ -390,14 +407,13 @@ export function SliderRow({
     }
     if (!d.armed) {
       drag.current = null;
-      setToMin();
       return;
     }
     end();
   };
 
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    if(disabled)return;
+    if (disabled) return;
     if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
       e.preventDefault();
       commit(clampStep(valueRef.current - step, min, max, step));
@@ -414,19 +430,35 @@ export function SliderRow({
   };
 
   return (
-    <div className={disabled?"lab-slider-row is-disabled":"lab-slider-row"} ref={rowRef}>
+    <div
+      className={disabled ? "lab-slider-row is-disabled" : "lab-slider-row"}
+      ref={rowRef}
+      data-control-label={label}
+    >
       <span className="lab-slider-head">
         <span className="lab-slider-label">{label}</span>
-        {hint ? <span className="lab-slider-hint">{hint}</span> : null}
+        <button
+          type="button"
+          className="ux-value"
+          disabled={disabled}
+          aria-label={`Точное значение: ${label}`}
+          title="Ввести число или сбросить параметр"
+          onClick={() => setEditing(true)}
+        >
+          {hint ?? String(value)}
+          {baseline !== undefined && Math.abs(value - baseline) > 1e-9 ? (
+            <i aria-label="Изменено">●</i>
+          ) : null}
+        </button>
       </span>
       <div
         ref={wrapRef}
         className="lab-range-wrap"
         role="slider"
-        tabIndex={disabled?-1:0}
+        tabIndex={disabled ? -1 : 0}
         aria-disabled={disabled}
         aria-label={label}
-        aria-describedby={controlHelp(label)?helpId:undefined}
+        aria-describedby={controlHelp(label, tool) ? helpId : undefined}
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={value}
@@ -443,7 +475,19 @@ export function SliderRow({
         {zeroPct != null ? <i className="lab-range-zero" style={{ left: `${zeroPct}%` }} /> : null}
         <i className="lab-range-thumb" style={{ left: `${fill}%` }} />
       </div>
-      <ControlHint label={label} id={helpId}/>
+      <ControlHint label={label} id={helpId} />
+      {editing ? (
+        <NumberEditor
+          label={label}
+          value={value}
+          min={min}
+          max={max}
+          step={step}
+          baseline={baseline}
+          apply={onChange}
+          close={() => setEditing(false)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -487,11 +531,16 @@ export function ToggleRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-3 px-4 py-1.5">
+    <div
+      className="flex min-h-12 items-center justify-between gap-3 px-4 py-1.5"
+      data-control-label={label}
+    >
       <div className="min-w-0">
         <span className="block text-xs font-medium text-muted">{label}</span>
-        {hint ? <span className="mt-0.5 block text-[0.65rem] leading-snug text-subtle">{hint}</span> : null}
-        <ControlHint label={label}/>
+        {hint ? (
+          <span className="mt-0.5 block text-[0.65rem] leading-snug text-subtle">{hint}</span>
+        ) : null}
+        <ControlHint label={label} />
       </div>
       <Toggle checked={checked} onChange={onChange} label={label} />
     </div>

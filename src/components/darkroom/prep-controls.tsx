@@ -9,6 +9,7 @@ export function PrepControls() {
   const row = (key: keyof PrepParams, label: string, min = -100, max = 100, step = 1) => (
     <SliderRow
       key={key}
+      defaultValue={defaultPrep()[key]}
       label={label}
       hint={prep[key].toFixed(key === "exposure" ? 2 : 0) + (key === "exposure" ? " EV" : "")}
       min={min}
