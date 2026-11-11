@@ -1729,7 +1729,7 @@ export function DarkroomApp() {
                   </button>
                 </div>
               </div>:null}
-    {directoryOpen?<ControlDirectory close={()=>setDirectoryOpen(false)} select={(tool,label)=>openWorkspace(pageForTool(tool,label,workspacePage.id))} notice={flashNote}/>:null}
+    {directoryOpen?<ControlDirectory close={()=>setDirectoryOpen(false)} select={(tool,label)=>openWorkspace(pageForTool(tool,label,workspacePage.id))} selectPage={page=>openWorkspace(page)} notice={flashNote}/>:null}
     {draggingFile?<div className="z-drop" role="status"><FolderOpen size={38}/><strong>Откройте RAW, JPEG или PNG</strong><span>Отпустите файл здесь</span></div>:null}
   </div>;
 }

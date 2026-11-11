@@ -1,3 +1,4 @@
+import {NegsProfileControls} from "./negs-profile-controls";
 import {ZalupaFilmStrip} from "./zalupa-film-strip";
 import {defaultParams} from "@/lib/film/defaults";
 import {ControlSection} from "./workflow-ui";
@@ -546,13 +547,13 @@ export function Panel({
       }}
     >
       {tool==='fotufilm'?<FotufilmControls page={workspacePage}/>:null}
-      {tool==='negs'?<NegsControls page={workspacePage}/>:null}
+      {tool==='negs'?(workspacePage==='negs-profiles'?<NegsProfileControls/>:<NegsControls page={workspacePage}/>):null}
       {tool==='prep'?<><SourceBack source="negs"/><PrepControls/></>:null}
       {tool==='texture'?<><SourceBack source="negs"/><TextureControls/></>:null}
       {tool==='emulsion'?<><SourceBack source="film"/><EmulsionControls/></>:null}
       {tool==='negative'?<><SourceBack source="film"/><EmulsionControls mode="negative"/></>:null}
       {tool==='outputs'?<><SourceBack source="fotufilm"/><OutputControls/></>:null}
-      {tool==='development'?<><DevelopmentControls/><EmulsionControls mode="chemistry"/></>:null}
+      {tool==='development'?<>{workspacePage!=='exp-chemistry'?<DevelopmentControls/>:null}{(!workspacePage||workspacePage==='exp-chemistry')?<EmulsionControls mode="chemistry" presetSource="experimental"/>:null}</>:null}
       {tool === "film" ? (
         <>
           {(!workspacePage||workspacePage==='films')?<>          <div className="lab-film-head">
@@ -621,7 +622,7 @@ export function Panel({
             </p>
           ) : (
             <>
-          {(!workspacePage||workspacePage==="grain")?<><ControlSection title="Зерно" description="Структура и мягкость эмульсии.">{params.experimental.grainRms?<div className="source-active-note">Используется RMS-зерно Negs / experimental.<button type="button" onClick={()=>setTool('negs')}>Настроить зерно Negs →</button><button type="button" onClick={()=>setParam('experimental',{...params.experimental,grainRms:false})}>Использовать прежнюю модель зерна</button></div>:<>          <ToggleRow label="Зерно" checked={params.grainActive} onChange={(v) => setParam("grainActive", v)} />
+          {(!workspacePage||workspacePage==="grain")?<><ControlSection title="Зерно" description="Структура и мягкость эмульсии.">{params.experimental.grainRms?<div className="source-active-note">Активна RMS-модель Spektrafilm Experimental.<button type="button" onClick={()=>setTool('negs')}>Открыть Experimental →</button><button type="button" onClick={()=>setParam('experimental',{...params.experimental,grainRms:false})}>Использовать прежнюю модель зерна</button></div>:<>          <ToggleRow label="Зерно" checked={params.grainActive} onChange={(v) => setParam("grainActive", v)} />
           {params.grainActive ? (
             <>
               <SliderRow
@@ -804,7 +805,7 @@ export function Panel({
             </>
           ) : null}
 </>}</ControlSection></>:null}
-          {(!workspacePage||workspacePage==="emulsion-dir")?<><ControlSection title="DIR · взаимодействие слоёв" description="Локальный контраст и цветовое разделение.">{params.experimental.dirLangmuir?<div className="source-active-note">Активна модель взаимодействия слоёв Langmuir.<button type="button" onClick={()=>setTool('negs')}>Открыть Negs / DIR →</button><button type="button" onClick={()=>setParam('experimental',{...params.experimental,dirLangmuir:false})}>Использовать DIR Spektrafilm</button></div>:<>          <ToggleRow
+          {(!workspacePage||workspacePage==="emulsion-dir")?<><ControlSection title="DIR · взаимодействие слоёв" description="Локальный контраст и цветовое разделение.">{params.experimental.dirLangmuir?<div className="source-active-note">Активна модель взаимодействия слоёв Langmuir.<button type="button" onClick={()=>setTool('negs')}>Открыть Experimental / DIR →</button><button type="button" onClick={()=>setParam('experimental',{...params.experimental,dirLangmuir:false})}>Использовать DIR Spektrafilm</button></div>:<>          <ToggleRow
             label="DIR-каплеры"
             checked={params.couplersActive}
             onChange={(v) => setParam("couplersActive", v)}
@@ -1131,7 +1132,7 @@ export function Panel({
         </>
       ) : null}
       {tool === "print" ? (
-        params.output.mode!=='paper'?<div className="source-active-note">Активен цифровой результат Fotufilm. Печать Spektrafilm сейчас не используется.<button type="button" onClick={()=>setTool('fotufilm')}>Открыть Fotufilm →</button><button type="button" onClick={()=>patch({output:{...params.output,mode:'paper'},scanFilm:false})}>Включить печать Spektrafilm</button></div>:<>
+        workspacePage==='exp-paper'?<EmulsionControls mode="paper" presetSource="experimental"/>:params.output.mode!=='paper'?<div className="source-active-note">Активен цифровой результат Fotufilm. Печать Spektrafilm сейчас не используется.<button type="button" onClick={()=>setTool('fotufilm')}>Открыть Fotufilm →</button><button type="button" onClick={()=>patch({output:{...params.output,mode:'paper'},scanFilm:false})}>Включить печать Spektrafilm</button></div>:<>
           <div className="lab-film-head">
             <button
               type="button"
@@ -1422,7 +1423,7 @@ export function Panel({
           ) : null}
             </>
           ) : null}
-          <EmulsionControls mode="paper"/>
+          {!workspacePage?<EmulsionControls mode="paper"/>:null}
         </>
       ) : null}
       {tool === "scan" ? (
@@ -1600,7 +1601,7 @@ export function Panel({
       ) : null}
       {tool === "lab" ? (
         <>
-          <SpektrafilmExtras/>
+
           <div className="px-4 py-1.5">
             <Field label="RGB → спектр">
               <Select

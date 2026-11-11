@@ -1,20 +1,31 @@
 import { useEffect, useRef, useState } from "react";
 import { useDarkroom, type ToolId } from "@/lib/film/store";
 import { TOOL_GUIDE } from "@/lib/film/workflow-guide";
-import { toolChangeCount } from "@/lib/film/tool-state";
+import {
+  Z_DECKS,
+  Z_SERVICE,
+  zPages,
+  zDeck,
+  zChanges,
+  pageForTool,
+  Z_PAGE_HINTS,
+  type ZPage,
+} from "./zalupa-navigation";
 import index from "@/lib/film/control-index.json";
 import { controlHelp } from "@/lib/film/control-guide";
-const hidden = ["edit", "frame", "outputs"];
 export function ControlDirectory({
   close,
   select,
   notice,
+  selectPage,
 }: {
   close: () => void;
   select: (id: ToolId, label?: string) => void;
+  selectPage?: (page: ZPage, label?: string) => void;
   notice: (text: string) => void;
 }) {
   const [query, setQuery] = useState(""),
+    [source, setSource] = useState("all"),
     [changed, setChanged] = useState(false),
     params = useDarkroom((s) => s.params),
     box = useRef<HTMLDialogElement>(null);
@@ -38,12 +49,43 @@ export function ControlDirectory({
     .filter(Boolean)
     .map((word) => aliases[word] ?? word);
   const matches = (text: string) => words.every((word) => normalize(text).includes(word));
-  const q = query.trim(),
-    tools = (Object.keys(TOOL_GUIDE) as ToolId[]).filter(
-      (id) => !hidden.includes(id) && (!changed || toolChangeCount(params, id) > 0),
-    );
-  const open = (tool: ToolId, label?: string) => {
-    select(tool, label);
+  const q = query.trim();
+  const candidates = index.rows
+    .filter((r) => r.tool !== "edit")
+    .map((r) => ({ ...r, page: pageForTool(r.tool as ToolId, r.label) }));
+  const groups = [
+    ...Z_DECKS.map((d) => ({ id: d.id, title: d.fullTitle, pages: [...d.pages] as ZPage[] })),
+    { id: "app", title: "Приложение", pages: Z_SERVICE },
+  ]
+    .map((group) => ({
+      ...group,
+      pages: group.pages
+        .filter((p) => !changed || zChanges(params, p) > 0)
+        .map((page) => {
+          const guide = TOOL_GUIDE[page.tool],
+            purpose = Z_PAGE_HINTS[page.id] ?? zDeck(page.id)?.description ?? guide.purpose;
+          const rows = candidates
+            .filter(
+              (r) =>
+                r.page.id === page.id &&
+                q &&
+                matches(`${r.label} ${controlHelp(r.label, page.tool) ?? ""}`),
+            )
+            .filter((r, i, a) => a.findIndex((x) => x.label === r.label) === i);
+          return {
+            page,
+            purpose,
+            rows,
+            match: !q || matches(`${page.title} ${purpose} ${group.title}`),
+          };
+        })
+        .filter((r) => r.match || r.rows.length),
+    }))
+    .filter((g) => g.pages.length && (source === "all" || g.id === source));
+  const open = (page: ZPage, label?: string) => {
+    const tool = page.tool;
+    if (selectPage) selectPage(page, label);
+    else select(tool, label);
     close();
     if (label)
       window.setTimeout(() => {
@@ -156,53 +198,55 @@ export function ControlDirectory({
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
+      <select
+        className="lab-select"
+        aria-label="Источник инструментов"
+        value={source}
+        onChange={(e) => setSource(e.target.value)}
+      >
+        <option value="all">Все источники</option>
+        {Z_DECKS.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.fullTitle}
+          </option>
+        ))}
+        <option value="app">Приложение</option>
+      </select>
       <label className="ux-changed">
         <input type="checkbox" checked={changed} onChange={(e) => setChanged(e.target.checked)} />{" "}
         Только изменённые разделы
       </label>
       <div className="ux-results">
-        {tools.map((id) => {
-          const guide = TOOL_GUIDE[id],
-            rows = index.rows.filter(
-              (r) => r.tool === id && q && matches(`${r.label} ${controlHelp(r.label, id) ?? ""}`),
-            ),
-            match = !q || matches(`${guide.title} ${guide.purpose}`);
-          if (!match && !rows.length) return null;
-          return (
-            <section key={id}>
-              <button className="ux-tool-result" onClick={() => open(id)}>
-                <strong>
-                  {guide.title}
-                  {toolChangeCount(params, id) > 0 ? ` · ${toolChangeCount(params, id)} изм.` : ""}
-                </strong>
-                <span>{guide.purpose}</span>
-              </button>
-              {rows
-                .filter((r, i, a) => a.findIndex((x) => x.label === r.label) === i)
-                .map((r) => (
+        {groups.map((group) => (
+          <section key={group.id} data-source={group.id}>
+            <h3 className="ux-source-heading">{group.title}</h3>
+            {group.pages.map(({ page, purpose, rows }) => (
+              <div key={page.id}>
+                <button className="ux-tool-result" onClick={() => open(page)}>
+                  <strong>
+                    {page.title}
+                    {zChanges(params, page) > 0 ? ` · ${zChanges(params, page)} изм.` : ""}
+                  </strong>
+                  <span>{purpose}</span>
+                </button>
+                {rows.map((r) => (
                   <button
                     className="ux-param-result"
                     key={r.label}
-                    onClick={() => open(id, r.targetLabel)}
+                    onClick={() => open(page, r.targetLabel)}
                   >
                     {r.label}
                     <small>
-                      {controlHelp(r.label, id) ??
-                        "Откройте инструмент для настройки этого параметра."}
+                      {controlHelp(r.label, page.tool) ??
+                        "Откройте страницу для настройки этого параметра."}
                     </small>
                   </button>
                 ))}
-            </section>
-          );
-        })}
-        {!tools.some(
-          (id) =>
-            !q ||
-            matches(`${TOOL_GUIDE[id].title} ${TOOL_GUIDE[id].purpose}`) ||
-            index.rows.some(
-              (r) => r.tool === id && matches(`${r.label} ${controlHelp(r.label, id) ?? ""}`),
-            ),
-        ) ? (
+              </div>
+            ))}
+          </section>
+        ))}
+        {!groups.length ? (
           <p>Ничего не найдено. Попробуйте название эффекта или сбросьте фильтр изменений.</p>
         ) : null}
       </div>

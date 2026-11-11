@@ -1,3 +1,4 @@
+import {TextureControls} from "./texture-controls";
 import {NEGS_FILM_FORMATS} from "@/lib/film/negs-film-formats";
 import { useDarkroom, type ToolId } from "@/lib/film/store";
 import {Field,Select,ToggleRow} from "@/components/ui/control";
@@ -42,10 +43,10 @@ export function NegsControls({page}:{page?:string}) {
     p = useDarkroom((s) => s.params),
     setParam = useDarkroom((s) => s.setParam);
   return (
-    <div className="source-controls" data-source="negs">
+    <div className="source-controls" data-source={page?.startsWith("exp-")?"experimental":"negs"}>
       <header>
-        <span>NEGS</span>
-        <h2>Инструменты Negs</h2>
+        <span>{page?.startsWith("exp-")?"EXPERIMENTAL":"NEGS"}</span>
+        <h2>{page?.startsWith("exp-")?"Spektrafilm Experimental":"Инструменты Negs"}</h2>
         <p>
           Подготовка исходника, RMS-зерно и взаимодействие слоёв. Плёнки Negs доступны в коллекции
           Negs на вкладке «Плёнка».
@@ -58,23 +59,23 @@ export function NegsControls({page}:{page?:string}) {
         <h3>Физический формат кадра</h3>
         <div className="px-4 py-2"><Field label="Формат кадра · Negs"><Select ariaLabel="Формат кадра · Negs" value={String(p.filmFormatMm)} onChange={value=>setParam('filmFormatMm',Number(value))} options={[...(!NEGS_FILM_FORMATS.some(f=>f.mm===p.filmFormatMm)?[{value:String(p.filmFormatMm),label:`Свой · ${p.filmFormatMm} мм`}]:[]),...NEGS_FILM_FORMATS.map(f=>({value:String(f.mm),label:f.label}))]}/></Field></div>
       </section></>:null}
-      {(!page||page==='negs-grain')?<><section>
+      {(!page||page==='exp-grain')?<><section>
         <h3>Зерно · RMS</h3>
         <ToggleRow
           label="Зерно"
           checked={p.grainActive}
           onChange={(v) => setParam("grainActive", v)}
         />
-        <EmulsionControls mode="grain" />
+        <EmulsionControls mode="grain" presetSource="experimental" /><TextureControls scope="grain"/>
       </section></>:null}
-      {(!page||page==='negs-dir')?<><section>
+      {(!page||page==='exp-dir')?<><section>
         <h3>Взаимодействие слоёв · DIR</h3>
         <ToggleRow
           label="DIR-каплеры"
           checked={p.couplersActive}
           onChange={(v) => setParam("couplersActive", v)}
         />
-        <EmulsionControls mode="dir" />
+        <TextureControls scope="dir"/><EmulsionControls mode="dir" presetSource="experimental" />
       </section></>:null}
     </div>
   );

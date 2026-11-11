@@ -1,17 +1,18 @@
+import {defaultParams} from "@/lib/film/defaults";
 import {HalationControls} from "./halation-controls";
 import {useDarkroom} from '@/lib/film/store';
 import {SliderRow,ToggleRow} from '@/components/ui/control';
 import {ControlSection} from '@/components/darkroom/workflow-ui';
 import {EmulsionControls} from '@/components/darkroom/emulsion-controls';
-export function TextureControls(){
+export function TextureControls({scope}:{scope?:"grain"|"dir"}){
  const params=useDarkroom(s=>s.params),setParam=useDarkroom(s=>s.setParam);
  const fmt=(n:number,digits=2)=>n.toFixed(digits);
  return <>
- <ControlSection title="Зерно" description="Зернистая структура изображения; её масштаб зависит от формата кадра." defaultOpen keys={["grainActive","grainBlur","experimental.grainRms"]}>
- <ToggleRow label="Зерно" checked={params.grainActive} onChange={v=>setParam('grainActive',v)}/>
+ {(!scope||scope==="grain")?<ControlSection title="Зерно" description="Зернистая структура изображения; её масштаб зависит от формата кадра." defaultOpen keys={["grainActive","grainBlur","experimental.grainRms"]}>
+ {!scope?<ToggleRow label="Зерно" checked={params.grainActive} onChange={v=>setParam('grainActive',v)}/>:null}
  {params.grainActive?<>
- <SliderRow label="Размытие зерна" hint={fmt(params.grainBlur)} min={0} max={1.4} step={.05} value={params.grainBlur} onChange={v=>setParam('grainBlur',v)}/>
- <EmulsionControls mode="grain"/>
+ <SliderRow label="Размытие зерна" hint={fmt(params.grainBlur)} min={0} max={1.4} step={.05} value={params.grainBlur} onChange={v=>setParam('grainBlur',v)}defaultValue={defaultParams().grainBlur} />
+ {!scope?<> <EmulsionControls mode="grain"/>
  {!params.experimental.grainRms?<ControlSection title="Ручной размер частиц" description="Параметры прежней модели. При включённом RMS размер вычисляется автоматически.">
  <SliderRow label="Частица, µm²" min={.04} max={1.2} step={.02} value={params.grainParticleArea} hint={fmt(params.grainParticleArea)} onChange={v=>setParam('grainParticleArea',v)}/>
  <ToggleRow label="Подслои" checked={params.grainSublayers} onChange={v=>setParam('grainSublayers',v)}/>
@@ -19,15 +20,17 @@ export function TextureControls(){
  <SliderRow label="Dmin зерна" min={0} max={.3} step={.01} value={params.grainDensityMin} hint={fmt(params.grainDensityMin,3)} onChange={v=>setParam('grainDensityMin',v)}/>
  {(['R','G','B'] as const).map(c=><SliderRow key={c} label={'Масштаб '+c} min={.4} max={c==='B'?5:4} step={.05} value={params[('grainScale'+c) as 'grainScaleR']} onChange={v=>setParam(('grainScale'+c) as 'grainScaleR',v)}/>)}
  </ControlSection>:null}
- <SliderRow label="Облака, µm" hint={fmt(params.grainDyeCloudsUm)} min={0} max={4} step={.1} value={params.grainDyeCloudsUm} onChange={v=>setParam('grainDyeCloudsUm',v)}/>
- </>:null}</ControlSection>
- <section className="transport-page"><h3>Гало и слои плёнки</h3><HalationControls showLegacyDetails/></section>
- <ControlSection title="DIR · взаимодействие слоёв" description="Развитие соседних слоёв меняет цвет и локальный контраст у границ." keys={["couplersActive","couplersAmount","inhibitionInterlayer"]}>
-          <ToggleRow
+</>:null}
+ <SliderRow label="Облака, µm" hint={fmt(params.grainDyeCloudsUm)} min={0} max={4} step={.1} value={params.grainDyeCloudsUm} onChange={v=>setParam('grainDyeCloudsUm',v)}defaultValue={defaultParams().grainDyeCloudsUm} />
+ </>:null}</ControlSection>:null}
+ {!scope?<section className="transport-page"><h3>Гало и слои плёнки</h3><HalationControls showLegacyDetails/></section>:null}
+ {(!scope||scope==="dir")?<ControlSection title="DIR · взаимодействие слоёв" description="Развитие соседних слоёв меняет цвет и локальный контраст у границ." keys={["couplersActive","couplersAmount","inhibitionInterlayer"]}>
+          {!scope?<>          <ToggleRow
             label="DIR-каплеры"
             checked={params.couplersActive}
             onChange={(v) => setParam("couplersActive", v)}
           />
+</>:null}
           {params.couplersActive ? (
             <>
               <SliderRow
@@ -38,7 +41,7 @@ export function TextureControls(){
                 step={0.05}
                 value={params.couplersAmount}
                 onChange={(v) => setParam("couplersAmount", v)}
-              />
+              defaultValue={defaultParams().couplersAmount} />
               <SliderRow
                 label="Межслойное"
                 hint={fmt(params.inhibitionInterlayer)}
@@ -47,7 +50,7 @@ export function TextureControls(){
                 step={0.05}
                 value={params.inhibitionInterlayer}
                 onChange={(v) => setParam("inhibitionInterlayer", v)}
-              />
+              defaultValue={defaultParams().inhibitionInterlayer} />
               <SliderRow
                 label="Свой слой"
                 hint={fmt(params.inhibitionSamelayer)}
@@ -56,7 +59,7 @@ export function TextureControls(){
                 step={0.05}
                 value={params.inhibitionSamelayer}
                 onChange={(v) => setParam("inhibitionSamelayer", v)}
-              />
+              defaultValue={defaultParams().inhibitionSamelayer} />
               <ControlSection title="Распространение DIR" description="Радиус действия ингибиторов проявления между соседними участками.">{(
                 <SliderRow
                   label="Диффузия, µm"
@@ -66,10 +69,10 @@ export function TextureControls(){
                   step={5}
                   value={params.couplerDiffusionUm}
                   onChange={(v) => setParam("couplerDiffusionUm", v)}
-                />
+                defaultValue={defaultParams().couplerDiffusionUm} />
               )}</ControlSection>
             </>
           ) : null}
-<EmulsionControls mode="dir"/></ControlSection>
+{!scope?<EmulsionControls mode="dir"/>:null}</ControlSection>:null}
  </>;
 }
