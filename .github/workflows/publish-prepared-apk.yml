@@ -1,0 +1,28 @@
+name: Publish Zalupa UI APK
+on:
+  push:
+    branches: [apk-delivery-9-54-5c70ab3]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify, publish and download the complete APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '6da0c63aba7575e14342a436609c2e7b1074bff7707a60c9dd6687efdd72250d  release-payload/SpektrafilmLab-9.54-arm64.apk' | sha256sum --check
+          if ! gh release view v9.54-build124 >/dev/null 2>&1; then
+            gh release create v9.54-build124 --target 5c70ab3fc08795d0ea8a8112fbe4aceec1628307 --prerelease --title 'Spektrafilm 9.54 — Zalupa UI · ARM64' --notes-file release-payload/notes.md
+          fi
+          if ! gh release view v9.54-build124 --json assets --jq '.assets[].name' | grep -Fxq 'SpektrafilmLab-9.54-arm64.apk'; then
+            gh release upload v9.54-build124 release-payload/SpektrafilmLab-9.54-arm64.apk
+          fi
+          mkdir downloaded
+          gh release download v9.54-build124 --pattern SpektrafilmLab-9.54-arm64.apk --dir downloaded
+          echo '6da0c63aba7575e14342a436609c2e7b1074bff7707a60c9dd6687efdd72250d  downloaded/SpektrafilmLab-9.54-arm64.apk' | sha256sum --check
