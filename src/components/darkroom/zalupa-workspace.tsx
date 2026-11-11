@@ -35,9 +35,19 @@ import {
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useDarkroom } from "@/lib/film/store";
-import { Z_DECKS, Z_SERVICE, zDeck, zPage, zChanges, type ZPage } from "./zalupa-navigation";
+import {
+  Z_DECKS,
+  Z_SERVICE,
+  Z_PAGE_HINTS,
+  zDeck,
+  zPage,
+  zChanges,
+  type ZPage,
+} from "./zalupa-navigation";
 const icons: Record<string, LucideIcon> = {
   film: Film,
+  spektrafilm: Aperture,
+  experimental: FlaskConical,
   grain: Grid2X2,
   lens: Aperture,
   print: Printer,
@@ -135,6 +145,10 @@ export function ZalupaWorkspace({
     lastPages = useRef<Record<string, string>>({}),
     drag = useRef<{ y: number; height: number } | null>(null),
     moved = useRef(false);
+  const inactiveNative =
+    (page.id === "grain" && params.experimental.grainRms) ||
+    (page.id === "emulsion-dir" && params.experimental.dirLangmuir) ||
+    (page.id === "halation" && params.transport.model === "layered");
   const deck = zDeck(page.id),
     library = page.tool === "gallery" || page.tool === "stock";
   useEffect(() => {
@@ -236,7 +250,11 @@ export function ZalupaWorkspace({
           ) : null}
         </main>
         {open && !library ? (
-          <aside className="z-inspector" aria-label="Инструменты фотографии">
+          <aside
+            className="z-inspector"
+            aria-label="Инструменты фотографии"
+            data-source={deck?.source ?? "app"}
+          >
             <button
               type="button"
               className="z-grabber"
@@ -282,7 +300,16 @@ export function ZalupaWorkspace({
                   </button>
                 ))}
               </div>
-              {!["films", "gallery", "stock", "settings", "presets", "log"].includes(page.id) ? (
+              {!inactiveNative &&
+              ![
+                "films",
+                "negs-profiles",
+                "gallery",
+                "stock",
+                "settings",
+                "presets",
+                "log",
+              ].includes(page.id) ? (
                 <button
                   type="button"
                   className="z-panel-action"
@@ -306,16 +333,13 @@ export function ZalupaWorkspace({
               <>
                 {" "}
                 <div className="z-panel-context">
-                  <span>
-                    {deck?.id === "fotufilm"
-                      ? "FOTUFILM"
-                      : deck?.id === "negs"
-                        ? "NEGS"
-                        : "SPEKTRAFILM"}
-                  </span>
+                  <span>{deck?.fullTitle ?? "Приложение"}</span>
                   {zChanges(params, page) > 0 ? <span>{zChanges(params, page)} изм.</span> : null}
                 </div>
               </>
+            ) : null}
+            {deck && deck.source !== "catalog" ? (
+              <p className="z-source-description">{Z_PAGE_HINTS[page.id] ?? deck.description}</p>
             ) : null}
             <div
               id="z-tool-panel"
@@ -444,7 +468,7 @@ export function ZalupaWorkspace({
                   {p.title}
                 </button>
               ))}
-              <div className="z-menu-label">Инструменты</div>
+              <div className="z-menu-label">Инструменты по источникам</div>
               {Z_DECKS.map((d) => {
                 const Icon = icons[d.icon];
                 return (

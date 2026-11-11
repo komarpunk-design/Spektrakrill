@@ -11,25 +11,38 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(process.env.TEST_URL ?? "http://127.0.0.1:8091/", { waitUntil: "networkidle" });
   assert.equal(await page.locator(".workbench-library").count(), 0);
-  assert.equal(await page.getByRole("button", { name: "Плёнка", exact: true }).isDisabled(), true);
+  assert.equal(await page.getByRole("button", { name: "Плёнки", exact: true }).isDisabled(), true);
   await page.locator(".zalupa-app>input[type=file]").setInputFiles("public/samples/still-life.jpg");
   await page.getByRole("img", { name: "Предпросмотр обработки", exact: true }).waitFor();
-  await page.getByRole("button", { name: "Плёнка", exact: true }).click();
+  await page.getByRole("button", { name: "Плёнки", exact: true }).click();
   await page.getByRole("button", { name: "Kodak Gold 200", exact: true }).click();
   await page.locator('[data-stock-id="kodak_gold_200"][aria-pressed=true]').waitFor();
   console.log("PASS real image import and original film selection");
-  const deck = async (name) =>
-    page
+  const deck = async (name) => {
+    const button = page
       .getByRole("navigation", { name: "Группы инструментов" })
-      .getByRole("button", { name, exact: true })
-      .click();
+      .getByRole("button", { name, exact: true });
+    if ((await button.getAttribute("aria-pressed")) !== "true") await button.click();
+  };
+  const owner = async (source) => {
+    await page.locator(`.z-inspector[data-source="${source}"]`).waitFor();
+    assert.equal(await page.locator(".z-inspector").getAttribute("data-source"), source);
+  };
+  const roots = await page
+    .getByRole("navigation", { name: "Группы инструментов" })
+    .getByRole("button")
+    .allTextContents();
+  assert.deepEqual(
+    roots.map((t) => t.trim()),
+    ["Плёнки", "Spektrafilm", "Experimental", "Negs", "Fotufilm"],
+  );
   const tab = async (name) => page.getByRole("tab", { name, exact: true }).click();
   const value = async (label, text) => {
     await page.getByRole("button", { name: "Точное значение: " + label, exact: true }).click();
     await page.getByRole("textbox", { name: "Точное значение", exact: true }).fill(text);
     await page.getByRole("button", { name: "Применить", exact: true }).click();
   };
-  await deck("Свет и цвет");
+  await deck("Spektrafilm");
   assert.equal(await page.getByRole("slider", { name: "Тинт", exact: true }).count(), 0);
   await value("EV", "1,25");
   await tab("Баланс");
@@ -55,29 +68,129 @@ try {
     await page.getByRole("slider", { name: "EV", exact: true }).getAttribute("aria-valuenow"),
     "1.25",
   );
-  await deck("Оптика");
+  await tab("Оптика");
   await page.getByRole("slider", { name: "UV-срез", exact: true }).waitFor();
   assert.equal(await page.getByRole("slider", { name: "EV", exact: true }).count(), 0);
-  await deck("Свет и цвет");
+  await deck("Experimental");
+  await owner("experimental");
+  await deck("Spektrafilm");
+  await owner("spektrafilm");
   assert.equal(
-    await page.getByRole("tab", { name: "Экспозиция", exact: true }).getAttribute("aria-selected"),
+    await page.getByRole("tab", { name: "Оптика", exact: true }).getAttribute("aria-selected"),
     "true",
   );
+  await tab("Экспозиция");
   console.log(
     "PASS independent pages, exact controls, isolated reset, Undo and remembered group page",
   );
-  await deck("Negs");
+  await tab("Push / Pull");
+  assert.equal(
+    await page.getByRole("switch", { name: "Химия плёнки по слоям", exact: true }).count(),
+    0,
+  );
+  await deck("Experimental");
+  await owner("experimental");
+  await tab("Химия плёнки");
+  await page.getByRole("switch", { name: "Химия плёнки по слоям", exact: true }).waitFor();
+  assert.equal(
+    await page.getByRole("slider", { name: "Экспозиция при съёмке", exact: true }).count(),
+    0,
+  );
   await tab("RMS-зерно");
   const rms = page.getByRole("switch", { name: "Зернистость по RMS", exact: true });
   if ((await rms.getAttribute("aria-checked")) === "false") await rms.click();
   await page.getByRole("slider", { name: "RMS красного канала", exact: true }).waitFor();
-  await tab("DIR");
+  await page.getByRole("slider", { name: "Размытие зерна", exact: true }).waitFor();
+  await value("Размытие зерна", "0,5");
+  await page.getByRole("button", { name: "Точное значение: Размытие зерна", exact: true }).click();
+  await page.getByRole("button", { name: "По умолчанию", exact: true }).click();
+  await page.getByRole("button", { name: "Применить", exact: true }).click();
+  assert.equal(
+    await page
+      .getByRole("slider", { name: "Размытие зерна", exact: true })
+      .getAttribute("aria-valuenow"),
+    "0.65",
+  );
+  await deck("Spektrafilm");
+  await tab("Зерно");
+  assert.equal(
+    await page.getByRole("switch", { name: "Зернистость по RMS", exact: true }).count(),
+    0,
+  );
+  assert.equal(
+    await page.getByRole("button", { name: "Сбросить текущую страницу", exact: true }).count(),
+    0,
+  );
+  await page.getByRole("button", { name: "Открыть Experimental →", exact: true }).click();
+  await owner("experimental");
+  await tab("Langmuir DIR");
   await page.getByRole("switch", { name: "Нелинейная модель Langmuir", exact: true }).waitFor();
-  await deck("Печать");
-  await tab("Бумага");
+  await page.getByRole("slider", { name: "Диффузия, µm", exact: true }).waitFor();
+  await deck("Negs");
+  await owner("negs");
+  await tab("Профиль Negs");
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Вернуть зерно из профиля Negs", exact: true })
+      .isDisabled(),
+    true,
+  );
+  assert.equal(await page.getByRole("slider").count(), 0);
+  assert.equal(
+    await page.getByRole("switch", { name: "Зернистость по RMS", exact: true }).count(),
+    0,
+  );
+  await deck("Плёнки");
+  await page.locator('[data-stock-id="negs_cinestill_800t"]').click();
+  await deck("Experimental");
+  await tab("RMS-зерно");
+  const red = page.getByRole("slider", { name: "RMS красного канала", exact: true });
+  await red.waitFor();
+  const originalRed = await red.getAttribute("aria-valuenow");
+  await value("RMS красного канала", String(Number(originalRed) + 1));
+  assert.equal(
+    await page.getByRole("button", { name: "Взять зерно из профиля Negs", exact: true }).count(),
+    0,
+  );
+  await deck("Negs");
+  await tab("Профиль Negs");
+  await page.getByRole("button", { name: "Вернуть зерно из профиля Negs", exact: true }).click();
+  await deck("Experimental");
+  await tab("RMS-зерно");
+  assert.equal(await red.getAttribute("aria-valuenow"), originalRed);
+  await deck("Negs");
+  await tab("Prep");
+  await page.getByRole("slider", { name: "Экспозиция подготовки", exact: true }).waitFor();
+  await tab("Форматы кадра");
+  await page.getByRole("combobox", { name: "Формат кадра · Negs", exact: true }).waitFor();
+  console.log(
+    "PASS five separate sources, isolated experimental chemistry/RMS/DIR, shared rows and Negs profile restoration",
+  );
+  await deck("Spektrafilm");
+  await tab("Печать");
   await page.getByRole("region", { name: "Каталог бумаги", exact: true }).waitFor();
   await page.locator('[data-stock-id="kodak_endura_premier"]').click();
   await page.locator('[data-stock-id="kodak_endura_premier"][aria-pressed=true]').waitFor();
+  assert.equal(
+    await page.getByRole("switch", { name: "Настройка основы бумаги", exact: true }).count(),
+    0,
+  );
+  await deck("Experimental");
+  await tab("Основа бумаги");
+  const base = page.getByRole("switch", { name: "Настройка основы бумаги", exact: true });
+  if ((await base.getAttribute("aria-checked")) === "false") await base.click();
+  await value("Циан основы", "1,5");
+  await deck("Spektrafilm");
+  await tab("Печать");
+  await page.getByRole("button", { name: "Сбросить текущую страницу", exact: true }).click();
+  await deck("Experimental");
+  await tab("Основа бумаги");
+  assert.equal(
+    await page
+      .getByRole("slider", { name: "Циан основы", exact: true })
+      .getAttribute("aria-valuenow"),
+    "1.5",
+  );
   await deck("Fotufilm");
   await tab("Outputs / Lab Scan");
   await page
@@ -95,12 +208,24 @@ try {
       .getAttribute("aria-valuenow"),
     "0.55",
   );
-  await deck("Печать");
+  await deck("Spektrafilm");
   await tab("Рамка");
   await page.getByRole("button", { name: "135 — перфорация и DX", exact: true }).click();
   await page.getByRole("switch", { name: "DX-полоса", exact: true }).waitFor();
   await page.getByRole("textbox", { name: "Дата на снимке", exact: true }).fill("2026-11-11");
   console.log("PASS original Negs, Fotufilm, Lab Scan, layered optics and 135/DX frame controls");
+  await page.getByRole("button", { name: "Ещё", exact: true }).click();
+  await page.getByRole("button", { name: "Найти инструмент или параметр", exact: true }).click();
+  await page
+    .getByRole("combobox", { name: "Источник инструментов", exact: true })
+    .selectOption("experimental");
+  await page
+    .getByRole("searchbox", { name: "Поиск инструмента или параметра" })
+    .fill("насыщение донора");
+  assert.equal(await page.locator('.ux-results>section[data-source="negs"]').count(), 0);
+  await page.locator(".ux-param-result").first().click();
+  await owner("experimental");
+  await page.getByRole("tab", { name: "Langmuir DIR", exact: true }).waitFor();
   await page.getByRole("button", { name: "Ещё", exact: true }).click();
   await page.getByRole("button", { name: "Найти инструмент или параметр", exact: true }).click();
   await page.getByRole("searchbox", { name: "Поиск инструмента или параметра" }).fill("EV");
@@ -146,9 +271,12 @@ try {
     await page.screenshot({ path: `artifacts/zalupa-${size.width}.png` });
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  await deck("Свет и цвет");
+  await page
+    .getByRole("navigation", { name: "Группы инструментов" })
+    .getByRole("button", { name: "Spektrafilm", exact: true })
+    .click();
   assert.equal(await page.locator(".z-inspector").count(), 0);
-  await deck("Свет и цвет");
+  await deck("Spektrafilm");
   assert.equal(
     await page.getByRole("slider", { name: "EV", exact: true }).getAttribute("aria-valuenow"),
     "1.25",

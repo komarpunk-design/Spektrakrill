@@ -16,7 +16,7 @@ import {
   experimentalCouplersPreset,
 } from "@/lib/film/experimental";
 
-export function EmulsionControls({mode="advanced"}:{mode?:"advanced"|"negative"|"chemistry"|"grain"|"dir"|"paper"}) {
+export function EmulsionControls({mode="advanced",presetSource}:{mode?:"advanced"|"negative"|"chemistry"|"grain"|"dir"|"paper";presetSource?:"experimental"}) {
   const params = useDarkroom((s) => s.params),
     setParam = useDarkroom((s) => s.setParam),
     setTool = useDarkroom((s) => s.setTool),
@@ -299,7 +299,7 @@ export function EmulsionControls({mode="advanced"}:{mode?:"advanced"|"negative"|
       </div></ControlSection>:null}
 {mode==="dir"?<ControlSection title="Нелинейное взаимодействие · Langmuir" description="Насыщение ингибиторов и длинный хвост их распространения в эмульсии." keys={["experimental.dirLangmuir","experimental.dirDonorRed","experimental.dirTailUm"]}><div className="development-section">
         <h3>DIR · насыщение ингибиторов</h3>
-        {profile ? (
+        {profile && !(presetSource==="experimental"&&profile.negs) ? (
           <button
             type="button"
             className="lab-ghost"
@@ -353,7 +353,7 @@ export function EmulsionControls({mode="advanced"}:{mode?:"advanced"|"negative"|
           checked={e.grainRms}
           onChange={(v) => change("grainRms", v)}
         />
-        {profile ? (
+        {profile && !(presetSource==="experimental"&&profile.negs) ? (
           <button
             type="button"
             className="lab-ghost"

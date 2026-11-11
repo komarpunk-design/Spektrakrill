@@ -1,12 +1,12 @@
 # Spektrafilm Lab · Spektrakrill
 
-Android-фоторедактор на React / Capacitor с нативным спектральным движком. Текущая экспериментальная версия: **9.54 / 124**, ARM64, Android 7.0 и выше.
+Android-фоторедактор на React / Capacitor с нативным спектральным движком. Текущая экспериментальная версия: **9.55 / 125**, ARM64, Android 7.0 и выше.
 
-[Скачать APK 9.54](https://github.com/komarpunk-design/Spektrakrill/releases/download/v9.54-build124/SpektrafilmLab-9.54-arm64.apk)
+[Скачать APK 9.55](https://github.com/komarpunk-design/Spektrakrill/releases/download/v9.55-build125/SpektrafilmLab-9.55-arm64.apk)
 
-Интерфейс адаптирован из приложения, которое собирается в [Zalupa](https://github.com/komarpunk-design/Zalupa): круглые действия сверху, фотография, панель страниц и нижние группы инструментов, лента фотокарточек плёнок. Математика обработки, набор плёнок и экспорт прежние. Negs и Fotufilm находятся в своих группах.
+Интерфейс адаптирован из приложения, которое собирается в [Zalupa](https://github.com/komarpunk-design/Zalupa): круглые действия сверху, фотография, панель страниц и нижние группы инструментов, лента фотокарточек плёнок. Математика обработки, набор плёнок и экспорт прежние. Инструменты разделены по происхождению: Spektrafilm, Spektrafilm Experimental, Negs, Fotufilm. Плёнки всех источников находятся в одном каталоге.
 
-[Источник UI, границы переноса и проверки](docs/ZALUPA_UI.md).
+[Разделение функций по источникам — 9.55](docs/TOOLS_BY_SOURCE.md). [Источник UI и проверка переноса — 9.54](docs/ZALUPA_UI.md).
 
 ## Разработка и проверка
 
