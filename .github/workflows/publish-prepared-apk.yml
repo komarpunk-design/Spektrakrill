@@ -1,0 +1,28 @@
+name: Publish verified UX APK
+on:
+  push:
+    branches: [apk-delivery-9-53-a17e3bd]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify, publish and download the complete APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '68a950e96fce883c57b9bd59033da9a500bba0d0a92b1a35b7045d68158e0fa2  release-payload/SpektrafilmLab-9.53-arm64.apk' | sha256sum --check
+          if ! gh release view v9.53-build123 >/dev/null 2>&1; then
+            gh release create v9.53-build123 --target a17e3bd87c7ebe795d911b1030228d48ffd6b572 --prerelease --title 'Spektrafilm 9.53 — Searchable workspace / exact controls · ARM64' --notes-file release-payload/notes.md
+          fi
+          if ! gh release view v9.53-build123 --json assets --jq '.assets[].name' | grep -Fxq 'SpektrafilmLab-9.53-arm64.apk'; then
+            gh release upload v9.53-build123 release-payload/SpektrafilmLab-9.53-arm64.apk
+          fi
+          mkdir downloaded
+          gh release download v9.53-build123 --pattern SpektrafilmLab-9.53-arm64.apk --dir downloaded
+          echo '68a950e96fce883c57b9bd59033da9a500bba0d0a92b1a35b7045d68158e0fa2  downloaded/SpektrafilmLab-9.53-arm64.apk' | sha256sum --check
