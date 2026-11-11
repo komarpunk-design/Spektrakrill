@@ -1,0 +1,28 @@
+name: Publish prepared transport APK
+on:
+  push:
+    branches: [apk-delivery-9-51-687af68]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify, publish and download the complete APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'b42ce0d66cfff3d0033a9363906ed6c4ffe8ab60a6ff1e50c650baea9bbf4a1a  release-payload/SpektrafilmLab-9.51-arm64.apk' | sha256sum --check
+          if ! gh release view v9.51-build121 >/dev/null 2>&1; then
+            gh release create v9.51-build121 --target 687af6826012638154a0dc14230b22a8e0f87bec --prerelease --title 'Spektrafilm 9.51 — Layered Transport · ARM64' --notes-file release-payload/notes.md
+          fi
+          if ! gh release view v9.51-build121 --json assets --jq '.assets[].name' | grep -Fxq 'SpektrafilmLab-9.51-arm64.apk'; then
+            gh release upload v9.51-build121 release-payload/SpektrafilmLab-9.51-arm64.apk
+          fi
+          mkdir downloaded
+          gh release download v9.51-build121 --pattern SpektrafilmLab-9.51-arm64.apk --dir downloaded
+          echo 'b42ce0d66cfff3d0033a9363906ed6c4ffe8ab60a6ff1e50c650baea9bbf4a1a  downloaded/SpektrafilmLab-9.51-arm64.apk' | sha256sum --check
