@@ -80,3 +80,15 @@ Russian controls/descriptions and application-state integration. No new stock
 measurements or fitted profiles were invented. Film/brand names remain their
 owners' trademarks and imply no endorsement. Integration scope and validation
 are recorded in `docs/NEGS_INTEGRATION.md`.
+
+## Fotufilm UI adaptation selected by Zalupa (version 9.54)
+
+The phone workspace is adapted from MUAStudio Inc.'s Fotufilm Flutter UI,
+commit `8aa050b63e0fbba61ac5b95330008e9f1dd489f9`, as referenced by
+`komarpunk-design/Zalupa` at `186a467980647f50c5d2da037ac61c3c6a02135c`.
+This is a React/CSS adaptation of the workspace, deck/page navigation, palettes,
+film strip and adjustment presentation, under Apache-2.0. The old host's
+Spektrafilm processing, profiles, import and export remain unchanged.
+No donor engine, separately licensed glyph artwork or font binaries were copied.
+Source manifest, licence and notice: `docs/upstream/zalupa-ui/`.
+The APK includes `zalupa-ui-notice.txt` with the licence and adaptation notice.

@@ -1,0 +1,18 @@
+{
+  "selection_repository": "https://github.com/komarpunk-design/Zalupa",
+  "selection_commit": "186a467980647f50c5d2da037ac61c3c6a02135c",
+  "selection_file": ".github/workflows/android.yml",
+  "ui_repository": "https://github.com/DhaliwalX/fotufilm-engine",
+  "ui_commit": "8aa050b63e0fbba61ac5b95330008e9f1dd489f9",
+  "reviewed_ui_files": [
+    "flutter/lib/ui/phone/phone_editor.dart",
+    "flutter/lib/ui/phone/deck_pages.dart",
+    "flutter/lib/ui/phone/phone_films.dart",
+    "flutter/lib/model/phone_decks.dart",
+    "flutter/lib/ui/kit/adjustment.dart",
+    "flutter/lib/ui/theme/phone.dart",
+    "flutter/lib/ui/theme/palette.dart",
+    "flutter/lib/ui/theme/metrics.dart"
+  ],
+  "scope": "React UI adaptation only. No Dart/Swift/C++ engine, stock data, glyph or font assets copied. Existing Lucide icons and system fonts retained."
+}
