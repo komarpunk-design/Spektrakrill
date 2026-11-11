@@ -1,12 +1,12 @@
+import {ToolsMenu} from "./tools-menu";
 import {WorkflowTools} from "@/components/darkroom/workflow-ui";
-import {WORKFLOW_STAGES,TOOL_GUIDE,stageForTool} from "@/lib/film/workflow-guide";
+import {TOOL_GUIDE} from "@/lib/film/workflow-guide";
 import { TestPrint } from "@/components/darkroom/test-print";
 import { printTrialParams, type PrintTrialImage } from "@/lib/film/test-print";
 import { nativeTestPrint, jpegB64ToObjectUrl } from "@/lib/film/native-raw";
 import { frameImageData, edgeLabel } from "@/lib/film/photo-frame";
-import { toolChangeCount } from "@/lib/film/tool-state";
 import { Histogram } from "@/components/darkroom/histogram";
-import { Panel, TOOLS, dockTools } from "@/components/darkroom/panel";
+import { Panel, dockTools } from "@/components/darkroom/panel";
 import { GalleryPane } from "@/components/darkroom/gallery";
 import { StockPane } from "@/components/darkroom/stock";
 import { Viewer } from "@/components/darkroom/viewer";
@@ -111,6 +111,7 @@ const ACCEPT =
   "image/jpeg,image/jpg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp,.heic,.dng,.cr2,.cr3,.nef,.arw,.raf,.rw2,.orf,.pef";
 
 const TOOL_ICONS: Record<ToolId, LucideIcon> = {
+  edit: SlidersHorizontal,
   film: Film,
   development: FlaskConical,
   emulsion: Aperture,
@@ -313,7 +314,7 @@ function snapFromVelocity(px: number, vel: number, m = sheetMetrics()): SheetId 
 
 function snapForTool(tool: string): SheetId {
   if (tool === "gallery" || tool === "stock") return "peek";
-  if (tool === "presets" || tool === "settings" || tool === "log" || tool === "lab" || tool === "development" || tool === "emulsion" || tool === "prep" || tool === "texture" || tool === "negative") return "full";
+  if (tool === "edit" || tool === "presets" || tool === "settings" || tool === "log" || tool === "lab" || tool === "development" || tool === "emulsion" || tool === "prep" || tool === "texture" || tool === "negative") return "full";
   return "half";
 }
 
@@ -362,6 +363,8 @@ function asNativeParams(p: DarkroomParams): Record<string, unknown> {
 }
 
 export function DarkroomApp() {
+  const [toolsOpen,setToolsOpen]=useState(false);
+  const closeTools=useCallback(()=>setToolsOpen(false),[]);
   const params = useDarkroom((s) => s.params);
   const setSource = useDarkroom((s) => s.setSource);
   const canRedo = useDarkroom((state) => state.redoStack.length > 0);
@@ -370,8 +373,6 @@ export function DarkroomApp() {
   const setShowOriginal = useDarkroom((s) => s.setShowOriginal);
   const scrubbing = useDarkroom((s) => s.scrubbing);
   const tool = useDarkroom((s) => s.tool);
-  const stageMemory=useRef<Record<string,ToolId>>({});
-  useEffect(()=>{stageMemory.current[stageForTool(tool).id]=tool;},[tool]);
   const prefs = useDarkroom((s) => s.prefs);
   const setTool = useDarkroom((s) => s.setTool);
   const chromeHidden = useDarkroom((s) => s.chromeHidden);
@@ -1796,7 +1797,6 @@ export function DarkroomApp() {
   }, [flashNote]);
 
   const toolLabel=TOOL_GUIDE[tool].title;
-  const currentStage=stageForTool(tool);
   const canUndo = undoStack.length > 0;
   const canSave = !!(procUrl || full || preview) && !exporting && !batching && !testPrinting;
   const canStock = !!(fileName || origUrl || full || preview);
@@ -1919,7 +1919,7 @@ export function DarkroomApp() {
         if (file) void onPickedFile(file);
       }}
       className={[
-        "lab-app text-fg",
+        "lab-app text-fg simple-editor",
         scrubbing && "is-scrubbing",
         chromeHidden && "is-chrome-hidden",
         sheetLive && "is-sheet-live",
@@ -2370,6 +2370,7 @@ export function DarkroomApp() {
               canSave={canSave}
               onNotice={flashNote}
               onOpenEnlarger={()=>setEnlargerOpen(true)}
+              onOpen={()=>void openNativeOrPicker()}
               onAutoWb={() => void runAutoWb()}
               onPickWb={togglePickWb}
               pickingWb={pickingWb}
@@ -2396,17 +2397,10 @@ export function DarkroomApp() {
           Ctrl O — открыть · Ctrl S — экспорт · Ctrl Z — отменить
         </span>
       </footer>
-      <nav className="lab-rail has-labels workflow-rail" aria-label="Этапы обработки">
-      {WORKFLOW_STAGES.map(stage=>{
-        const first=stage.defaultTool as ToolId;
-        const Icon=TOOL_ICONS[first];
-        const on=currentStage.id===stage.id;
-        const changes=stage.tools.reduce((sum,id)=>sum+toolChangeCount(params,id),0);
-        return <button key={stage.id} type="button" className={on?'lab-tool is-on':'lab-tool'} aria-pressed={on} aria-label={stage.label} title={stage.label} onClick={()=>{
-          if(on){animateSheet(sheet==='peek'?'half':sheet);return;}
-          selectTool(stageMemory.current[stage.id]??first);
-        }}><Icon className="size-5" strokeWidth={1.6}/>{changes>0?<span className="lab-edited-dot" aria-label="Есть изменения"/>:null}<span className="lab-tool-label">{stage.label}</span></button>;
-      })}
+      {toolsOpen?<ToolsMenu close={closeTools} select={selectTool}/>:null}
+      <nav className="lab-rail has-labels workflow-rail simple-rail" aria-label="Основные действия">
+      {([{id:'gallery',label:'Фото',icon:Images},{id:'film',label:'Плёнка',icon:Film},{id:'edit',label:'Обработка',icon:SlidersHorizontal},{id:'export',label:'Сохранить',icon:ImageDown}] as const).map(item=><button key={item.id} type="button" className={tool===item.id?'lab-tool is-on':'lab-tool'} aria-label={item.label} aria-pressed={tool===item.id} onClick={()=>{selectTool(item.id);animateSheet(item.id==='gallery'?'peek':item.id==='edit'?'full':'half');}}><item.icon className="size-5"/><span className="lab-tool-label">{item.label}</span></button>)}
+      <button type="button" className={!['gallery','film','edit','export'].includes(tool)?'lab-tool is-on':'lab-tool'} aria-label="Все инструменты" onClick={()=>setToolsOpen(true)}><Aperture className="size-5"/><span className="lab-tool-label">Инструменты</span></button>
       </nav>
     </div>
   );

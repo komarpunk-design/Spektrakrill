@@ -107,6 +107,7 @@ export interface DiffusionState {
 
 export interface DarkroomParams {
   prep: PrepParams;
+  transport: import("./layered-transport.ts").TransportParams;
   output: import("./output-model.ts").OutputParams;
   experimental: ExperimentalParams;
   filmStock: string;

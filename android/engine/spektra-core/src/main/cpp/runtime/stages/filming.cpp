@@ -794,7 +794,10 @@ void expose_impl(const Src& src, int width, int height,
     // apply_halation_um on `raw`). Self-gated on halation.active (set by
     // digest_halation_params only when the spatial digest is on and the preset is
     // known), so the spatial-OFF goldens still skip it.
-    if (params.halation.active) {
+    if (params.halation.active && params.layered_transport.model=="layered") {
+        ScopedStage _t(STG_HALATION);
+        transport::apply(raw,width,height,params.transport_stock,params.layered_transport,params.halation.halation_strength,params.pixel_size_um/1000.,params.halation.halation_amount,params.halation.halation_spatial_scale);
+    } else if (params.halation.active) {
         ScopedStage _t(STG_HALATION);
         // Fast GPU export (#206): the same scatter + halation model on the
         // GPU (gpu/halation_scatter.comp, adapted from spektrafilm OFX, f32).

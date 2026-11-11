@@ -70,6 +70,7 @@ object ParamsBuilder {
             experimentalJson = JSONObject(p.optJSONObject("experimental")?.toString() ?: "{}").apply {
                 if (optString("spectralMethod", "legacy") == "legacy" && p.optString("rgbToRawMethod", "hanatos2025") == "mallett2019") put("spectralMethod", "mallett2019")
                 put("negsPrep", p.optJSONObject("prep") ?: JSONObject())
+                if (!negative) put("layeredTransport", p.optJSONObject("transport") ?: JSONObject())
                 if (!negative) put("outputModel", p.optJSONObject("output") ?: JSONObject())
                 if (forExport) put("scanUseLut", false)
                 put("printChemistry", p.optBoolean("chemistryActive", false))

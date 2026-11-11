@@ -1,3 +1,4 @@
+import {applyLayeredTransport} from "./layered-transport.ts";
 import {scanOutput} from "./output-model.ts";
 import {applyPrep} from "./negs-prep.ts";
 import { applyLangmuirCouplers } from "./experimental-couplers.ts";
@@ -305,6 +306,7 @@ function boostHighlights(e: PlanarImage, t: number, n: number, r: number): void 
 }
 function applyHalation(e: PlanarImage, t: DarkroomParams, n: number): void {
   if (!t.halationActive) return;
+  if(t.transport?.model==="layered"){applyLayeredTransport(e,t.filmStock,t.transport,t.halationStrength??[.004,.001,.0001],n,t.halationAmount,t.halationSpatialScale);return;}
   let r = 1 / Math.max(n, 0.5),
     i = e.r.length,
     a = [e.r, e.g, e.b];
@@ -659,6 +661,7 @@ function filmingKey(p: DarkroomParams, img: PlanarImage, draft: boolean): string
     p.couplerDiffusionUm,
     p.filmGamma,
     JSON.stringify(p.experimental),
+    JSON.stringify(p.transport),
     JSON.stringify(p.prep),
     p.crop ? 1 : 0,
     p.cropSizeX,

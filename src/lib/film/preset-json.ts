@@ -1,3 +1,4 @@
+import {sanitizeTransport} from "./layered-transport.ts";
 import {sanitizeOutput} from "./output-model.ts";
 import negsPresets from "./negs-presets.json" with {type:"json"};
 import negsFamilies from "./negs-families.json" with {type:"json"};
@@ -276,6 +277,7 @@ function applyScalar(out: Record<string, unknown>, key: string, v: unknown) {
     if (g) out.outputGamutCompress = g;
     return;
   }
+  if(alias==="transport"){out.transport=sanitizeTransport(v);return;}
   if(alias==="output"){out.output=sanitizeOutput(v);return;}
   if(alias==="prep"){out.prep=sanitizePrep(v);return;}
   if(alias === "experimental"){out.experimental=sanitizeExperimental(v);return;}
