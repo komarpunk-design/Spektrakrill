@@ -1,0 +1,28 @@
+name: Publish photographic workspace APK
+on:
+  push:
+    branches: [apk-delivery-9-56-53f718f]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify, publish and download the complete APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '6463227b08163a9cce91c47587e45ad688caba3b48288bb476dded801f593a1e  release-payload/SpektrafilmLab-9.56-arm64.apk' | sha256sum --check
+          if ! gh release view v9.56-build126 >/dev/null 2>&1; then
+            gh release create v9.56-build126 --target 53f718fc7ed3d4887b98cba24ee0c31fa60b44de --prerelease --title 'Spektrafilm 9.56 — Photographic workspace · ARM64' --notes-file release-payload/notes.md
+          fi
+          if ! gh release view v9.56-build126 --json assets --jq '.assets[].name' | grep -Fxq 'SpektrafilmLab-9.56-arm64.apk'; then
+            gh release upload v9.56-build126 release-payload/SpektrafilmLab-9.56-arm64.apk
+          fi
+          mkdir downloaded
+          gh release download v9.56-build126 --pattern SpektrafilmLab-9.56-arm64.apk --dir downloaded
+          echo '6463227b08163a9cce91c47587e45ad688caba3b48288bb476dded801f593a1e  downloaded/SpektrafilmLab-9.56-arm64.apk' | sha256sum --check
