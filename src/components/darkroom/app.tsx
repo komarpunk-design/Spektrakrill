@@ -1,3 +1,4 @@
+import {ControlDirectory} from "./control-directory";
 import { TestPrint } from "@/components/darkroom/test-print";
 import { printTrialParams, type PrintTrialImage } from "@/lib/film/test-print";
 import { nativeTestPrint, jpegB64ToObjectUrl } from "@/lib/film/native-raw";
@@ -355,6 +356,7 @@ function asNativeParams(p: DarkroomParams): Record<string, unknown> {
 }
 
 export function DarkroomApp() {
+  const [directoryOpen,setDirectoryOpen]=useState(false);
   const params = useDarkroom((s) => s.params);
   const setSource = useDarkroom((s) => s.setSource);
   const canRedo = useDarkroom((state) => state.redoStack.length > 0);
@@ -417,8 +419,6 @@ export function DarkroomApp() {
   const abortRef = useRef(false);
   const noteTick = useRef(0);
   const statusTick = useRef(0);
-  const holdResetTimer = useRef<number | null>(null);
-  const holdResetFired = useRef(false);
   const sheetDrag = useRef<{ y: number; x: number; start: SheetId; startPx: number } | null>(null);
   const sheetMoved = useRef(false);
   const appRef = useRef<HTMLDivElement>(null);
@@ -1870,24 +1870,6 @@ export function DarkroomApp() {
     animateSheet(sheet === "full" || sheet === "peek" ? "half" : "full");
   };
 
-  const onToolHoldDown = (id: ToolId) => {
-    holdResetFired.current = false;
-    if (holdResetTimer.current != null) window.clearTimeout(holdResetTimer.current);
-    holdResetTimer.current = window.setTimeout(() => {
-      holdResetTimer.current = null;
-      holdResetFired.current = true;
-      selectTool(id);
-      resetTool();
-    }, 560);
-  };
-
-  const onToolHoldUp = () => {
-    if (holdResetTimer.current != null) {
-      window.clearTimeout(holdResetTimer.current);
-      holdResetTimer.current = null;
-    }
-  };
-
   return (
     <div
       ref={appRef}
@@ -2385,10 +2367,12 @@ export function DarkroomApp() {
           Ctrl O — открыть · Ctrl S — экспорт · Ctrl Z — отменить
         </span>
       </footer>
+      {directoryOpen?<ControlDirectory close={()=>setDirectoryOpen(false)} select={selectTool} notice={flashNote}/>:null}
       <nav
         className={prefs.showToolLabels ? "lab-rail has-labels" : "lab-rail"}
         aria-label="Инструменты"
       >
+        <button type="button" className="lab-tool ux-directory-launch" aria-label="Найти инструмент или параметр" onClick={()=>setDirectoryOpen(true)}><SlidersHorizontal className="size-5"/><span className="lab-tool-label">Поиск</span></button>
         {dockTools(params.rawEngine, params.filmStock, prefs.showLabTabs, tool).map((item) => {
           const Icon = TOOL_ICONS[item.id];
           const on = tool === item.id;
@@ -2402,11 +2386,7 @@ export function DarkroomApp() {
               aria-label={item.label}
               title={changes ? `${item.label}: изменено параметров — ${changes}` : item.label}
               aria-description={changes ? `Изменено параметров: ${changes}` : "Без изменений"}
-              onPointerDown={() => onToolHoldDown(item.id)}
-              onPointerUp={onToolHoldUp}
-              onPointerCancel={onToolHoldUp}
               onClick={() => {
-                if (holdResetFired.current) return;
                 if (on && sheet === "peek") {
                   animateSheet("half");
                   return;

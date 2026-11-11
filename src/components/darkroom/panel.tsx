@@ -1,3 +1,5 @@
+import {defaultParams} from "@/lib/film/defaults";
+import {ControlSection} from "./workflow-ui";
 import {FotufilmControls,NegsControls,SpektrafilmExtras,SourceBack} from './source-controls';
 import {EmulsionControls} from './emulsion-controls';
 import {PrepControls} from './prep-controls';
@@ -366,7 +368,7 @@ export function Panel({
   const setParam = useDarkroom((s) => s.setParam);
   const patch = useDarkroom((s) => s.patch);
   const applyFilmDefaults = useDarkroom((s) => s.applyFilmDefaults);
-  const advanced = useDarkroom((s) => s.advanced);
+  const advanced = true;
   const tool = useDarkroom((s) => s.tool);
   const setTool = useDarkroom((s) => s.setTool);
   const looks = useDarkroom((s) => s.looks);
@@ -613,7 +615,7 @@ export function Panel({
             </p>
           ) : (
             <>
-          {params.experimental.grainRms?<div className="source-active-note">Используется RMS-зерно Negs / experimental.<button type="button" onClick={()=>setTool('negs')}>Настроить зерно Negs →</button><button type="button" onClick={()=>setParam('experimental',{...params.experimental,grainRms:false})}>Использовать прежнюю модель зерна</button></div>:<>          <ToggleRow label="Зерно" checked={params.grainActive} onChange={(v) => setParam("grainActive", v)} />
+          <ControlSection title="Зерно" description="Структура и мягкость эмульсии.">{params.experimental.grainRms?<div className="source-active-note">Используется RMS-зерно Negs / experimental.<button type="button" onClick={()=>setTool('negs')}>Настроить зерно Negs →</button><button type="button" onClick={()=>setParam('experimental',{...params.experimental,grainRms:false})}>Использовать прежнюю модель зерна</button></div>:<>          <ToggleRow label="Зерно" checked={params.grainActive} onChange={(v) => setParam("grainActive", v)} />
           {params.grainActive ? (
             <>
               <SliderRow
@@ -623,7 +625,7 @@ export function Panel({
                 max={1.2}
                 step={0.02}
                 value={params.grainParticleArea}
-                onChange={(v) => setParam("grainParticleArea", v)}
+                onChange={(v) => setParam("grainParticleArea", v)} defaultValue={defaultParams().grainParticleArea}
               />
               <SliderRow
                 label="Размытие"
@@ -632,7 +634,7 @@ export function Panel({
                 max={1.4}
                 step={0.05}
                 value={params.grainBlur}
-                onChange={(v) => setParam("grainBlur", v)}
+                onChange={(v) => setParam("grainBlur", v)} defaultValue={defaultParams().grainBlur}
               />
               {advanced ? (
                 <>
@@ -648,7 +650,7 @@ export function Panel({
                     max={0.995}
                     step={0.005}
                     value={params.grainUniformity}
-                    onChange={(v) => setParam("grainUniformity", v)}
+                    onChange={(v) => setParam("grainUniformity", v)} defaultValue={defaultParams().grainUniformity}
                   />
                   <SliderRow
                     label="Dmin зерна"
@@ -657,7 +659,7 @@ export function Panel({
                     max={0.3}
                     step={0.01}
                     value={params.grainDensityMin}
-                    onChange={(v) => setParam("grainDensityMin", v)}
+                    onChange={(v) => setParam("grainDensityMin", v)} defaultValue={defaultParams().grainDensityMin}
                   />
                   <SliderRow
                     label="Облака, µm"
@@ -666,7 +668,7 @@ export function Panel({
                     max={4}
                     step={0.1}
                     value={params.grainDyeCloudsUm}
-                    onChange={(v) => setParam("grainDyeCloudsUm", v)}
+                    onChange={(v) => setParam("grainDyeCloudsUm", v)} defaultValue={defaultParams().grainDyeCloudsUm}
                   />
                   <SliderRow
                     label="Масштаб R"
@@ -675,7 +677,7 @@ export function Panel({
                     max={4}
                     step={0.05}
                     value={params.grainScaleR}
-                    onChange={(v) => setParam("grainScaleR", v)}
+                    onChange={(v) => setParam("grainScaleR", v)} defaultValue={defaultParams().grainScaleR}
                   />
                   <SliderRow
                     label="Масштаб G"
@@ -684,7 +686,7 @@ export function Panel({
                     max={4}
                     step={0.05}
                     value={params.grainScaleG}
-                    onChange={(v) => setParam("grainScaleG", v)}
+                    onChange={(v) => setParam("grainScaleG", v)} defaultValue={defaultParams().grainScaleG}
                   />
                   <SliderRow
                     label="Масштаб B"
@@ -693,14 +695,14 @@ export function Panel({
                     max={5}
                     step={0.05}
                     value={params.grainScaleB}
-                    onChange={(v) => setParam("grainScaleB", v)}
+                    onChange={(v) => setParam("grainScaleB", v)} defaultValue={defaultParams().grainScaleB}
                   />
                 </>
               ) : null}
             </>
           ) : null}
-</>}
-          {params.transport.model==='layered'?<div className="source-active-note">Активна галяция Fotufilm · Layered Transport.<button type="button" onClick={()=>setTool('fotufilm')}>Открыть Fotufilm →</button><button type="button" onClick={()=>setParam('transport',{...params.transport,model:'legacy'})}>Использовать галяцию Spektrafilm</button></div>:<>          <ToggleRow label="Галяция" checked={params.halationActive} onChange={(v) => setParam("halationActive", v)} />
+</>}</ControlSection>
+          <ControlSection title="Галяция" description="Возврат света внутри плёнки.">{params.transport.model==='layered'?<div className="source-active-note">Активна галяция Fotufilm · Layered Transport.<button type="button" onClick={()=>setTool('fotufilm')}>Открыть Fotufilm →</button><button type="button" onClick={()=>setParam('transport',{...params.transport,model:'legacy'})}>Использовать галяцию Spektrafilm</button></div>:<>          <ToggleRow label="Галяция" checked={params.halationActive} onChange={(v) => setParam("halationActive", v)} />
           {params.halationActive ? (
             <>
               <SliderRow
@@ -710,7 +712,7 @@ export function Panel({
                 max={3}
                 step={0.05}
                 value={params.halationAmount}
-                onChange={(v) => setParam("halationAmount", v)}
+                onChange={(v) => setParam("halationAmount", v)} defaultValue={defaultParams().halationAmount}
               />
               <SliderRow
                 label="Размер"
@@ -719,7 +721,7 @@ export function Panel({
                 max={3}
                 step={0.1}
                 value={params.halationSpatialScale}
-                onChange={(v) => setParam("halationSpatialScale", v)}
+                onChange={(v) => setParam("halationSpatialScale", v)} defaultValue={defaultParams().halationSpatialScale}
               />
               <SliderRow
                 label="Рассеяние"
@@ -728,7 +730,7 @@ export function Panel({
                 max={2}
                 step={0.05}
                 value={params.scatterAmount}
-                onChange={(v) => setParam("scatterAmount", v)}
+                onChange={(v) => setParam("scatterAmount", v)} defaultValue={defaultParams().scatterAmount}
               />
               {advanced ? (
                 <>
@@ -739,7 +741,7 @@ export function Panel({
                     max={3}
                     step={0.1}
                     value={params.scatterSpatialScale}
-                    onChange={(v) => setParam("scatterSpatialScale", v)}
+                    onChange={(v) => setParam("scatterSpatialScale", v)} defaultValue={defaultParams().scatterSpatialScale}
                   />
                   <SliderRow
                     label="Подсветка EV"
@@ -748,7 +750,7 @@ export function Panel({
                     max={4}
                     step={0.5}
                     value={params.boostEv}
-                    onChange={(v) => setParam("boostEv", v)}
+                    onChange={(v) => setParam("boostEv", v)} defaultValue={defaultParams().boostEv}
                   />
                   <SliderRow
                     label="Защита EV"
@@ -757,7 +759,7 @@ export function Panel({
                     max={8}
                     step={0.5}
                     value={params.protectEv}
-                    onChange={(v) => setParam("protectEv", v)}
+                    onChange={(v) => setParam("protectEv", v)} defaultValue={defaultParams().protectEv}
                   />
                   <SliderRow
                     label="Диапазон"
@@ -766,7 +768,7 @@ export function Panel({
                     max={1}
                     step={0.05}
                     value={params.boostRange}
-                    onChange={(v) => setParam("boostRange", v)}
+                    onChange={(v) => setParam("boostRange", v)} defaultValue={defaultParams().boostRange}
                   />
                   <SliderRow
                     label="Отскоки"
@@ -775,7 +777,7 @@ export function Panel({
                     max={5}
                     step={1}
                     value={params.halationNBounces}
-                    onChange={(v) => setParam("halationNBounces", v)}
+                    onChange={(v) => setParam("halationNBounces", v)} defaultValue={defaultParams().halationNBounces}
                   />
                   <SliderRow
                     label="Затухание"
@@ -784,7 +786,7 @@ export function Panel({
                     max={0.95}
                     step={0.05}
                     value={params.halationBounceDecay}
-                    onChange={(v) => setParam("halationBounceDecay", v)}
+                    onChange={(v) => setParam("halationBounceDecay", v)} defaultValue={defaultParams().halationBounceDecay}
                   />
                   <ToggleRow
                     label="Нормализация"
@@ -795,8 +797,8 @@ export function Panel({
               ) : null}
             </>
           ) : null}
-</>}
-          {params.experimental.dirLangmuir?<div className="source-active-note">Активна модель взаимодействия слоёв Langmuir.<button type="button" onClick={()=>setTool('negs')}>Открыть Negs / DIR →</button><button type="button" onClick={()=>setParam('experimental',{...params.experimental,dirLangmuir:false})}>Использовать DIR Spektrafilm</button></div>:<>          <ToggleRow
+</>}</ControlSection>
+          <ControlSection title="DIR · взаимодействие слоёв" description="Локальный контраст и цветовое разделение.">{params.experimental.dirLangmuir?<div className="source-active-note">Активна модель взаимодействия слоёв Langmuir.<button type="button" onClick={()=>setTool('negs')}>Открыть Negs / DIR →</button><button type="button" onClick={()=>setParam('experimental',{...params.experimental,dirLangmuir:false})}>Использовать DIR Spektrafilm</button></div>:<>          <ToggleRow
             label="DIR-каплеры"
             checked={params.couplersActive}
             onChange={(v) => setParam("couplersActive", v)}
@@ -810,7 +812,7 @@ export function Panel({
                 max={2.5}
                 step={0.05}
                 value={params.couplersAmount}
-                onChange={(v) => setParam("couplersAmount", v)}
+                onChange={(v) => setParam("couplersAmount", v)} defaultValue={defaultParams().couplersAmount}
               />
               <SliderRow
                 label="Межслойное"
@@ -819,7 +821,7 @@ export function Panel({
                 max={2}
                 step={0.05}
                 value={params.inhibitionInterlayer}
-                onChange={(v) => setParam("inhibitionInterlayer", v)}
+                onChange={(v) => setParam("inhibitionInterlayer", v)} defaultValue={defaultParams().inhibitionInterlayer}
               />
               <SliderRow
                 label="Свой слой"
@@ -828,7 +830,7 @@ export function Panel({
                 max={2}
                 step={0.05}
                 value={params.inhibitionSamelayer}
-                onChange={(v) => setParam("inhibitionSamelayer", v)}
+                onChange={(v) => setParam("inhibitionSamelayer", v)} defaultValue={defaultParams().inhibitionSamelayer}
               />
               {advanced ? (
                 <SliderRow
@@ -838,12 +840,12 @@ export function Panel({
                   max={80}
                   step={5}
                   value={params.couplerDiffusionUm}
-                  onChange={(v) => setParam("couplerDiffusionUm", v)}
+                  onChange={(v) => setParam("couplerDiffusionUm", v)} defaultValue={defaultParams().couplerDiffusionUm}
                 />
               ) : null}
             </>
           ) : null}
-</>}
+</>}</ControlSection>
             </>
           )}
         </>
@@ -873,7 +875,7 @@ export function Panel({
             max={1}
             step={0.02}
             value={params.toneBrightness ?? 0}
-            onChange={(v) => setParam("toneBrightness", v)}
+            onChange={(v) => setParam("toneBrightness", v)} defaultValue={defaultParams().toneBrightness ?? 0}
           />
           <SliderRow
             label="Контраст"
@@ -882,7 +884,7 @@ export function Panel({
             max={1}
             step={0.02}
             value={params.toneContrast ?? 0}
-            onChange={(v) => setParam("toneContrast", v)}
+            onChange={(v) => setParam("toneContrast", v)} defaultValue={defaultParams().toneContrast ?? 0}
           />
           <SliderRow
             label="Света"
@@ -891,7 +893,7 @@ export function Panel({
             max={1}
             step={0.02}
             value={params.toneHighlights ?? 0}
-            onChange={(v) => setParam("toneHighlights", v)}
+            onChange={(v) => setParam("toneHighlights", v)} defaultValue={defaultParams().toneHighlights ?? 0}
           />
           <SliderRow
             label="Тени"
@@ -900,7 +902,7 @@ export function Panel({
             max={1}
             step={0.02}
             value={params.toneShadows ?? 0}
-            onChange={(v) => setParam("toneShadows", v)}
+            onChange={(v) => setParam("toneShadows", v)} defaultValue={defaultParams().toneShadows ?? 0}
           />
           <p className="lab-kicker">Цвет</p>
           <SliderRow
@@ -910,7 +912,7 @@ export function Panel({
             max={1}
             step={0.02}
             value={params.toneSaturation ?? 0}
-            onChange={(v) => setParam("toneSaturation", v)}
+            onChange={(v) => setParam("toneSaturation", v)} defaultValue={defaultParams().toneSaturation ?? 0}
           />
           <SliderRow
             label="Теплота"
@@ -919,7 +921,7 @@ export function Panel({
             max={1}
             step={0.02}
             value={params.toneWarmth ?? 0}
-            onChange={(v) => setParam("toneWarmth", v)}
+            onChange={(v) => setParam("toneWarmth", v)} defaultValue={defaultParams().toneWarmth ?? 0}
           />
           <button
             type="button"
@@ -954,7 +956,7 @@ export function Panel({
             max={3}
             step={0.25}
             value={params.exposureCompensationEv}
-            onChange={(v) => setParam("exposureCompensationEv", v)}
+            onChange={(v) => setParam("exposureCompensationEv", v)} defaultValue={defaultParams().exposureCompensationEv}
           />
           <ToggleRow
             label="Автоэкспозиция"
@@ -987,7 +989,7 @@ export function Panel({
             max={120}
             step={1}
             value={params.filmFormatMm}
-            onChange={(v) => setParam("filmFormatMm", v)}
+            onChange={(v) => setParam("filmFormatMm", v)} defaultValue={defaultParams().filmFormatMm}
           />
           <div className="px-4 py-1.5">
             <Field label="Баланс белого">
@@ -1024,7 +1026,7 @@ export function Panel({
             max={WB_TMAX}
             step={50}
             value={params.temperature}
-            onChange={(v) => patch({ temperature: v, whiteBalance: "custom" })}
+            onChange={(v) => patch({ temperature: v, whiteBalance: "custom" })} defaultValue={defaultParams().temperature}
           />
           <SliderRow
             label="Тинт"
@@ -1033,7 +1035,7 @@ export function Panel({
             max={150}
             step={1}
             value={params.tint}
-            onChange={(v) => patch({ tint: v, whiteBalance: "custom" })}
+            onChange={(v) => patch({ tint: v, whiteBalance: "custom" })} defaultValue={defaultParams().tint}
           />
           <div className="lab-wb-row">
             <button type="button" className="lab-btn is-solid" disabled={!hasImage || autoWbBusy} onClick={() => onAutoWb?.()}>
@@ -1055,7 +1057,7 @@ export function Panel({
             max={1}
             step={0.05}
             value={params.filterUvAmount}
-            onChange={(v) => setParam("filterUvAmount", v)}
+            onChange={(v) => setParam("filterUvAmount", v)} defaultValue={defaultParams().filterUvAmount}
           />
           <SliderRow
             label="IR-срез"
@@ -1064,7 +1066,7 @@ export function Panel({
             max={1}
             step={0.05}
             value={params.filterIrAmount}
-            onChange={(v) => setParam("filterIrAmount", v)}
+            onChange={(v) => setParam("filterIrAmount", v)} defaultValue={defaultParams().filterIrAmount}
           />
           <SliderRow
             label="Размытие объектива"
@@ -1073,7 +1075,7 @@ export function Panel({
             max={12}
             step={0.1}
             value={params.cameraLensBlurUm}
-            onChange={(v) => setParam("cameraLensBlurUm", v)}
+            onChange={(v) => setParam("cameraLensBlurUm", v)} defaultValue={defaultParams().cameraLensBlurUm}
           />
           <ToggleRow
             label="Диффузия"
@@ -1105,7 +1107,7 @@ export function Panel({
                 max={2}
                 step={0.125}
                 value={params.cameraDiffusion.strength}
-                onChange={(v) => patch({ cameraDiffusion: { ...params.cameraDiffusion, strength: v } })}
+                onChange={(v) => patch({ cameraDiffusion: { ...params.cameraDiffusion, strength: v } })} defaultValue={defaultParams().cameraDiffusion.strength}
               />
               {advanced ? (
                 <SliderRow
@@ -1115,7 +1117,7 @@ export function Panel({
                   max={4}
                   step={0.1}
                   value={params.cameraDiffusion.spatialScale}
-                  onChange={(v) => patch({ cameraDiffusion: { ...params.cameraDiffusion, spatialScale: v } })}
+                  onChange={(v) => patch({ cameraDiffusion: { ...params.cameraDiffusion, spatialScale: v } })} defaultValue={defaultParams().cameraDiffusion.spatialScale}
                 />
               ) : null}
             </>
@@ -1203,7 +1205,7 @@ export function Panel({
             max={2}
             step={0.05}
             value={params.printGamma}
-            onChange={(v) => setParam("printGamma", v)}
+            onChange={(v) => setParam("printGamma", v)} defaultValue={defaultParams().printGamma}
           />
           <SliderRow
             label="Экспозиция"
@@ -1212,7 +1214,7 @@ export function Panel({
             max={3}
             step={0.02}
             value={params.printExposure}
-            onChange={(v) => setParam("printExposure", v)}
+            onChange={(v) => setParam("printExposure", v)} defaultValue={defaultParams().printExposure}
           />
           <ToggleRow
             label="Автоэкспозиция"
@@ -1226,7 +1228,7 @@ export function Panel({
             max={40}
             step={1}
             value={params.printYFilterShift}
-            onChange={(v) => setParam("printYFilterShift", v)}
+            onChange={(v) => setParam("printYFilterShift", v)} defaultValue={defaultParams().printYFilterShift}
           />
           <SliderRow
             label="M, CC"
@@ -1235,7 +1237,7 @@ export function Panel({
             max={40}
             step={1}
             value={params.printMFilterShift}
-            onChange={(v) => setParam("printMFilterShift", v)}
+            onChange={(v) => setParam("printMFilterShift", v)} defaultValue={defaultParams().printMFilterShift}
           />
           <SliderRow
             label="Предвспышка"
@@ -1244,7 +1246,7 @@ export function Panel({
             max={0.2}
             step={0.005}
             value={params.preflashExposure}
-            onChange={(v) => setParam("preflashExposure", v)}
+            onChange={(v) => setParam("preflashExposure", v)} defaultValue={defaultParams().preflashExposure}
           />
           {advanced ? (
             <>
@@ -1255,7 +1257,7 @@ export function Panel({
                 max={20}
                 step={1}
                 value={params.preflashYShift}
-                onChange={(v) => setParam("preflashYShift", v)}
+                onChange={(v) => setParam("preflashYShift", v)} defaultValue={defaultParams().preflashYShift}
               />
               <SliderRow
                 label="Предвспышка M"
@@ -1264,7 +1266,7 @@ export function Panel({
                 max={20}
                 step={1}
                 value={params.preflashMShift}
-                onChange={(v) => setParam("preflashMShift", v)}
+                onChange={(v) => setParam("preflashMShift", v)} defaultValue={defaultParams().preflashMShift}
               />
             </>
           ) : null}
@@ -1281,7 +1283,7 @@ export function Panel({
               max={1}
               step={0.02}
               value={params.developerExhaustion}
-              onChange={(v) => setParam("developerExhaustion", v)}
+              onChange={(v) => setParam("developerExhaustion", v)} defaultValue={defaultParams().developerExhaustion}
             />
           ) : null}
           {advanced && params.chemistryActive ? (
@@ -1293,7 +1295,7 @@ export function Panel({
                 max={2}
                 step={0.05}
                 value={params.printGammaFast}
-                onChange={(v) => setParam("printGammaFast", v)}
+                onChange={(v) => setParam("printGammaFast", v)} defaultValue={defaultParams().printGammaFast}
               />
               <SliderRow
                 label="γ медленная"
@@ -1302,7 +1304,7 @@ export function Panel({
                 max={2}
                 step={0.05}
                 value={params.printGammaSlow}
-                onChange={(v) => setParam("printGammaSlow", v)}
+                onChange={(v) => setParam("printGammaSlow", v)} defaultValue={defaultParams().printGammaSlow}
               />
               <SliderRow
                 label="γ R"
@@ -1311,7 +1313,7 @@ export function Panel({
                 max={2}
                 step={0.05}
                 value={params.printGammaR}
-                onChange={(v) => setParam("printGammaR", v)}
+                onChange={(v) => setParam("printGammaR", v)} defaultValue={defaultParams().printGammaR}
               />
               <SliderRow
                 label="γ G"
@@ -1320,7 +1322,7 @@ export function Panel({
                 max={2}
                 step={0.05}
                 value={params.printGammaG}
-                onChange={(v) => setParam("printGammaG", v)}
+                onChange={(v) => setParam("printGammaG", v)} defaultValue={defaultParams().printGammaG}
               />
               <SliderRow
                 label="γ B"
@@ -1329,7 +1331,7 @@ export function Panel({
                 max={2}
                 step={0.05}
                 value={params.printGammaB}
-                onChange={(v) => setParam("printGammaB", v)}
+                onChange={(v) => setParam("printGammaB", v)} defaultValue={defaultParams().printGammaB}
               />
             </>
           ) : null}
@@ -1363,7 +1365,7 @@ export function Panel({
                 max={2}
                 step={0.125}
                 value={params.printDiffusion.strength}
-                onChange={(v) => patch({ printDiffusion: { ...params.printDiffusion, strength: v } })}
+                onChange={(v) => patch({ printDiffusion: { ...params.printDiffusion, strength: v } })} defaultValue={defaultParams().printDiffusion.strength}
               />
               {advanced ? (
                 <SliderRow
@@ -1373,7 +1375,7 @@ export function Panel({
                   max={4}
                   step={0.1}
                   value={params.printDiffusion.spatialScale}
-                  onChange={(v) => patch({ printDiffusion: { ...params.printDiffusion, spatialScale: v } })}
+                  onChange={(v) => patch({ printDiffusion: { ...params.printDiffusion, spatialScale: v } })} defaultValue={defaultParams().printDiffusion.spatialScale}
                 />
               ) : null}
             </>
@@ -1387,7 +1389,7 @@ export function Panel({
               max={0.25}
               step={0.01}
               value={params.glarePercent}
-              onChange={(v) => setParam("glarePercent", v)}
+              onChange={(v) => setParam("glarePercent", v)} defaultValue={defaultParams().glarePercent}
             />
           ) : null}
           {advanced && params.glareActive ? (
@@ -1399,7 +1401,7 @@ export function Panel({
                 max={1}
                 step={0.05}
                 value={params.glareRoughness}
-                onChange={(v) => setParam("glareRoughness", v)}
+                onChange={(v) => setParam("glareRoughness", v)} defaultValue={defaultParams().glareRoughness}
               />
               <SliderRow
                 label="Размытие блика"
@@ -1408,7 +1410,7 @@ export function Panel({
                 max={2}
                 step={0.05}
                 value={params.glareBlur}
-                onChange={(v) => setParam("glareBlur", v)}
+                onChange={(v) => setParam("glareBlur", v)} defaultValue={defaultParams().glareBlur}
               />
             </>
           ) : null}
@@ -1432,7 +1434,7 @@ export function Panel({
             max={2}
             step={0.05}
             value={params.scanUnsharpSigma}
-            onChange={(v) => setParam("scanUnsharpSigma", v)}
+            onChange={(v) => setParam("scanUnsharpSigma", v)} defaultValue={defaultParams().scanUnsharpSigma}
           />
           <SliderRow
             label="Unsharp сила"
@@ -1441,7 +1443,7 @@ export function Panel({
             max={2}
             step={0.05}
             value={params.scanUnsharpAmount}
-            onChange={(v) => setParam("scanUnsharpAmount", v)}
+            onChange={(v) => setParam("scanUnsharpAmount", v)} defaultValue={defaultParams().scanUnsharpAmount}
           />
           <SliderRow
             label="Размытие сканера"
@@ -1450,7 +1452,7 @@ export function Panel({
             max={8}
             step={0.1}
             value={params.scanLensBlur}
-            onChange={(v) => setParam("scanLensBlur", v)}
+            onChange={(v) => setParam("scanLensBlur", v)} defaultValue={defaultParams().scanLensBlur}
           />
           {params.output.mode==='paper'||params.output.mode==='negative'?<>
           <ToggleRow
@@ -1472,7 +1474,7 @@ export function Panel({
                 max={1}
                 step={0.01}
                 value={params.scanWhiteLevel}
-                onChange={(v) => setParam("scanWhiteLevel", v)}
+                onChange={(v) => setParam("scanWhiteLevel", v)} defaultValue={defaultParams().scanWhiteLevel}
               />
               <SliderRow
                 label="Чёрная точка"
@@ -1481,7 +1483,7 @@ export function Panel({
                 max={0.2}
                 step={0.005}
                 value={params.scanBlackLevel}
-                onChange={(v) => setParam("scanBlackLevel", v)}
+                onChange={(v) => setParam("scanBlackLevel", v)} defaultValue={defaultParams().scanBlackLevel}
               />
             </>
           ) : null}
@@ -1550,7 +1552,7 @@ export function Panel({
                 max={0.8}
                 step={0.01}
                 value={params.cropSizeX}
-                onChange={(v) => patch({ cropSizeX: v, cropSizeY: v })}
+                onChange={(v) => patch({ cropSizeX: v, cropSizeY: v })} defaultValue={defaultParams().cropSizeX}
               />
               <SliderRow
                 label="X"
@@ -1559,7 +1561,7 @@ export function Panel({
                 max={0.9}
                 step={0.01}
                 value={params.cropCenterX}
-                onChange={(v) => setParam("cropCenterX", v)}
+                onChange={(v) => setParam("cropCenterX", v)} defaultValue={defaultParams().cropCenterX}
               />
               <SliderRow
                 label="Y"
@@ -1568,7 +1570,7 @@ export function Panel({
                 max={0.9}
                 step={0.01}
                 value={params.cropCenterY}
-                onChange={(v) => setParam("cropCenterY", v)}
+                onChange={(v) => setParam("cropCenterY", v)} defaultValue={defaultParams().cropCenterY}
               />
             </>
           ) : null}
@@ -1577,15 +1579,15 @@ export function Panel({
             checked={params.gray18Canvas}
             onChange={(v) => setParam("gray18Canvas", v)}
           />
-          <div className="lab-frame-picker" role="group" aria-label="Рамка фотографии">
+          <div className="lab-frame-picker" data-control-label="Рамка фотографии" role="group" aria-label="Рамка фотографии">
             <p>Оформление фотографии</p>
             {FRAME_STYLES.map(style => <button key={style.value} type="button" className={params.frameStyle === style.value ? "is-selected" : ""} aria-pressed={params.frameStyle === style.value} onClick={() => setParam("frameStyle", style.value)}><span className={`lab-frame-swatch is-${style.value}`} /><span>{style.label}</span></button>)}
             <small>Рамка сохраняется в готовом JPEG или PNG. Исходник не обрезается.</small>
           </div>
           {isOriginalEdge(params.frameStyle) ? <>
-            <SliderRow label="Номер кадра" min={1} max={99} step={1} value={params.frameNumber} hint={String(params.frameNumber)} onChange={v => setParam("frameNumber",v)} />
+            <SliderRow label="Номер кадра" min={1} max={99} step={1} value={params.frameNumber} hint={String(params.frameNumber)} onChange={v => setParam("frameNumber",v)} defaultValue={defaultParams().frameNumber} />
             {params.frameStyle === "135" ? <ToggleRow label="DX-полоса" hint="Декоративная полоса по рисунку оригинала" checked={params.frameBarcode} onChange={v => setParam("frameBarcode",v)} /> : null}
-            <label className="lab-frame-date">Дата на снимке<input aria-label="Дата на снимке" maxLength={32} value={params.frameDate} placeholder="Не печатать" onChange={e=>setParam("frameDate",e.target.value)} /></label>
+            <label className="lab-frame-date" data-control-label="Дата на снимке">Дата на снимке<input aria-label="Дата на снимке" maxLength={32} value={params.frameDate} placeholder="Не печатать" onChange={e=>setParam("frameDate",e.target.value)} /></label>
             <p className="px-4 py-2 text-xs text-muted">Пропорции края соответствуют оригиналу: 135, 120 или минималистичная кромка.</p>
           </> : null}
         </>
@@ -1622,7 +1624,7 @@ export function Panel({
             max={4}
             step={0.1}
             value={params.spectralBlur}
-            onChange={(v) => setParam("spectralBlur", v)}
+            onChange={(v) => setParam("spectralBlur", v)} defaultValue={defaultParams().spectralBlur}
           />
           <div className="px-4 py-1.5">
             <Field label="Входной гамут">
@@ -1660,7 +1662,7 @@ export function Panel({
                 max={33}
                 step={4}
                 value={params.lutResolution}
-                onChange={(v) => setParam("lutResolution", v)}
+                onChange={(v) => setParam("lutResolution", v)} defaultValue={defaultParams().lutResolution}
               />
               <SliderRow
                 label="Апскейл"
@@ -1669,7 +1671,7 @@ export function Panel({
                 max={4}
                 step={1}
                 value={params.upscaleFactor}
-                onChange={(v) => setParam("upscaleFactor", v)}
+                onChange={(v) => setParam("upscaleFactor", v)} defaultValue={defaultParams().upscaleFactor}
               />
               <ToggleRow
                 label="Декод CCTF"
@@ -1702,7 +1704,7 @@ export function Panel({
               max={100}
               step={1}
               value={params.exportQuality}
-              onChange={(v) => setParam("exportQuality", v)}
+              onChange={(v) => setParam("exportQuality", v)} defaultValue={defaultParams().exportQuality}
             />
           ) : null}
           <div className="px-4 py-1.5">
@@ -1859,12 +1861,7 @@ function SettingsPane({ onNotice, onOpenEnlarger }: { onNotice?: (msg: string) =
           checked={prefs.showLabTabs}
           onChange={(v) => setPref("showLabTabs", v)}
         />
-        <ToggleRow
-          label="Точные ползунки"
-          hint="Мелкий шаг и скрытые параметры"
-          checked={advanced}
-          onChange={setAdvanced}
-        />
+
         <ToggleRow
           label="Касание прячет панели"
           hint="Тап по кадру — полный экран"

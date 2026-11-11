@@ -1,3 +1,4 @@
+import {defaultParams} from "@/lib/film/defaults";
 import { useDarkroom } from "@/lib/film/store";
 import { Field, Select, SliderRow, ToggleRow } from "@/components/ui/control";
 import { ControlSection } from "./workflow-ui";
@@ -40,7 +41,7 @@ export function HalationControls({ showLegacyDetails = false,sourceOnly=false }:
             max={3}
             step={0.05}
             value={params.halationAmount}
-            onChange={(v) => setParam("halationAmount", v)}
+            onChange={(v) => setParam("halationAmount", v)} defaultValue={defaultParams().halationAmount}
           />
           <SliderRow
             label="Размер гало"
@@ -49,7 +50,7 @@ export function HalationControls({ showLegacyDetails = false,sourceOnly=false }:
             max={3}
             step={0.1}
             value={params.halationSpatialScale}
-            onChange={(v) => setParam("halationSpatialScale", v)}
+            onChange={(v) => setParam("halationSpatialScale", v)} defaultValue={defaultParams().halationSpatialScale}
           />
           {showLegacyDetails && p.model === "legacy" ? (
             <ControlSection
@@ -75,7 +76,7 @@ export function HalationControls({ showLegacyDetails = false,sourceOnly=false }:
                   max={max}
                   step={step}
                   value={params[key]}
-                  onChange={(v) => setParam(key, v)}
+                  onChange={(v) => setParam(key, v)} defaultValue={defaultParams()[key]}
                 />
               ))}
               <ToggleRow

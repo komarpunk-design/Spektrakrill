@@ -47,6 +47,7 @@ export function EmulsionControls({mode="advanced"}:{mode?:"advanced"|"negative"|
   ) => (
     <SliderRow
       key={key}
+      defaultValue={Number(defaultExperimental()[key])}
       label={label}
       hint={Number(e[key]).toFixed(2)}
       min={min}

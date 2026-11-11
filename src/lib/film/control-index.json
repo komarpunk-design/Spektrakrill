@@ -1,0 +1,2862 @@
+{
+  "rows": [
+    {
+      "label": "Экспозиция при съёмке",
+      "tool": "development",
+      "type": "SliderRow",
+      "targetLabel": "Экспозиция при съёмке"
+    },
+    {
+      "label": "Коэффициент проявки γ",
+      "tool": "development",
+      "type": "SliderRow",
+      "targetLabel": "Коэффициент проявки γ"
+    },
+    {
+      "label": "Автозамер исходного кадра",
+      "tool": "development",
+      "type": "ToggleRow",
+      "targetLabel": "Автозамер исходного кадра"
+    },
+    {
+      "label": "Автокомпенсация печати",
+      "tool": "development",
+      "type": "ToggleRow",
+      "targetLabel": "Автокомпенсация печати"
+    },
+    {
+      "label": "Экспозиция кадра",
+      "tool": "edit",
+      "type": "SliderRow",
+      "targetLabel": "Экспозиция кадра"
+    },
+    {
+      "label": "Освещение",
+      "tool": "edit",
+      "type": "Field",
+      "targetLabel": "Освещение"
+    },
+    {
+      "label": "Температура света",
+      "tool": "edit",
+      "type": "SliderRow",
+      "targetLabel": "Температура света"
+    },
+    {
+      "label": "Плёночное зерно",
+      "tool": "edit",
+      "type": "ToggleRow",
+      "targetLabel": "Плёночное зерно"
+    },
+    {
+      "label": "Получение изображения",
+      "tool": "edit",
+      "type": "Field",
+      "targetLabel": "Получение изображения"
+    },
+    {
+      "label": "Фотобумага",
+      "tool": "edit",
+      "type": "Field",
+      "targetLabel": "Фотобумага"
+    },
+    {
+      "label": "Источник изображения",
+      "tool": "negative",
+      "type": "Field",
+      "targetLabel": "Источник изображения"
+    },
+    {
+      "label": "Свет сканера / пересъёмки",
+      "tool": "negative",
+      "type": "Field",
+      "targetLabel": "Свет сканера / пересъёмки"
+    },
+    {
+      "label": "Ускорять предпросмотр скана",
+      "tool": "negative",
+      "type": "ToggleRow",
+      "targetLabel": "Ускорять предпросмотр скана"
+    },
+    {
+      "label": "Экспозиция скана · EV",
+      "tool": "negative",
+      "type": "DynamicSlider",
+      "targetLabel": "Экспозиция скана · EV"
+    },
+    {
+      "label": "Порог определения маски · %",
+      "tool": "negative",
+      "type": "DynamicSlider",
+      "targetLabel": "Порог определения маски · %"
+    },
+    {
+      "label": "Матрица устройства · 9 чисел",
+      "tool": "negative",
+      "type": "Field",
+      "targetLabel": "Матрица устройства · 9 чисел"
+    },
+    {
+      "label": "Матрица устройства",
+      "tool": "negative",
+      "type": "TextInput",
+      "targetLabel": "Матрица устройства"
+    },
+    {
+      "label": "Фильтр перед объективом",
+      "tool": "emulsion",
+      "type": "Field",
+      "targetLabel": "Фильтр перед объективом"
+    },
+    {
+      "label": "Метод спектральной реконструкции",
+      "tool": "emulsion",
+      "type": "Field",
+      "targetLabel": "Метод спектральной реконструкции"
+    },
+    {
+      "label": "Время проявки из профиля",
+      "tool": "development",
+      "type": "Field",
+      "targetLabel": "Время проявки из профиля"
+    },
+    {
+      "label": "Химия плёнки по слоям",
+      "tool": "development",
+      "type": "ToggleRow",
+      "targetLabel": "Химия плёнки по слоям"
+    },
+    {
+      "label": "Общая проявка γ",
+      "tool": "development",
+      "type": "SliderRow",
+      "targetLabel": "Общая проявка γ"
+    },
+    {
+      "label": "Быстрые слои γ",
+      "tool": "development",
+      "type": "DynamicSlider",
+      "targetLabel": "Быстрые слои γ"
+    },
+    {
+      "label": "Средние и медленные слои γ",
+      "tool": "development",
+      "type": "DynamicSlider",
+      "targetLabel": "Средние и медленные слои γ"
+    },
+    {
+      "label": "Канал эмульсии γ",
+      "tool": "development",
+      "type": "DynamicSlider",
+      "targetLabel": "Канал эмульсии γ"
+    },
+    {
+      "label": "Красный канал γ",
+      "tool": "development",
+      "type": "DynamicSlider",
+      "targetLabel": "Красный канал γ"
+    },
+    {
+      "label": "Зелёный канал γ",
+      "tool": "development",
+      "type": "DynamicSlider",
+      "targetLabel": "Зелёный канал γ"
+    },
+    {
+      "label": "Синий канал γ",
+      "tool": "development",
+      "type": "DynamicSlider",
+      "targetLabel": "Синий канал γ"
+    },
+    {
+      "label": "Истощение проявителя",
+      "tool": "development",
+      "type": "DynamicSlider",
+      "targetLabel": "Истощение проявителя"
+    },
+    {
+      "label": "Нелинейная модель Langmuir",
+      "tool": "negs",
+      "type": "ToggleRow",
+      "targetLabel": "Нелинейная модель Langmuir"
+    },
+    {
+      "label": "Насыщение приёмника R",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Насыщение приёмника R"
+    },
+    {
+      "label": "Насыщение приёмника G",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Насыщение приёмника G"
+    },
+    {
+      "label": "Насыщение приёмника B",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Насыщение приёмника B"
+    },
+    {
+      "label": "Насыщение донора R",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Насыщение донора R"
+    },
+    {
+      "label": "Насыщение донора G",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Насыщение донора G"
+    },
+    {
+      "label": "Насыщение донора B",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Насыщение донора B"
+    },
+    {
+      "label": "Хвост диффузии, мкм",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Хвост диффузии, мкм"
+    },
+    {
+      "label": "Доля хвоста диффузии",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Доля хвоста диффузии"
+    },
+    {
+      "label": "Зернистость по RMS",
+      "tool": "negs",
+      "type": "ToggleRow",
+      "targetLabel": "Зернистость по RMS"
+    },
+    {
+      "label": "RMS эмульсии",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "RMS эмульсии"
+    },
+    {
+      "label": "RMS красного канала",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "RMS красного канала"
+    },
+    {
+      "label": "RMS зелёного канала",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "RMS зелёного канала"
+    },
+    {
+      "label": "RMS синего канала",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "RMS синего канала"
+    },
+    {
+      "label": "Равномерность R",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Равномерность R"
+    },
+    {
+      "label": "Равномерность G",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Равномерность G"
+    },
+    {
+      "label": "Равномерность B",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Равномерность B"
+    },
+    {
+      "label": "Минимальная плотность R",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Минимальная плотность R"
+    },
+    {
+      "label": "Минимальная плотность G",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Минимальная плотность G"
+    },
+    {
+      "label": "Минимальная плотность B",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Минимальная плотность B"
+    },
+    {
+      "label": "Размер частиц · слой 1",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Размер частиц · слой 1"
+    },
+    {
+      "label": "Размер частиц · слой 2",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Размер частиц · слой 2"
+    },
+    {
+      "label": "Размер частиц · слой 3",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Размер частиц · слой 3"
+    },
+    {
+      "label": "Радиус резкости плотности",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Радиус резкости плотности"
+    },
+    {
+      "label": "Усиление резкости плотности",
+      "tool": "negs",
+      "type": "DynamicSlider",
+      "targetLabel": "Усиление резкости плотности"
+    },
+    {
+      "label": "Время проявки печатной плёнки",
+      "tool": "print",
+      "type": "Field",
+      "targetLabel": "Время проявки печатной плёнки"
+    },
+    {
+      "label": "Настройка основы плёнки",
+      "tool": "emulsion",
+      "type": "ToggleRow",
+      "targetLabel": "Настройка основы плёнки"
+    },
+    {
+      "label": "Настройка основы плёнки",
+      "tool": "negative",
+      "type": "ToggleRow",
+      "targetLabel": "Настройка основы плёнки"
+    },
+    {
+      "label": "Настройка основы бумаги",
+      "tool": "print",
+      "type": "ToggleRow",
+      "targetLabel": "Настройка основы бумаги"
+    },
+    {
+      "label": "Общая плотность основы",
+      "tool": "emulsion",
+      "type": "DynamicSlider",
+      "targetLabel": "Общая плотность основы"
+    },
+    {
+      "label": "Общая плотность основы",
+      "tool": "negative",
+      "type": "DynamicSlider",
+      "targetLabel": "Общая плотность основы"
+    },
+    {
+      "label": "Общая плотность основы",
+      "tool": "print",
+      "type": "DynamicSlider",
+      "targetLabel": "Общая плотность основы"
+    },
+    {
+      "label": "Циан основы",
+      "tool": "emulsion",
+      "type": "DynamicSlider",
+      "targetLabel": "Циан основы"
+    },
+    {
+      "label": "Циан основы",
+      "tool": "negative",
+      "type": "DynamicSlider",
+      "targetLabel": "Циан основы"
+    },
+    {
+      "label": "Циан основы",
+      "tool": "print",
+      "type": "DynamicSlider",
+      "targetLabel": "Циан основы"
+    },
+    {
+      "label": "Маджента основы",
+      "tool": "emulsion",
+      "type": "DynamicSlider",
+      "targetLabel": "Маджента основы"
+    },
+    {
+      "label": "Маджента основы",
+      "tool": "negative",
+      "type": "DynamicSlider",
+      "targetLabel": "Маджента основы"
+    },
+    {
+      "label": "Маджента основы",
+      "tool": "print",
+      "type": "DynamicSlider",
+      "targetLabel": "Маджента основы"
+    },
+    {
+      "label": "Жёлтый основы",
+      "tool": "emulsion",
+      "type": "DynamicSlider",
+      "targetLabel": "Жёлтый основы"
+    },
+    {
+      "label": "Жёлтый основы",
+      "tool": "negative",
+      "type": "DynamicSlider",
+      "targetLabel": "Жёлтый основы"
+    },
+    {
+      "label": "Жёлтый основы",
+      "tool": "print",
+      "type": "DynamicSlider",
+      "targetLabel": "Жёлтый основы"
+    },
+    {
+      "label": "Спектральный наклон",
+      "tool": "emulsion",
+      "type": "DynamicSlider",
+      "targetLabel": "Спектральный наклон"
+    },
+    {
+      "label": "Использовать Layered Transport",
+      "tool": "fotufilm",
+      "type": "ToggleRow",
+      "targetLabel": "Использовать Layered Transport"
+    },
+    {
+      "label": "Модель свечения",
+      "tool": "fotufilm",
+      "type": "Field",
+      "targetLabel": "Использовать Layered Transport"
+    },
+    {
+      "label": "Сила гало",
+      "tool": "fotufilm",
+      "type": "SliderRow",
+      "targetLabel": "Сила гало"
+    },
+    {
+      "label": "Размер гало",
+      "tool": "fotufilm",
+      "type": "SliderRow",
+      "targetLabel": "Размер гало"
+    },
+    {
+      "label": "Нормализация",
+      "tool": "film",
+      "type": "ToggleRow",
+      "targetLabel": "Нормализация"
+    },
+    {
+      "label": "Антигаляционный слой",
+      "tool": "fotufilm",
+      "type": "SliderRow",
+      "targetLabel": "Антигаляционный слой"
+    },
+    {
+      "label": "Толщина основы",
+      "tool": "fotufilm",
+      "type": "SliderRow",
+      "targetLabel": "Толщина основы"
+    },
+    {
+      "label": "Отражение прижимной пластины",
+      "tool": "fotufilm",
+      "type": "SliderRow",
+      "targetLabel": "Отражение прижимной пластины"
+    },
+    {
+      "label": "Мутность основы",
+      "tool": "fotufilm",
+      "type": "SliderRow",
+      "targetLabel": "Мутность основы"
+    },
+    {
+      "label": "Способ получения результата",
+      "tool": "fotufilm",
+      "type": "Field",
+      "targetLabel": "Способ получения результата"
+    },
+    {
+      "label": "Автонастройка минилаба",
+      "tool": "fotufilm",
+      "type": "ToggleRow",
+      "targetLabel": "Автонастройка минилаба"
+    },
+    {
+      "label": "Характер минилаба",
+      "tool": "fotufilm",
+      "type": "DynamicSlider",
+      "targetLabel": "Характер минилаба"
+    },
+    {
+      "label": "Яркость скана",
+      "tool": "fotufilm",
+      "type": "DynamicSlider",
+      "targetLabel": "Яркость скана"
+    },
+    {
+      "label": "Ключ Cyan",
+      "tool": "fotufilm",
+      "type": "DynamicSlider",
+      "targetLabel": "Ключ Cyan"
+    },
+    {
+      "label": "Ключ Magenta",
+      "tool": "fotufilm",
+      "type": "DynamicSlider",
+      "targetLabel": "Ключ Magenta"
+    },
+    {
+      "label": "Ключ Yellow",
+      "tool": "fotufilm",
+      "type": "DynamicSlider",
+      "targetLabel": "Ключ Yellow"
+    },
+    {
+      "label": "Зерно",
+      "tool": "film",
+      "type": "ToggleRow",
+      "targetLabel": "Зерно"
+    },
+    {
+      "label": "Частица, µm²",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Частица, µm²"
+    },
+    {
+      "label": "Размытие",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Размытие"
+    },
+    {
+      "label": "Подслои",
+      "tool": "film",
+      "type": "ToggleRow",
+      "targetLabel": "Подслои"
+    },
+    {
+      "label": "Равномерность",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Равномерность"
+    },
+    {
+      "label": "Dmin зерна",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Dmin зерна"
+    },
+    {
+      "label": "Облака, µm",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Облака, µm"
+    },
+    {
+      "label": "Масштаб R",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Масштаб R"
+    },
+    {
+      "label": "Масштаб G",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Масштаб G"
+    },
+    {
+      "label": "Масштаб B",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Масштаб B"
+    },
+    {
+      "label": "Галяция",
+      "tool": "film",
+      "type": "ToggleRow",
+      "targetLabel": "Галяция"
+    },
+    {
+      "label": "Сила",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Сила"
+    },
+    {
+      "label": "Размер",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Размер"
+    },
+    {
+      "label": "Рассеяние",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Рассеяние"
+    },
+    {
+      "label": "Масштаб рассеяния",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Масштаб рассеяния"
+    },
+    {
+      "label": "Подсветка EV",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Подсветка EV"
+    },
+    {
+      "label": "Защита EV",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Защита EV"
+    },
+    {
+      "label": "Диапазон",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Диапазон"
+    },
+    {
+      "label": "Отскоки",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Отскоки"
+    },
+    {
+      "label": "Затухание",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Затухание"
+    },
+    {
+      "label": "Нормализация",
+      "tool": "film",
+      "type": "ToggleRow",
+      "targetLabel": "Нормализация"
+    },
+    {
+      "label": "DIR-каплеры",
+      "tool": "film",
+      "type": "ToggleRow",
+      "targetLabel": "DIR-каплеры"
+    },
+    {
+      "label": "Количество",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Количество"
+    },
+    {
+      "label": "Межслойное",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Межслойное"
+    },
+    {
+      "label": "Свой слой",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Свой слой"
+    },
+    {
+      "label": "Диффузия, µm",
+      "tool": "film",
+      "type": "SliderRow",
+      "targetLabel": "Диффузия, µm"
+    },
+    {
+      "label": "Стиль",
+      "tool": "tone",
+      "type": "Field",
+      "targetLabel": "Стиль"
+    },
+    {
+      "label": "Яркость",
+      "tool": "tone",
+      "type": "SliderRow",
+      "targetLabel": "Яркость"
+    },
+    {
+      "label": "Контраст",
+      "tool": "tone",
+      "type": "SliderRow",
+      "targetLabel": "Контраст"
+    },
+    {
+      "label": "Света",
+      "tool": "tone",
+      "type": "SliderRow",
+      "targetLabel": "Света"
+    },
+    {
+      "label": "Тени",
+      "tool": "tone",
+      "type": "SliderRow",
+      "targetLabel": "Тени"
+    },
+    {
+      "label": "Насыщенность",
+      "tool": "tone",
+      "type": "SliderRow",
+      "targetLabel": "Насыщенность"
+    },
+    {
+      "label": "Теплота",
+      "tool": "tone",
+      "type": "SliderRow",
+      "targetLabel": "Теплота"
+    },
+    {
+      "label": "EV",
+      "tool": "camera",
+      "type": "SliderRow",
+      "targetLabel": "EV"
+    },
+    {
+      "label": "Автоэкспозиция",
+      "tool": "camera",
+      "type": "ToggleRow",
+      "targetLabel": "Автоэкспозиция"
+    },
+    {
+      "label": "Замер",
+      "tool": "camera",
+      "type": "Field",
+      "targetLabel": "Замер"
+    },
+    {
+      "label": "Формат, мм",
+      "tool": "camera",
+      "type": "SliderRow",
+      "targetLabel": "Формат, мм"
+    },
+    {
+      "label": "Баланс белого",
+      "tool": "camera",
+      "type": "Field",
+      "targetLabel": "Баланс белого"
+    },
+    {
+      "label": "Температура, K",
+      "tool": "camera",
+      "type": "SliderRow",
+      "targetLabel": "Температура, K"
+    },
+    {
+      "label": "Тинт",
+      "tool": "camera",
+      "type": "SliderRow",
+      "targetLabel": "Тинт"
+    },
+    {
+      "label": "UV-срез",
+      "tool": "camera",
+      "type": "SliderRow",
+      "targetLabel": "UV-срез"
+    },
+    {
+      "label": "IR-срез",
+      "tool": "camera",
+      "type": "SliderRow",
+      "targetLabel": "IR-срез"
+    },
+    {
+      "label": "Размытие объектива",
+      "tool": "camera",
+      "type": "SliderRow",
+      "targetLabel": "Размытие объектива"
+    },
+    {
+      "label": "Диффузия",
+      "tool": "camera",
+      "type": "ToggleRow",
+      "targetLabel": "Диффузия"
+    },
+    {
+      "label": "Фильтр",
+      "tool": "camera",
+      "type": "Field",
+      "targetLabel": "Фильтр"
+    },
+    {
+      "label": "Сила",
+      "tool": "camera",
+      "type": "SliderRow",
+      "targetLabel": "Сила"
+    },
+    {
+      "label": "Масштаб PSF",
+      "tool": "camera",
+      "type": "SliderRow",
+      "targetLabel": "Масштаб PSF"
+    },
+    {
+      "label": "Гамма",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "Гамма"
+    },
+    {
+      "label": "Экспозиция",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "Экспозиция"
+    },
+    {
+      "label": "Автоэкспозиция",
+      "tool": "print",
+      "type": "ToggleRow",
+      "targetLabel": "Автоэкспозиция"
+    },
+    {
+      "label": "Y, CC",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "Y, CC"
+    },
+    {
+      "label": "M, CC",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "M, CC"
+    },
+    {
+      "label": "Предвспышка",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "Предвспышка"
+    },
+    {
+      "label": "Предвспышка Y",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "Предвспышка Y"
+    },
+    {
+      "label": "Предвспышка M",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "Предвспышка M"
+    },
+    {
+      "label": "Химия бумаги",
+      "tool": "print",
+      "type": "ToggleRow",
+      "targetLabel": "Химия бумаги"
+    },
+    {
+      "label": "Истощение",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "Истощение"
+    },
+    {
+      "label": "γ быстрая",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "γ быстрая"
+    },
+    {
+      "label": "γ медленная",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "γ медленная"
+    },
+    {
+      "label": "γ R",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "γ R"
+    },
+    {
+      "label": "γ G",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "γ G"
+    },
+    {
+      "label": "γ B",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "γ B"
+    },
+    {
+      "label": "Диффузия печати",
+      "tool": "print",
+      "type": "ToggleRow",
+      "targetLabel": "Диффузия печати"
+    },
+    {
+      "label": "Фильтр",
+      "tool": "print",
+      "type": "Field",
+      "targetLabel": "Фильтр"
+    },
+    {
+      "label": "Сила",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "Сила"
+    },
+    {
+      "label": "Масштаб PSF",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "Масштаб PSF"
+    },
+    {
+      "label": "Блик",
+      "tool": "print",
+      "type": "ToggleRow",
+      "targetLabel": "Блик"
+    },
+    {
+      "label": "Блик, %",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "Блик, %"
+    },
+    {
+      "label": "Шероховатость",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "Шероховатость"
+    },
+    {
+      "label": "Размытие блика",
+      "tool": "print",
+      "type": "SliderRow",
+      "targetLabel": "Размытие блика"
+    },
+    {
+      "label": "Скан как плёнка",
+      "tool": "scan",
+      "type": "ToggleRow",
+      "targetLabel": "Скан как плёнка"
+    },
+    {
+      "label": "Unsharp σ",
+      "tool": "scan",
+      "type": "SliderRow",
+      "targetLabel": "Unsharp σ"
+    },
+    {
+      "label": "Unsharp сила",
+      "tool": "scan",
+      "type": "SliderRow",
+      "targetLabel": "Unsharp сила"
+    },
+    {
+      "label": "Размытие сканера",
+      "tool": "scan",
+      "type": "SliderRow",
+      "targetLabel": "Размытие сканера"
+    },
+    {
+      "label": "Коррекция белого",
+      "tool": "scan",
+      "type": "ToggleRow",
+      "targetLabel": "Коррекция белого"
+    },
+    {
+      "label": "Коррекция чёрного",
+      "tool": "scan",
+      "type": "ToggleRow",
+      "targetLabel": "Коррекция чёрного"
+    },
+    {
+      "label": "Белая точка",
+      "tool": "scan",
+      "type": "SliderRow",
+      "targetLabel": "Белая точка"
+    },
+    {
+      "label": "Чёрная точка",
+      "tool": "scan",
+      "type": "SliderRow",
+      "targetLabel": "Чёрная точка"
+    },
+    {
+      "label": "Поворот",
+      "tool": "crop",
+      "type": "Field",
+      "targetLabel": "Поворот"
+    },
+    {
+      "label": "Кадр",
+      "tool": "crop",
+      "type": "Field",
+      "targetLabel": "Кадр"
+    },
+    {
+      "label": "Кроп",
+      "tool": "crop",
+      "type": "ToggleRow",
+      "targetLabel": "Кроп"
+    },
+    {
+      "label": "Размер",
+      "tool": "crop",
+      "type": "SliderRow",
+      "targetLabel": "Размер"
+    },
+    {
+      "label": "X",
+      "tool": "crop",
+      "type": "SliderRow",
+      "targetLabel": "X"
+    },
+    {
+      "label": "Y",
+      "tool": "crop",
+      "type": "SliderRow",
+      "targetLabel": "Y"
+    },
+    {
+      "label": "Холст 18%",
+      "tool": "crop",
+      "type": "ToggleRow",
+      "targetLabel": "Холст 18%"
+    },
+    {
+      "label": "Рамка фотографии",
+      "tool": "crop",
+      "type": "FramePicker",
+      "targetLabel": "Рамка фотографии"
+    },
+    {
+      "label": "Номер кадра",
+      "tool": "crop",
+      "type": "SliderRow",
+      "targetLabel": "Номер кадра"
+    },
+    {
+      "label": "DX-полоса",
+      "tool": "crop",
+      "type": "ToggleRow",
+      "targetLabel": "DX-полоса"
+    },
+    {
+      "label": "Дата на снимке",
+      "tool": "crop",
+      "type": "TextInput",
+      "targetLabel": "Дата на снимке"
+    },
+    {
+      "label": "RGB → спектр",
+      "tool": "lab",
+      "type": "Field",
+      "targetLabel": "RGB → спектр"
+    },
+    {
+      "label": "Hanatos окно",
+      "tool": "lab",
+      "type": "ToggleRow",
+      "targetLabel": "Hanatos окно"
+    },
+    {
+      "label": "Hanatos поверхность",
+      "tool": "lab",
+      "type": "ToggleRow",
+      "targetLabel": "Hanatos поверхность"
+    },
+    {
+      "label": "Спектр. размытие",
+      "tool": "lab",
+      "type": "SliderRow",
+      "targetLabel": "Спектр. размытие"
+    },
+    {
+      "label": "Входной гамут",
+      "tool": "lab",
+      "type": "Field",
+      "targetLabel": "Входной гамут"
+    },
+    {
+      "label": "Выходной гамут",
+      "tool": "lab",
+      "type": "Field",
+      "targetLabel": "Выходной гамут"
+    },
+    {
+      "label": "LUT превью",
+      "tool": "lab",
+      "type": "SliderRow",
+      "targetLabel": "LUT превью"
+    },
+    {
+      "label": "Апскейл",
+      "tool": "lab",
+      "type": "SliderRow",
+      "targetLabel": "Апскейл"
+    },
+    {
+      "label": "Декод CCTF",
+      "tool": "lab",
+      "type": "ToggleRow",
+      "targetLabel": "Декод CCTF"
+    },
+    {
+      "label": "Формат",
+      "tool": "export",
+      "type": "Field",
+      "targetLabel": "Формат"
+    },
+    {
+      "label": "Качество",
+      "tool": "export",
+      "type": "SliderRow",
+      "targetLabel": "Качество"
+    },
+    {
+      "label": "Цвет",
+      "tool": "export",
+      "type": "Field",
+      "targetLabel": "Цвет"
+    },
+    {
+      "label": "Выходной CCTF",
+      "tool": "export",
+      "type": "ToggleRow",
+      "targetLabel": "Выходной CCTF"
+    },
+    {
+      "label": "Сжатие гамута",
+      "tool": "export",
+      "type": "ToggleRow",
+      "targetLabel": "Сжатие гамута"
+    },
+    {
+      "label": "Виртуальный увеличитель",
+      "tool": "settings",
+      "type": "ToggleRow",
+      "targetLabel": "Виртуальный увеличитель"
+    },
+    {
+      "label": "Пояснения к параметрам",
+      "tool": "settings",
+      "type": "ToggleRow",
+      "targetLabel": "Пояснения к параметрам"
+    },
+    {
+      "label": "Подписи вкладок",
+      "tool": "settings",
+      "type": "ToggleRow",
+      "targetLabel": "Подписи вкладок"
+    },
+    {
+      "label": "Лаб и журнал в рейке",
+      "tool": "settings",
+      "type": "ToggleRow",
+      "targetLabel": "Лаб и журнал в рейке"
+    },
+    {
+      "label": "Касание прячет панели",
+      "tool": "settings",
+      "type": "ToggleRow",
+      "targetLabel": "Касание прячет панели"
+    },
+    {
+      "label": "Сброс на новый файл",
+      "tool": "settings",
+      "type": "ToggleRow",
+      "targetLabel": "Сброс на новый файл"
+    },
+    {
+      "label": "Спросить перед сохранением",
+      "tool": "settings",
+      "type": "ToggleRow",
+      "targetLabel": "Спросить перед сохранением"
+    },
+    {
+      "label": "GPU превью",
+      "tool": "settings",
+      "type": "ToggleRow",
+      "targetLabel": "GPU превью"
+    },
+    {
+      "label": "GPU экспорт",
+      "tool": "settings",
+      "type": "ToggleRow",
+      "targetLabel": "GPU экспорт"
+    },
+    {
+      "label": "Экспозиция подготовки",
+      "tool": "prep",
+      "type": "DynamicSlider",
+      "targetLabel": "Экспозиция подготовки"
+    },
+    {
+      "label": "Света",
+      "tool": "prep",
+      "type": "DynamicSlider",
+      "targetLabel": "Света"
+    },
+    {
+      "label": "Тени",
+      "tool": "prep",
+      "type": "DynamicSlider",
+      "targetLabel": "Тени"
+    },
+    {
+      "label": "Контраст подготовки",
+      "tool": "prep",
+      "type": "DynamicSlider",
+      "targetLabel": "Контраст подготовки"
+    },
+    {
+      "label": "Подъём чёрного · Lift",
+      "tool": "prep",
+      "type": "DynamicSlider",
+      "targetLabel": "Подъём чёрного · Lift"
+    },
+    {
+      "label": "Усиление · Gain",
+      "tool": "prep",
+      "type": "DynamicSlider",
+      "targetLabel": "Усиление · Gain"
+    },
+    {
+      "label": "Color Boost",
+      "tool": "prep",
+      "type": "DynamicSlider",
+      "targetLabel": "Color Boost"
+    },
+    {
+      "label": "Насыщенность подготовки",
+      "tool": "prep",
+      "type": "DynamicSlider",
+      "targetLabel": "Насыщенность подготовки"
+    },
+    {
+      "label": "Детали средних тонов",
+      "tool": "prep",
+      "type": "DynamicSlider",
+      "targetLabel": "Детали средних тонов"
+    },
+    {
+      "label": "Формат кадра · Negs",
+      "tool": "negs",
+      "type": "Field",
+      "targetLabel": "Формат кадра · Negs"
+    },
+    {
+      "label": "Зерно",
+      "tool": "negs",
+      "type": "ToggleRow",
+      "targetLabel": "Зерно"
+    },
+    {
+      "label": "DIR-каплеры",
+      "tool": "negs",
+      "type": "ToggleRow",
+      "targetLabel": "DIR-каплеры"
+    },
+    {
+      "label": "Зерно",
+      "tool": "texture",
+      "type": "ToggleRow",
+      "targetLabel": "Зерно"
+    },
+    {
+      "label": "Размытие зерна",
+      "tool": "texture",
+      "type": "SliderRow",
+      "targetLabel": "Размытие зерна"
+    },
+    {
+      "label": "Частица, µm²",
+      "tool": "texture",
+      "type": "SliderRow",
+      "targetLabel": "Частица, µm²"
+    },
+    {
+      "label": "Подслои",
+      "tool": "texture",
+      "type": "ToggleRow",
+      "targetLabel": "Подслои"
+    },
+    {
+      "label": "Равномерность",
+      "tool": "texture",
+      "type": "SliderRow",
+      "targetLabel": "Равномерность"
+    },
+    {
+      "label": "Dmin зерна",
+      "tool": "texture",
+      "type": "SliderRow",
+      "targetLabel": "Dmin зерна"
+    },
+    {
+      "label": "Облака, µm",
+      "tool": "texture",
+      "type": "SliderRow",
+      "targetLabel": "Облака, µm"
+    },
+    {
+      "label": "DIR-каплеры",
+      "tool": "texture",
+      "type": "ToggleRow",
+      "targetLabel": "DIR-каплеры"
+    },
+    {
+      "label": "Количество",
+      "tool": "texture",
+      "type": "SliderRow",
+      "targetLabel": "Количество"
+    },
+    {
+      "label": "Межслойное",
+      "tool": "texture",
+      "type": "SliderRow",
+      "targetLabel": "Межслойное"
+    },
+    {
+      "label": "Свой слой",
+      "tool": "texture",
+      "type": "SliderRow",
+      "targetLabel": "Свой слой"
+    },
+    {
+      "label": "Диффузия, µm",
+      "tool": "texture",
+      "type": "SliderRow",
+      "targetLabel": "Диффузия, µm"
+    },
+    {
+      "label": "Найти инструмент",
+      "tool": "settings",
+      "type": "TextInput",
+      "targetLabel": "Найти инструмент"
+    }
+  ],
+  "defaults": [
+    {
+      "label": "Экспозиция при съёмке",
+      "tool": "development",
+      "path": "exposureCompensationEv",
+      "min": "Math.min(-6, params.exposureCompensationEv)",
+      "max": "Math.max(6, params.exposureCompensationEv)",
+      "step": "0.1"
+    },
+    {
+      "label": "Коэффициент проявки γ",
+      "tool": "development",
+      "path": "filmGamma",
+      "min": "Math.min(0.5, params.filmGamma)",
+      "max": "Math.max(2, params.filmGamma)",
+      "step": "0.05"
+    },
+    {
+      "label": "Автозамер исходного кадра",
+      "tool": "development",
+      "path": "autoExposure",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Автокомпенсация печати",
+      "tool": "development",
+      "path": "printExposureCompensation",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Экспозиция кадра",
+      "tool": "edit",
+      "path": "prep.exposure",
+      "min": "-3",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Температура света",
+      "tool": "edit",
+      "path": "temperature",
+      "min": "2000",
+      "max": "12000",
+      "step": "100"
+    },
+    {
+      "label": "Плёночное зерно",
+      "tool": "edit",
+      "path": "grainActive",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Ускорять предпросмотр скана",
+      "tool": "negative",
+      "path": "e.scanUseLut",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Экспозиция скана · EV",
+      "tool": "negative",
+      "path": "experimental.scanExposure",
+      "min": "-12",
+      "max": "12",
+      "step": "0.1"
+    },
+    {
+      "label": "Порог определения маски · %",
+      "tool": "negative",
+      "path": "experimental.scanBasePercentile",
+      "min": "90",
+      "max": "100",
+      "step": "0.1"
+    },
+    {
+      "label": "Матрица устройства",
+      "tool": "negative",
+      "path": "e.scanCalibration",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Химия плёнки по слоям",
+      "tool": "development",
+      "path": "e.filmChemistry",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Общая проявка γ",
+      "tool": "development",
+      "path": "filmGamma",
+      "min": "0.5",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Быстрые слои γ",
+      "tool": "development",
+      "path": "experimental.filmFast",
+      "min": "0.2",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Средние и медленные слои γ",
+      "tool": "development",
+      "path": "experimental.filmSlow",
+      "min": "0.2",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Канал эмульсии γ",
+      "tool": "development",
+      "path": "experimental.filmRed",
+      "min": "0.2",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Красный канал γ",
+      "tool": "development",
+      "path": "experimental.filmRed",
+      "min": "0.2",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Зелёный канал γ",
+      "tool": "development",
+      "path": "experimental.filmGreen",
+      "min": "0.2",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Синий канал γ",
+      "tool": "development",
+      "path": "experimental.filmBlue",
+      "min": "0.2",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Истощение проявителя",
+      "tool": "development",
+      "path": "experimental.filmExhaustion",
+      "min": "0",
+      "max": "1",
+      "step": "0.05"
+    },
+    {
+      "label": "Нелинейная модель Langmuir",
+      "tool": "negs",
+      "path": "e.dirLangmuir",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Насыщение приёмника R",
+      "tool": "negs",
+      "path": "experimental.dirReceiverRed",
+      "min": "0.05",
+      "max": "10",
+      "step": "0.05"
+    },
+    {
+      "label": "Насыщение приёмника G",
+      "tool": "negs",
+      "path": "experimental.dirReceiverGreen",
+      "min": "0.05",
+      "max": "10",
+      "step": "0.05"
+    },
+    {
+      "label": "Насыщение приёмника B",
+      "tool": "negs",
+      "path": "experimental.dirReceiverBlue",
+      "min": "0.05",
+      "max": "10",
+      "step": "0.05"
+    },
+    {
+      "label": "Насыщение донора R",
+      "tool": "negs",
+      "path": "experimental.dirDonorRed",
+      "min": "0.05",
+      "max": "10",
+      "step": "0.05"
+    },
+    {
+      "label": "Насыщение донора G",
+      "tool": "negs",
+      "path": "experimental.dirDonorGreen",
+      "min": "0.05",
+      "max": "10",
+      "step": "0.05"
+    },
+    {
+      "label": "Насыщение донора B",
+      "tool": "negs",
+      "path": "experimental.dirDonorBlue",
+      "min": "0.05",
+      "max": "10",
+      "step": "0.05"
+    },
+    {
+      "label": "Хвост диффузии, мкм",
+      "tool": "negs",
+      "path": "experimental.dirTailUm",
+      "min": "0",
+      "max": "1000",
+      "step": "10"
+    },
+    {
+      "label": "Доля хвоста диффузии",
+      "tool": "negs",
+      "path": "experimental.dirTailWeight",
+      "min": "0",
+      "max": "1",
+      "step": "0.01"
+    },
+    {
+      "label": "Зернистость по RMS",
+      "tool": "negs",
+      "path": "e.grainRms",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "RMS эмульсии",
+      "tool": "negs",
+      "path": "experimental.grainRmsRed",
+      "min": "0.1",
+      "max": "60",
+      "step": "0.1"
+    },
+    {
+      "label": "RMS красного канала",
+      "tool": "negs",
+      "path": "experimental.grainRmsRed",
+      "min": "0.1",
+      "max": "60",
+      "step": "0.1"
+    },
+    {
+      "label": "RMS зелёного канала",
+      "tool": "negs",
+      "path": "experimental.grainRmsGreen",
+      "min": "0.1",
+      "max": "60",
+      "step": "0.1"
+    },
+    {
+      "label": "RMS синего канала",
+      "tool": "negs",
+      "path": "experimental.grainRmsBlue",
+      "min": "0.1",
+      "max": "60",
+      "step": "0.1"
+    },
+    {
+      "label": "Равномерность R",
+      "tool": "negs",
+      "path": "experimental.grainUniformityRed",
+      "min": "0",
+      "max": "1",
+      "step": "0.01"
+    },
+    {
+      "label": "Равномерность G",
+      "tool": "negs",
+      "path": "experimental.grainUniformityGreen",
+      "min": "0",
+      "max": "1",
+      "step": "0.01"
+    },
+    {
+      "label": "Равномерность B",
+      "tool": "negs",
+      "path": "experimental.grainUniformityBlue",
+      "min": "0",
+      "max": "1",
+      "step": "0.01"
+    },
+    {
+      "label": "Минимальная плотность R",
+      "tool": "negs",
+      "path": "experimental.grainFloorRed",
+      "min": "0",
+      "max": "0.5",
+      "step": "0.01"
+    },
+    {
+      "label": "Минимальная плотность G",
+      "tool": "negs",
+      "path": "experimental.grainFloorGreen",
+      "min": "0",
+      "max": "0.5",
+      "step": "0.01"
+    },
+    {
+      "label": "Минимальная плотность B",
+      "tool": "negs",
+      "path": "experimental.grainFloorBlue",
+      "min": "0",
+      "max": "0.5",
+      "step": "0.01"
+    },
+    {
+      "label": "Размер частиц · слой 1",
+      "tool": "negs",
+      "path": "experimental.grainScaleFast",
+      "min": "0.05",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Размер частиц · слой 2",
+      "tool": "negs",
+      "path": "experimental.grainScaleMid",
+      "min": "0.05",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Размер частиц · слой 3",
+      "tool": "negs",
+      "path": "experimental.grainScaleSlow",
+      "min": "0.05",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Радиус резкости плотности",
+      "tool": "negs",
+      "path": "experimental.grainUsmSigma",
+      "min": "0",
+      "max": "3",
+      "step": "0.1"
+    },
+    {
+      "label": "Усиление резкости плотности",
+      "tool": "negs",
+      "path": "experimental.grainUsmAmount",
+      "min": "0",
+      "max": "4",
+      "step": "0.1"
+    },
+    {
+      "label": "Общая плотность основы",
+      "tool": "emulsion",
+      "path": "experimental.filmBaseScale",
+      "min": "0",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Общая плотность основы",
+      "tool": "negative",
+      "path": "experimental.filmBaseScale",
+      "min": "0",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Общая плотность основы",
+      "tool": "print",
+      "path": "experimental.printBaseScale",
+      "min": "0",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Циан основы",
+      "tool": "emulsion",
+      "path": "experimental.filmBaseCyan",
+      "min": "0",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Циан основы",
+      "tool": "negative",
+      "path": "experimental.filmBaseCyan",
+      "min": "0",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Циан основы",
+      "tool": "print",
+      "path": "experimental.printBaseCyan",
+      "min": "0",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Маджента основы",
+      "tool": "emulsion",
+      "path": "experimental.filmBaseMagenta",
+      "min": "0",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Маджента основы",
+      "tool": "negative",
+      "path": "experimental.filmBaseMagenta",
+      "min": "0",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Маджента основы",
+      "tool": "print",
+      "path": "experimental.printBaseMagenta",
+      "min": "0",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Жёлтый основы",
+      "tool": "emulsion",
+      "path": "experimental.filmBaseYellow",
+      "min": "0",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Жёлтый основы",
+      "tool": "negative",
+      "path": "experimental.filmBaseYellow",
+      "min": "0",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Жёлтый основы",
+      "tool": "print",
+      "path": "experimental.printBaseYellow",
+      "min": "0",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Спектральный наклон",
+      "tool": "emulsion",
+      "path": "experimental.filmBaseTilt",
+      "min": "-1",
+      "max": "1",
+      "step": "0.05"
+    },
+    {
+      "label": "Сила гало",
+      "tool": "fotufilm",
+      "path": "halationAmount",
+      "min": "0",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Размер гало",
+      "tool": "fotufilm",
+      "path": "halationSpatialScale",
+      "min": "0.2",
+      "max": "3",
+      "step": "0.1"
+    },
+    {
+      "label": "Нормализация",
+      "tool": "film",
+      "path": "halationRenormalize",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Антигаляционный слой",
+      "tool": "fotufilm",
+      "path": "transport.antiHalation",
+      "min": "0",
+      "max": "4",
+      "step": "0.05"
+    },
+    {
+      "label": "Толщина основы",
+      "tool": "fotufilm",
+      "path": "transport.baseThickness",
+      "min": "0.25",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Отражение прижимной пластины",
+      "tool": "fotufilm",
+      "path": "transport.pressurePlate",
+      "min": "0",
+      "max": "1",
+      "step": "0.05"
+    },
+    {
+      "label": "Мутность основы",
+      "tool": "fotufilm",
+      "path": "transport.hazeUm",
+      "min": "0",
+      "max": "500",
+      "step": "5"
+    },
+    {
+      "label": "Автонастройка минилаба",
+      "tool": "fotufilm",
+      "path": "output.autoSetup",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Характер минилаба",
+      "tool": "fotufilm",
+      "path": "output.look",
+      "min": "0",
+      "max": "1",
+      "step": "0.05"
+    },
+    {
+      "label": "Яркость скана",
+      "tool": "fotufilm",
+      "path": "output.exposure",
+      "min": "-6",
+      "max": "6",
+      "step": "0.05"
+    },
+    {
+      "label": "Ключ Cyan",
+      "tool": "fotufilm",
+      "path": "output.cyan",
+      "min": "-1",
+      "max": "1",
+      "step": "0.05"
+    },
+    {
+      "label": "Ключ Magenta",
+      "tool": "fotufilm",
+      "path": "output.magenta",
+      "min": "-1",
+      "max": "1",
+      "step": "0.05"
+    },
+    {
+      "label": "Ключ Yellow",
+      "tool": "fotufilm",
+      "path": "output.yellow",
+      "min": "-1",
+      "max": "1",
+      "step": "0.05"
+    },
+    {
+      "label": "Зерно",
+      "tool": "film",
+      "path": "grainActive",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Частица, µm²",
+      "tool": "film",
+      "path": "grainParticleArea",
+      "min": "0.04",
+      "max": "1.2",
+      "step": "0.02"
+    },
+    {
+      "label": "Размытие",
+      "tool": "film",
+      "path": "grainBlur",
+      "min": "0",
+      "max": "1.4",
+      "step": "0.05"
+    },
+    {
+      "label": "Подслои",
+      "tool": "film",
+      "path": "grainSublayers",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Равномерность",
+      "tool": "film",
+      "path": "grainUniformity",
+      "min": "0.85",
+      "max": "0.995",
+      "step": "0.005"
+    },
+    {
+      "label": "Dmin зерна",
+      "tool": "film",
+      "path": "grainDensityMin",
+      "min": "0",
+      "max": "0.3",
+      "step": "0.01"
+    },
+    {
+      "label": "Облака, µm",
+      "tool": "film",
+      "path": "grainDyeCloudsUm",
+      "min": "0",
+      "max": "4",
+      "step": "0.1"
+    },
+    {
+      "label": "Масштаб R",
+      "tool": "film",
+      "path": "grainScaleR",
+      "min": "0.4",
+      "max": "4",
+      "step": "0.05"
+    },
+    {
+      "label": "Масштаб G",
+      "tool": "film",
+      "path": "grainScaleG",
+      "min": "0.4",
+      "max": "4",
+      "step": "0.05"
+    },
+    {
+      "label": "Масштаб B",
+      "tool": "film",
+      "path": "grainScaleB",
+      "min": "0.4",
+      "max": "5",
+      "step": "0.05"
+    },
+    {
+      "label": "Галяция",
+      "tool": "film",
+      "path": "halationActive",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Сила",
+      "tool": "film",
+      "path": "halationAmount",
+      "min": "0",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Размер",
+      "tool": "film",
+      "path": "halationSpatialScale",
+      "min": "0.2",
+      "max": "3",
+      "step": "0.1"
+    },
+    {
+      "label": "Рассеяние",
+      "tool": "film",
+      "path": "scatterAmount",
+      "min": "0",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Масштаб рассеяния",
+      "tool": "film",
+      "path": "scatterSpatialScale",
+      "min": "0.2",
+      "max": "3",
+      "step": "0.1"
+    },
+    {
+      "label": "Подсветка EV",
+      "tool": "film",
+      "path": "boostEv",
+      "min": "0",
+      "max": "4",
+      "step": "0.5"
+    },
+    {
+      "label": "Защита EV",
+      "tool": "film",
+      "path": "protectEv",
+      "min": "0",
+      "max": "8",
+      "step": "0.5"
+    },
+    {
+      "label": "Диапазон",
+      "tool": "film",
+      "path": "boostRange",
+      "min": "0.05",
+      "max": "1",
+      "step": "0.05"
+    },
+    {
+      "label": "Отскоки",
+      "tool": "film",
+      "path": "halationNBounces",
+      "min": "1",
+      "max": "5",
+      "step": "1"
+    },
+    {
+      "label": "Затухание",
+      "tool": "film",
+      "path": "halationBounceDecay",
+      "min": "0.1",
+      "max": "0.95",
+      "step": "0.05"
+    },
+    {
+      "label": "Нормализация",
+      "tool": "film",
+      "path": "halationRenormalize",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "DIR-каплеры",
+      "tool": "film",
+      "path": "couplersActive",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Количество",
+      "tool": "film",
+      "path": "couplersAmount",
+      "min": "0",
+      "max": "2.5",
+      "step": "0.05"
+    },
+    {
+      "label": "Межслойное",
+      "tool": "film",
+      "path": "inhibitionInterlayer",
+      "min": "0",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Свой слой",
+      "tool": "film",
+      "path": "inhibitionSamelayer",
+      "min": "0",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Диффузия, µm",
+      "tool": "film",
+      "path": "couplerDiffusionUm",
+      "min": "0",
+      "max": "80",
+      "step": "5"
+    },
+    {
+      "label": "EV",
+      "tool": "camera",
+      "path": "exposureCompensationEv",
+      "min": "-3",
+      "max": "3",
+      "step": "0.25"
+    },
+    {
+      "label": "Автоэкспозиция",
+      "tool": "camera",
+      "path": "autoExposure",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Формат, мм",
+      "tool": "camera",
+      "path": "filmFormatMm",
+      "min": "8",
+      "max": "120",
+      "step": "1"
+    },
+    {
+      "label": "Температура, K",
+      "tool": "camera",
+      "path": "temperature",
+      "min": "WB_TMIN",
+      "max": "WB_TMAX",
+      "step": "50"
+    },
+    {
+      "label": "Тинт",
+      "tool": "camera",
+      "path": "tint",
+      "min": "WB_TINT_MIN",
+      "max": "150",
+      "step": "1"
+    },
+    {
+      "label": "UV-срез",
+      "tool": "camera",
+      "path": "filterUvAmount",
+      "min": "0",
+      "max": "1",
+      "step": "0.05"
+    },
+    {
+      "label": "IR-срез",
+      "tool": "camera",
+      "path": "filterIrAmount",
+      "min": "0",
+      "max": "1",
+      "step": "0.05"
+    },
+    {
+      "label": "Размытие объектива",
+      "tool": "camera",
+      "path": "cameraLensBlurUm",
+      "min": "0",
+      "max": "12",
+      "step": "0.1"
+    },
+    {
+      "label": "Диффузия",
+      "tool": "camera",
+      "path": "cameraDiffusion.active",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Сила",
+      "tool": "camera",
+      "path": "cameraDiffusion.strength",
+      "min": "0",
+      "max": "2",
+      "step": "0.125"
+    },
+    {
+      "label": "Масштаб PSF",
+      "tool": "camera",
+      "path": "cameraDiffusion.spatialScale",
+      "min": "0",
+      "max": "4",
+      "step": "0.1"
+    },
+    {
+      "label": "Гамма",
+      "tool": "print",
+      "path": "printGamma",
+      "min": "0.5",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Экспозиция",
+      "tool": "print",
+      "path": "printExposure",
+      "min": "0.2",
+      "max": "3",
+      "step": "0.02"
+    },
+    {
+      "label": "Автоэкспозиция",
+      "tool": "print",
+      "path": "printExposureCompensation",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Y, CC",
+      "tool": "print",
+      "path": "printYFilterShift",
+      "min": "-40",
+      "max": "40",
+      "step": "1"
+    },
+    {
+      "label": "M, CC",
+      "tool": "print",
+      "path": "printMFilterShift",
+      "min": "-40",
+      "max": "40",
+      "step": "1"
+    },
+    {
+      "label": "Предвспышка",
+      "tool": "print",
+      "path": "preflashExposure",
+      "min": "0.01",
+      "max": "0.2",
+      "step": "0.005"
+    },
+    {
+      "label": "Предвспышка Y",
+      "tool": "print",
+      "path": "preflashYShift",
+      "min": "-20",
+      "max": "20",
+      "step": "1"
+    },
+    {
+      "label": "Предвспышка M",
+      "tool": "print",
+      "path": "preflashMShift",
+      "min": "-20",
+      "max": "20",
+      "step": "1"
+    },
+    {
+      "label": "Химия бумаги",
+      "tool": "print",
+      "path": "chemistryActive",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Истощение",
+      "tool": "print",
+      "path": "developerExhaustion",
+      "min": "0",
+      "max": "1",
+      "step": "0.02"
+    },
+    {
+      "label": "γ быстрая",
+      "tool": "print",
+      "path": "printGammaFast",
+      "min": "0.4",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "γ медленная",
+      "tool": "print",
+      "path": "printGammaSlow",
+      "min": "0.4",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "γ R",
+      "tool": "print",
+      "path": "printGammaR",
+      "min": "0.4",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "γ G",
+      "tool": "print",
+      "path": "printGammaG",
+      "min": "0.4",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "γ B",
+      "tool": "print",
+      "path": "printGammaB",
+      "min": "0.4",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Диффузия печати",
+      "tool": "print",
+      "path": "printDiffusion.active",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Сила",
+      "tool": "print",
+      "path": "printDiffusion.strength",
+      "min": "0",
+      "max": "2",
+      "step": "0.125"
+    },
+    {
+      "label": "Масштаб PSF",
+      "tool": "print",
+      "path": "printDiffusion.spatialScale",
+      "min": "0",
+      "max": "4",
+      "step": "0.1"
+    },
+    {
+      "label": "Блик",
+      "tool": "print",
+      "path": "glareActive",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Блик, %",
+      "tool": "print",
+      "path": "glarePercent",
+      "min": "0",
+      "max": "0.25",
+      "step": "0.01"
+    },
+    {
+      "label": "Шероховатость",
+      "tool": "print",
+      "path": "glareRoughness",
+      "min": "0",
+      "max": "1",
+      "step": "0.05"
+    },
+    {
+      "label": "Размытие блика",
+      "tool": "print",
+      "path": "glareBlur",
+      "min": "0",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Скан как плёнка",
+      "tool": "scan",
+      "path": "scanFilm",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Unsharp σ",
+      "tool": "scan",
+      "path": "scanUnsharpSigma",
+      "min": "0",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Unsharp сила",
+      "tool": "scan",
+      "path": "scanUnsharpAmount",
+      "min": "0",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Размытие сканера",
+      "tool": "scan",
+      "path": "scanLensBlur",
+      "min": "0",
+      "max": "8",
+      "step": "0.1"
+    },
+    {
+      "label": "Коррекция белого",
+      "tool": "scan",
+      "path": "scanWhiteCorrection",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Коррекция чёрного",
+      "tool": "scan",
+      "path": "scanBlackCorrection",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Белая точка",
+      "tool": "scan",
+      "path": "scanWhiteLevel",
+      "min": "0.7",
+      "max": "1",
+      "step": "0.01"
+    },
+    {
+      "label": "Чёрная точка",
+      "tool": "scan",
+      "path": "scanBlackLevel",
+      "min": "0",
+      "max": "0.2",
+      "step": "0.005"
+    },
+    {
+      "label": "Кроп",
+      "tool": "crop",
+      "path": "crop",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Размер",
+      "tool": "crop",
+      "path": "cropSizeX",
+      "min": "0.08",
+      "max": "0.8",
+      "step": "0.01"
+    },
+    {
+      "label": "X",
+      "tool": "crop",
+      "path": "cropCenterX",
+      "min": "0.1",
+      "max": "0.9",
+      "step": "0.01"
+    },
+    {
+      "label": "Y",
+      "tool": "crop",
+      "path": "cropCenterY",
+      "min": "0.1",
+      "max": "0.9",
+      "step": "0.01"
+    },
+    {
+      "label": "Холст 18%",
+      "tool": "crop",
+      "path": "gray18Canvas",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Рамка фотографии",
+      "tool": "crop",
+      "path": "frameStyle",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Номер кадра",
+      "tool": "crop",
+      "path": "frameNumber",
+      "min": "1",
+      "max": "99",
+      "step": "1"
+    },
+    {
+      "label": "DX-полоса",
+      "tool": "crop",
+      "path": "frameBarcode",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Дата на снимке",
+      "tool": "crop",
+      "path": "frameDate",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Hanatos окно",
+      "tool": "lab",
+      "path": "hanatosWindow",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Hanatos поверхность",
+      "tool": "lab",
+      "path": "hanatosSurface",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Спектр. размытие",
+      "tool": "lab",
+      "path": "spectralBlur",
+      "min": "0",
+      "max": "4",
+      "step": "0.1"
+    },
+    {
+      "label": "LUT превью",
+      "tool": "lab",
+      "path": "lutResolution",
+      "min": "9",
+      "max": "33",
+      "step": "4"
+    },
+    {
+      "label": "Апскейл",
+      "tool": "lab",
+      "path": "upscaleFactor",
+      "min": "1",
+      "max": "4",
+      "step": "1"
+    },
+    {
+      "label": "Декод CCTF",
+      "tool": "lab",
+      "path": "applyCctfDecoding",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Качество",
+      "tool": "export",
+      "path": "exportQuality",
+      "min": "85",
+      "max": "100",
+      "step": "1"
+    },
+    {
+      "label": "Выходной CCTF",
+      "tool": "export",
+      "path": "outputCctf",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Сжатие гамута",
+      "tool": "export",
+      "path": "gamutCompress",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Виртуальный увеличитель",
+      "tool": "settings",
+      "path": "prefs.experimentalEnlarger",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Пояснения к параметрам",
+      "tool": "settings",
+      "path": "prefs.showControlHelp",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Подписи вкладок",
+      "tool": "settings",
+      "path": "prefs.showToolLabels",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Лаб и журнал в рейке",
+      "tool": "settings",
+      "path": "prefs.showLabTabs",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Касание прячет панели",
+      "tool": "settings",
+      "path": "prefs.tapHidesChrome",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Сброс на новый файл",
+      "tool": "settings",
+      "path": "prefs.resetOnOpen",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Спросить перед сохранением",
+      "tool": "settings",
+      "path": "prefs.confirmExport",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "GPU превью",
+      "tool": "settings",
+      "path": "gpuPreview",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "GPU экспорт",
+      "tool": "settings",
+      "path": "gpuExport",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Экспозиция подготовки",
+      "tool": "prep",
+      "path": "prep.exposure",
+      "min": "-3",
+      "max": "3",
+      "step": "0.05"
+    },
+    {
+      "label": "Света",
+      "tool": "prep",
+      "path": "prep.highlights",
+      "min": "-180",
+      "max": "100",
+      "step": "1"
+    },
+    {
+      "label": "Тени",
+      "tool": "prep",
+      "path": "prep.shadows",
+      "min": "-100",
+      "max": "100",
+      "step": "1"
+    },
+    {
+      "label": "Контраст подготовки",
+      "tool": "prep",
+      "path": "prep.contrast",
+      "min": "-100",
+      "max": "100",
+      "step": "1"
+    },
+    {
+      "label": "Подъём чёрного · Lift",
+      "tool": "prep",
+      "path": "prep.lift",
+      "min": "-100",
+      "max": "100",
+      "step": "1"
+    },
+    {
+      "label": "Усиление · Gain",
+      "tool": "prep",
+      "path": "prep.gain",
+      "min": "-100",
+      "max": "100",
+      "step": "1"
+    },
+    {
+      "label": "Color Boost",
+      "tool": "prep",
+      "path": "prep.colorBoost",
+      "min": "-100",
+      "max": "100",
+      "step": "1"
+    },
+    {
+      "label": "Насыщенность подготовки",
+      "tool": "prep",
+      "path": "prep.saturation",
+      "min": "-100",
+      "max": "100",
+      "step": "1"
+    },
+    {
+      "label": "Детали средних тонов",
+      "tool": "prep",
+      "path": "prep.detail",
+      "min": "-100",
+      "max": "100",
+      "step": "1"
+    },
+    {
+      "label": "Зерно",
+      "tool": "negs",
+      "path": "p.grainActive",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "DIR-каплеры",
+      "tool": "negs",
+      "path": "p.couplersActive",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Зерно",
+      "tool": "texture",
+      "path": "grainActive",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Размытие зерна",
+      "tool": "texture",
+      "path": "grainBlur",
+      "min": "0",
+      "max": "1.4",
+      "step": ".05"
+    },
+    {
+      "label": "Частица, µm²",
+      "tool": "texture",
+      "path": "grainParticleArea",
+      "min": ".04",
+      "max": "1.2",
+      "step": ".02"
+    },
+    {
+      "label": "Подслои",
+      "tool": "texture",
+      "path": "grainSublayers",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Равномерность",
+      "tool": "texture",
+      "path": "grainUniformity",
+      "min": ".85",
+      "max": ".995",
+      "step": ".005"
+    },
+    {
+      "label": "Dmin зерна",
+      "tool": "texture",
+      "path": "grainDensityMin",
+      "min": "0",
+      "max": ".3",
+      "step": ".01"
+    },
+    {
+      "label": "Облака, µm",
+      "tool": "texture",
+      "path": "grainDyeCloudsUm",
+      "min": "0",
+      "max": "4",
+      "step": ".1"
+    },
+    {
+      "label": "DIR-каплеры",
+      "tool": "texture",
+      "path": "couplersActive",
+      "min": "",
+      "max": "",
+      "step": ""
+    },
+    {
+      "label": "Количество",
+      "tool": "texture",
+      "path": "couplersAmount",
+      "min": "0",
+      "max": "2.5",
+      "step": "0.05"
+    },
+    {
+      "label": "Межслойное",
+      "tool": "texture",
+      "path": "inhibitionInterlayer",
+      "min": "0",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Свой слой",
+      "tool": "texture",
+      "path": "inhibitionSamelayer",
+      "min": "0",
+      "max": "2",
+      "step": "0.05"
+    },
+    {
+      "label": "Диффузия, µm",
+      "tool": "texture",
+      "path": "couplerDiffusionUm",
+      "min": "0",
+      "max": "80",
+      "step": "5"
+    },
+    {
+      "label": "Найти инструмент",
+      "tool": "settings",
+      "path": "query",
+      "min": "",
+      "max": "",
+      "step": ""
+    }
+  ]
+}

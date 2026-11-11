@@ -3211,3 +3211,44 @@ a.lab-set-go {
 .shelf-collection { margin:2px 0 10px; }
 .shelf-expand { width:100%; padding:9px; border:1px solid #414c52; border-radius:4px; margin-top:9px; }
 .lab-box-source { display:block; font-size:8px; color:#b2c59a; margin-top:4px; }
+/* Unified exact controls and direct tool discovery; original workspace retained. */
+.ux-value { display:inline-flex; align-items:center; gap:6px; min-width:58px; min-height:44px; justify-content:flex-end; padding:5px 8px; border:1px solid #47545c; border-radius:5px; font-size:12px; color:#dbe6d1; font-variant-numeric:tabular-nums; }
+.ux-value i { font-size:7px; color:#cbdf91; }
+.ux-value:disabled { opacity:.5; }
+.ux-number,.ux-directory { color:#e3e8e8; background:#20292f; border:1px solid #53636e; border-radius:10px; padding:20px; box-shadow:0 20px 60px #0008; }
+.ux-number::backdrop,.ux-directory::backdrop { background:#0009; }
+.ux-number { width:min(400px,calc(100vw - 24px)); margin:auto; max-height:85dvh; overflow:auto; }
+.ux-number h2,.ux-directory h2 { font-size:18px; font-weight:600; margin-bottom:12px; }
+.ux-number label { display:grid; gap:7px; font-size:12px; }
+.ux-number input,.ux-directory>input { width:100%; background:#111a20; color:#eef2f3; border:1px solid #70818c; border-radius:5px; padding:12px; font-size:17px; min-height:48px; }
+.ux-number p { font-size:12px; line-height:1.6; color:#b4c2cb; margin-top:10px; }
+.ux-number [role=alert] { color:#f0b49b; }
+.ux-number footer { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; margin-top:18px; }
+.ux-number button,.ux-directory header button { padding:10px; min-height:44px; border:1px solid #63767d; border-radius:5px; }
+.ux-number button[type=submit] { background:#c4dd8b; color:#14220b; }
+.ux-directory { margin:auto; width:min(650px,calc(100vw - 20px)); max-height:90dvh; }
+.ux-directory header { display:flex; align-items:start; justify-content:space-between; gap:12px; }
+.ux-directory p,.ux-directory small { font-size:12px; line-height:1.6; color:#b4c2cb; }
+.ux-directory>input { margin:12px 0; font-size:14px; }
+.ux-changed { display:flex; align-items:center; gap:8px; font-size:12px; padding:8px 0; }
+.ux-changed input { width:20px; height:20px; }
+.ux-results { overflow-y:auto; max-height:58dvh; }
+.ux-results button { display:block; text-align:left; width:100%; padding:12px; min-height:48px; border:1px solid #42535e; border-radius:5px; margin:6px 0; }
+.ux-results strong,.ux-results span,.ux-results small { display:block; }
+.ux-results strong { font-size:13px; color:#d5e6b3; }
+.ux-results span { font-size:11px; color:#b4c2cb; line-height:1.5; margin-top:5px; }
+.ux-results .ux-param-result { background:#2c3941; font-size:13px; padding-left:20px; }
+.ux-found { outline:2px solid #d4e99f; outline-offset:-2px; }
+@media(max-width:1099px){.lab-range-wrap{min-height:44px}.lab-slider-head{align-items:center}.ux-directory{padding:14px}.ux-results{max-height:50dvh}}
+.control-help-disclosure summary { cursor:pointer; font-size:11px; color:#b5c6ce; min-height:44px; padding:8px 0; }
+.control-help-disclosure .control-help { padding-bottom:8px; }
+/* The original fixed-height label row cannot contain a touch-size value button. */
+.lab-slider-head { height:auto; min-height:44px; pointer-events:auto; }
+.ux-value { position:relative; z-index:1; pointer-events:auto; }
+
+/* A 48px switch target keeps the familiar 28px visual track. */
+.lab-switch { height:48px; background:transparent; box-shadow:none; }
+.lab-switch::before { content:""; position:absolute; inset:10px 0; border-radius:999px; background:var(--color-raised); box-shadow:var(--shadow-border); }
+.lab-switch.is-on { background:transparent; }
+.lab-switch.is-on::before { background:var(--color-accent); }
+.lab-switch-knob { top:13px; }
