@@ -1,0 +1,28 @@
+name: Publish source-separated UI APK
+on:
+  push:
+    branches: [apk-delivery-9-55-35b146d]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify, publish and download the complete APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '157cddbf03dc95c192e24bed46622484938b7ba068ea5f1ae4b4d7aed746b611  release-payload/SpektrafilmLab-9.55-arm64.apk' | sha256sum --check
+          if ! gh release view v9.55-build125 >/dev/null 2>&1; then
+            gh release create v9.55-build125 --target 35b146de7edbca20e1b2f761f24bda56ab2b25af --prerelease --title 'Spektrafilm 9.55 — Tools by source · ARM64' --notes-file release-payload/notes.md
+          fi
+          if ! gh release view v9.55-build125 --json assets --jq '.assets[].name' | grep -Fxq 'SpektrafilmLab-9.55-arm64.apk'; then
+            gh release upload v9.55-build125 release-payload/SpektrafilmLab-9.55-arm64.apk
+          fi
+          mkdir downloaded
+          gh release download v9.55-build125 --pattern SpektrafilmLab-9.55-arm64.apk --dir downloaded
+          echo '157cddbf03dc95c192e24bed46622484938b7ba068ea5f1ae4b4d7aed746b611  downloaded/SpektrafilmLab-9.55-arm64.apk' | sha256sum --check
