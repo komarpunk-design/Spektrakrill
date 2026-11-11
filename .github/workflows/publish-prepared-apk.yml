@@ -1,0 +1,28 @@
+name: Publish restored layout APK
+on:
+  push:
+    branches: [apk-delivery-9-52-4821309]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify, publish and download the complete APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'e101f2611205f42cf44c369f31b594e1959428e044749c4b1d02f155736cf6be  release-payload/SpektrafilmLab-9.52-arm64.apk' | sha256sum --check
+          if ! gh release view v9.52-build122 >/dev/null 2>&1; then
+            gh release create v9.52-build122 --target 4821309bc4696b646d50784d628853634eda88ed --prerelease --title 'Spektrafilm 9.52 — 9.47 layout / Fotufilm · ARM64' --notes-file release-payload/notes.md
+          fi
+          if ! gh release view v9.52-build122 --json assets --jq '.assets[].name' | grep -Fxq 'SpektrafilmLab-9.52-arm64.apk'; then
+            gh release upload v9.52-build122 release-payload/SpektrafilmLab-9.52-arm64.apk
+          fi
+          mkdir downloaded
+          gh release download v9.52-build122 --pattern SpektrafilmLab-9.52-arm64.apk --dir downloaded
+          echo 'e101f2611205f42cf44c369f31b594e1959428e044749c4b1d02f155736cf6be  downloaded/SpektrafilmLab-9.52-arm64.apk' | sha256sum --check
