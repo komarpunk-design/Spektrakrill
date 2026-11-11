@@ -1,5 +1,6 @@
+import {NEGS_FILM_FORMATS} from "@/lib/film/negs-film-formats";
 import { useDarkroom, type ToolId } from "@/lib/film/store";
-import { ToggleRow } from "@/components/ui/control";
+import {Field,Select,ToggleRow} from "@/components/ui/control";
 import { HalationControls } from "./halation-controls";
 import { OutputControls } from "./output-controls";
 import { EmulsionControls } from "./emulsion-controls";
@@ -53,6 +54,10 @@ export function NegsControls() {
       <button type="button" className="source-link" onClick={() => setTool("prep")}>
         Подготовка изображения · Prep →
       </button>
+      <section>
+        <h3>Физический формат кадра</h3>
+        <div className="px-4 py-2"><Field label="Формат кадра · Negs"><Select ariaLabel="Формат кадра · Negs" value={String(p.filmFormatMm)} onChange={value=>setParam('filmFormatMm',Number(value))} options={[...(!NEGS_FILM_FORMATS.some(f=>f.mm===p.filmFormatMm)?[{value:String(p.filmFormatMm),label:`Свой · ${p.filmFormatMm} мм`}]:[]),...NEGS_FILM_FORMATS.map(f=>({value:String(f.mm),label:f.label}))]}/></Field></div>
+      </section>
       <section>
         <h3>Зерно · RMS</h3>
         <ToggleRow

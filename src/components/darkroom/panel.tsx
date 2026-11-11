@@ -3,7 +3,6 @@ import {EmulsionControls} from './emulsion-controls';
 import {PrepControls} from './prep-controls';
 import {TextureControls} from './texture-controls';
 import {OutputControls} from './output-controls';
-import {NEGS_FILM_FORMATS} from '@/lib/film/negs-film-formats';
 import { DevelopmentControls } from "@/components/darkroom/development-controls";
 import { FRAME_STYLES, isOriginalEdge } from "@/lib/film/photo-frame";
 import { stockDetail, stockSpec, stockCategory } from "@/lib/film/stock-details";

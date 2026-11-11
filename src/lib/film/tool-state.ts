@@ -6,7 +6,7 @@ import type { ToolId } from "./store.ts";
 export const TOOL_KEYS: Record<ToolId, (keyof DarkroomParams)[]> = {
   prep: ["prep"],
   fotufilm:["output","transport"],
-  negs:["prep","grainActive","couplersActive"],
+  negs:["prep","filmFormatMm","grainActive","couplersActive"],
   edit: ["printPaper","whiteBalance","temperature","grainActive","halationActive","halationAmount","halationSpatialScale","transport","output"],
   outputs: ["output"],
   emulsion: [],
