@@ -2,7 +2,7 @@ import { framedCanvas, type FrameStyle, type FilmEdgeOptions } from "@/lib/film/
 import { actualPixelScale, clampViewerScale } from "@/lib/film/viewer-zoom";
 import { cn } from "@/lib/utils";
 import { MIDGRAY_D, samplePrintDensity, type DensitySample } from "@/lib/film/densitometer";
-import { Maximize2, Scan, Blend, Crosshair, Aperture, FolderOpen } from "lucide-react";
+import { Maximize2, Scan, Blend, Crosshair, Aperture, FolderOpen, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 function fmtD(n: number): string {
@@ -73,6 +73,7 @@ export function Viewer({
   const [dens, setDens] = useState<DensitySample | null>(null);
   const [probe, setProbe] = useState(false);
   const [hud, setHud] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const hudTimer = useRef<number | null>(null);
 
   useEffect(() => { if (frameStyle !== "none") setProbe(false); }, [frameStyle]);
@@ -538,12 +539,15 @@ export function Viewer({
       </div>
       {!chromeHidden && processedUrl && !pickingWb ? (
         <div
-          className={hud || clip || probe || zoomPct !== 100 ? "lab-hud is-on" : "lab-hud"}
+          className="lab-hud is-on"
           onPointerDown={(e) => {
             e.stopPropagation();
             bumpHud();
           }}
         >
+          <button type="button" className="lab-hud-btn" aria-label="Инструменты просмотра" aria-expanded={toolsOpen}
+            onClick={()=>setToolsOpen(!toolsOpen)} title="Масштаб, зебра и денситометр"><SlidersHorizontal size={18}/></button>
+          {toolsOpen?<>
           <button
             type="button"
             className="lab-hud-btn"
@@ -593,6 +597,7 @@ export function Viewer({
           >
             <Crosshair className="size-4" strokeWidth={1.75} />
           </button>
+          </>:null}
         </div>
       ) : null}
       {!chromeHidden && dens && processedUrl && !pickingWb && probe ? (

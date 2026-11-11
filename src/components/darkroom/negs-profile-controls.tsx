@@ -67,7 +67,7 @@ export function NegsProfileControls() {
         Вернуть DIR из профиля Negs
       </button>
       <p className="lab-note">
-        Ручная настройка общей модели: Experimental → RMS-зерно / Langmuir DIR. Восстановление
+        Ручная настройка общей модели: Эффекты → Зерно / Проявка → DIR. Восстановление
         параметров можно отменить кнопкой Undo.
       </p>
     </section>

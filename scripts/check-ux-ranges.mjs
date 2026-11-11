@@ -62,7 +62,7 @@ for (const f of files) {
   } catch {
     continue;
   }
-  const before = read(old),
+  const before = read(old.replaceAll("Лаб и журнал в рейке", "Журнал в нижней панели")),
     after = read(fs.readFileSync("src/components/darkroom/" + f, "utf8"));
   assert.deepEqual(
     after,

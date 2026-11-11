@@ -16,7 +16,7 @@ import {
   experimentalCouplersPreset,
 } from "@/lib/film/experimental";
 
-export function EmulsionControls({mode="advanced",presetSource}:{mode?:"advanced"|"negative"|"chemistry"|"grain"|"dir"|"paper";presetSource?:"experimental"}) {
+export function EmulsionControls({mode="advanced",presetSource,modelSelected=false}:{mode?:"advanced"|"filter"|"spectrum"|"base"|"negative"|"chemistry"|"grain"|"dir"|"paper";presetSource?:"experimental";modelSelected?:boolean}) {
   const params = useDarkroom((s) => s.params),
     setParam = useDarkroom((s) => s.setParam),
     setTool = useDarkroom((s) => s.setTool),
@@ -194,7 +194,7 @@ export function EmulsionControls({mode="advanced",presetSource}:{mode?:"advanced
           </>
         ) : null}
       </div>:null}
-{mode==="advanced"?<><ControlSection title="Цветной фильтр перед объективом" description="Меняет проходящий через объектив свет, особенно заметно на чёрно-белой плёнке." defaultOpen><div className="development-section">
+{["advanced","filter"].includes(mode)?<><ControlSection title="Цветной фильтр перед объективом" description="Меняет проходящий через объектив свет, особенно заметно на чёрно-белой плёнке." defaultOpen><div className="development-section">
         <h3>Цветной съёмочный фильтр</h3>
         <Field label="Фильтр перед объективом">
           <Select
@@ -214,7 +214,8 @@ export function EmulsionControls({mode="advanced",presetSource}:{mode?:"advanced
           Пропускание фильтра применяется к спектральной чувствительности плёнки до проявки. Без
           выбранной плёнки фильтр не действует.
         </p>
-      </div></ControlSection><ControlSection title="Восстановление спектра" description="Выбор способа расчёта света из RGB. По умолчанию достаточно «Авто»." keys={["experimental.spectralMethod"]}><div className="development-section">
+      </div></ControlSection></>:null}
+{["advanced","spectrum"].includes(mode)?<><ControlSection title="Восстановление спектра" description="Выбор способа расчёта света из RGB. По умолчанию достаточно «Авто»." keys={["experimental.spectralMethod"]}><div className="development-section">
         <h3>Восстановление спектра</h3>
         <Field label="Метод спектральной реконструкции">
           <Select
@@ -309,11 +310,11 @@ export function EmulsionControls({mode="advanced",presetSource}:{mode?:"advanced
           </button>
         ) : null}
 
-        <ToggleRow
+{!modelSelected?<>        <ToggleRow
           label="Нелинейная модель Langmuir"
           checked={e.dirLangmuir}
           onChange={(v) => change("dirLangmuir", v)}
-        />
+        /></>:null}
         {e.dirLangmuir ? (
           <>
             {profile?.type === "positive" ? (
@@ -341,18 +342,18 @@ export function EmulsionControls({mode="advanced",presetSource}:{mode?:"advanced
             {slider("dirTailWeight", "Доля хвоста диффузии", 0, 1, 0.01)}
             <p className="lab-note">
               В негативе насыщается выделение ингибитора донором; в слайде — реакция принимающего
-              слоя после диффузии. Включите DIR-каплеры в меню «Плёнка».
+              слоя после диффузии. Основной переключатель DIR управляет вкладом эффекта в кадр.
             </p>
           </>
         ) : null}
       </div></ControlSection>:null}
 {mode==="grain"?<ControlSection title="Модель зерна · RMS" description="Штатное зерно Negs и experimental задаётся гранулярностью; ручной размер частицы используется при выключенном RMS." keys={["experimental.grainRms","experimental.grainRmsRed","experimental.grainUsmAmount"]}><div className="development-section">
         <h3>Зерно · модель RMS</h3>
-        <ToggleRow
+{!modelSelected?<>        <ToggleRow
           label="Зернистость по RMS"
           checked={e.grainRms}
           onChange={(v) => change("grainRms", v)}
-        />
+        /></>:null}
         {profile && !(presetSource==="experimental"&&profile.negs) ? (
           <button
             type="button"
@@ -415,7 +416,7 @@ export function EmulsionControls({mode="advanced",presetSource}:{mode?:"advanced
         </div>
       ) : null}
 </>:null}
-{["advanced","negative","paper"].includes(mode)?<ControlSection title={mode==="paper"?"Основа бумаги":"Основа и маска плёнки"} description={mode==="paper"?"Плотность и оттенок подложки фотобумаги.":"Цвет и плотность подложки. Для негативов это настройка оранжевой маски."} keys={[mode==="paper"?"experimental.printBaseActive":"experimental.filmBaseActive"]}>      {(mode==="paper"?["print"] as const:["film"] as const).map((kind) => {
+{["advanced","base","negative","paper"].includes(mode)?<ControlSection title={mode==="paper"?"Основа бумаги":"Основа и маска плёнки"} description={mode==="paper"?"Плотность и оттенок подложки фотобумаги.":"Цвет и плотность подложки. Для негативов это настройка оранжевой маски."} keys={[mode==="paper"?"experimental.printBaseActive":"experimental.filmBaseActive"]}>      {(mode==="paper"?["print"] as const:["film"] as const).map((kind) => {
         const prefix = kind === "film" ? "filmBase" : "printBase";
         const active = (prefix + "Active") as keyof ExperimentalParams;
         return (

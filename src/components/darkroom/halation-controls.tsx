@@ -3,7 +3,7 @@ import { useDarkroom } from "@/lib/film/store";
 import { Field, Select, SliderRow, ToggleRow } from "@/components/ui/control";
 import { ControlSection } from "./workflow-ui";
 import { constructionName, constructionCapabilities } from "@/lib/film/layered-transport";
-export function HalationControls({ showLegacyDetails = false,sourceOnly=false }: { showLegacyDetails?: boolean;sourceOnly?:boolean }) {
+export function HalationControls({ showLegacyDetails = false,sourceOnly=false,embeddedModel=false }: { showLegacyDetails?: boolean;sourceOnly?:boolean;embeddedModel?:boolean }) {
   const params = useDarkroom((s) => s.params),
     setParam = useDarkroom((s) => s.setParam),
     patch = useDarkroom((s) => s.patch),
@@ -13,12 +13,12 @@ export function HalationControls({ showLegacyDetails = false,sourceOnly=false }:
     setParam("transport", { ...p, [key]: v });
   return (
     <>
-      <ToggleRow
+{!embeddedModel?<>      <ToggleRow
         label={sourceOnly?"Использовать Layered Transport":"Гало вокруг светов"}
         hint="Свечение у ламп, солнца и ярких бликов на плёнке."
         checked={sourceOnly?p.model==="layered"&&params.halationActive:params.halationActive}
         onChange={(v) => sourceOnly?patch({transport:{...p,model:v?"layered":"legacy"},...(v?{halationActive:true}:{})}):setParam("halationActive", v)}
-      />
+      /></>:null}
       {params.halationActive && (!sourceOnly||p.model==="layered") ? (
         <>
           {!sourceOnly?<div className="px-4 py-2">

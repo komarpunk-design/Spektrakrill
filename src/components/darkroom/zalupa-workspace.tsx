@@ -34,6 +34,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { createPortal } from "react-dom";
+import { isNativeRawAvailable } from "@/lib/film/native-raw";
 import { useDarkroom } from "@/lib/film/store";
 import {
   Z_DECKS,
@@ -46,6 +47,8 @@ import {
 } from "./zalupa-navigation";
 const icons: Record<string, LucideIcon> = {
   film: Film,
+  camera: Camera,
+  scan: Images,
   spektrafilm: Aperture,
   experimental: FlaskConical,
   grain: Grid2X2,
@@ -145,10 +148,6 @@ export function ZalupaWorkspace({
     lastPages = useRef<Record<string, string>>({}),
     drag = useRef<{ y: number; height: number } | null>(null),
     moved = useRef(false);
-  const inactiveNative =
-    (page.id === "grain" && params.experimental.grainRms) ||
-    (page.id === "emulsion-dir" && params.experimental.dirLangmuir) ||
-    (page.id === "halation" && params.transport.model === "layered");
   const deck = zDeck(page.id),
     library = page.tool === "gallery" || page.tool === "stock";
   useEffect(() => {
@@ -236,6 +235,14 @@ export function ZalupaWorkspace({
           </Round>
         </div>
       </header>
+      <div className="process-route" aria-label="Маршрут обработки">
+        <span>Исходник</span>
+        <button type="button" aria-pressed={params.experimental.workflow==="normal"} disabled={working}
+          onClick={()=>{useDarkroom.getState().setParam("experimental",{...params.experimental,workflow:"normal"});if(page.id==="negative")choose(zPage("films"));}}>Фотография</button>
+        <button type="button" aria-pressed={params.experimental.workflow!=="normal"} disabled={working}
+          onClick={()=>{if(isNativeRawAvailable()&&params.experimental.workflow==="normal")useDarkroom.getState().setParam("experimental",{...params.experimental,workflow:"negative-print"});choose(zPage("negative"));}}>Скан негатива</button>
+        <span className="process-route-state">{params.experimental.workflow==="normal"?"Эмуляция плёнки":"Восстановление плотностей"}</span>
+      </div>
       <div
         className={"z-body" + (open ? " has-panel" : "") + (library ? " is-library" : "")}
         ref={body}
@@ -300,10 +307,10 @@ export function ZalupaWorkspace({
                   </button>
                 ))}
               </div>
-              {!inactiveNative &&
-              ![
+              {![
                 "films",
-                "negs-profiles",
+                "profile",
+                "test-print",
                 "gallery",
                 "stock",
                 "settings",
@@ -338,7 +345,7 @@ export function ZalupaWorkspace({
                 </div>
               </>
             ) : null}
-            {deck && deck.source !== "catalog" ? (
+            {deck && page.id !== "films" ? (
               <p className="z-source-description">{Z_PAGE_HINTS[page.id] ?? deck.description}</p>
             ) : null}
             <div
@@ -356,7 +363,7 @@ export function ZalupaWorkspace({
       </div>
       <nav
         className={"z-decks" + (prefs.showToolLabels ? "" : " no-labels")}
-        aria-label="Группы инструментов"
+        aria-label="Этапы обработки"
       >
         {Z_DECKS.map((d) => {
           const Icon = icons[d.icon],
@@ -381,7 +388,7 @@ export function ZalupaWorkspace({
           );
         })}
         {prefs.showLabTabs
-          ? Z_SERVICE.filter((p) => p.id === "lab" || p.id === "log").map((p) => (
+          ? Z_SERVICE.filter((p) => p.id === "log").map((p) => (
               <button
                 type="button"
                 key={p.id}
@@ -468,7 +475,7 @@ export function ZalupaWorkspace({
                   {p.title}
                 </button>
               ))}
-              <div className="z-menu-label">Инструменты по источникам</div>
+              <div className="z-menu-label">Разделы обработки</div>
               {Z_DECKS.map((d) => {
                 const Icon = icons[d.icon];
                 return (

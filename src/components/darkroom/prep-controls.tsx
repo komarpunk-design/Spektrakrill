@@ -24,7 +24,7 @@ export function PrepControls() {
       <ControlSection title="Экспозиция подготовки" description="Общая яркость перед плёнкой, независимо от компенсации печати." defaultOpen={true}>
         {row("exposure", "Экспозиция подготовки", -3, 3, 0.05)}
         <p className="lab-note">
-          Этот сдвиг не компенсируется при печати. Экспозиция съёмки остаётся в меню «Камера».
+          Этот сдвиг не компенсируется при печати. Экспозиция съёмки остаётся в «Камера → Экспозиция».
         </p>
         <button type="button" className="lab-ghost" onClick={() => setTool("camera")}>
           Баланс белого и камера →

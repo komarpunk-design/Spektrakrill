@@ -206,3 +206,34 @@ dialog.ux-number button[type=submit] { background:#f2c717; color:#111; }
 .ux-source-heading { font-size:11px; color:var(--color-accent); font-weight:700; letter-spacing:.06em; margin:16px 0 6px; }
 
 @media(max-width:1099px){.z-decks>button{min-width:60px;flex:1 0 60px;}}
+
+/* One photographic workspace: stages stay visible even on a 320 px phone. */
+.process-route { display:flex; align-items:center; gap:6px; flex:0 0 auto; min-height:40px; padding:3px 12px 7px; color:#aaa; font-size:10px; background:#000; }
+.process-route button { min-height:32px; padding:5px 10px; border:1px solid #444; border-radius:20px; color:#ccc; white-space:nowrap; }
+.process-route button[aria-pressed=true] { color:var(--color-accent); border-color:var(--color-accent); background:#292719; }
+.process-route-state { margin-left:auto; }
+.process-model { padding:12px 16px; }
+.process-model h3 { margin:0 0 8px; font-weight:600; }
+.process-note { margin:8px 16px; font-size:11px; line-height:1.6; color:#aaa; }
+.process-fields { border:0; margin:0; padding:0; min-width:0; }
+.process-fields:disabled { opacity:.55; }
+.process-fields:disabled button { pointer-events:none; }
+.process-bypass { margin:8px 12px; padding:12px; border:1px solid #66613d; border-radius:10px; font-size:11px; line-height:1.6; background:#302d20; }
+.process-bypass strong { color:#f1d472; }
+.process-bypass p { margin:4px 0; }
+.process-bypass button { display:block; min-height:44px; color:var(--color-accent); text-align:left; text-decoration:underline; }
+.zalupa-app .source-back { display:none; }
+@media(max-width:1099px){
+ .z-decks { padding-left:2px; padding-right:2px; }
+ .z-decks>button { min-width:44px; flex:1 0 44px; font-size:9px; gap:3px; }
+ .z-deck-icon svg { width:19px; height:19px; }
+ .process-route-state { display:none; }
+}
+@media(min-width:1100px){.process-route{background:#292a2d;}}
+.zalupa-app.is-chrome-hidden .process-route { display:none; }
+@media(max-height:480px) and (orientation:landscape){.process-route{min-height:32px;padding-top:0;padding-bottom:2px;}}
+
+@media(orientation:portrait) and (max-width:1099px){.z-inspector{height:min(var(--z-sheet),calc(100dvh - 290px));max-height:calc(100% - 120px);}}
+
+/* Toasts do not obscure the persistent source-route selector. */
+.z-notice{top:calc(104px + env(safe-area-inset-top));}

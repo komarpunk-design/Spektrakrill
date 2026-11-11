@@ -109,7 +109,7 @@ export function DevelopmentControls() {
     profile.type !== "negative";
   return (
     <section className="development-controls" aria-label="Настройки Push / Pull">
-      <button className="lab-ghost" type="button" onClick={()=>setTool("emulsion")}>Химия по слоям и основа →</button>
+      <button className="lab-ghost" type="button" onClick={()=>setTool("emulsion")}>Спектр и основа плёнки →</button>
       <header>
         <span className="development-kicker">ПРОЯВКА НЕГАТИВА</span>
         <h2>Push / Pull</h2>
@@ -123,9 +123,9 @@ export function DevelopmentControls() {
         <p className="lab-note" role="status">
           {error ||
             (params.rawEngine !== "spektrafilm"
-              ? "Выберите движок Spektrafilm в Опциях."
+              ? "Выберите движок Spektrafilm в настройках."
               : isFilmBypass(params.filmStock)
-                ? "Выберите негативную плёнку в меню «Плёнка»."
+                ? "Выберите негативную плёнку в «Плёнка → Каталог»."
                 : !profile
                   ? "Загрузка профиля…"
                   : "Эти настройки предназначены для негативной плёнки. Выберите негатив вместо слайда.")}
@@ -212,7 +212,7 @@ export function DevelopmentControls() {
               onChange={(value) => setParam("autoExposure", value)}
             />
             <p className="lab-note">
-              EV — та же поправка, что в меню «Камера».{" "}
+              EV — та же поправка, что в «Камера → Экспозиция».{" "}
               {params.autoExposure
                 ? "Сначала движок выполняет автозамер, затем применяет эту поправку."
                 : "Поправка применяется к исходному кадру без автозамера."}

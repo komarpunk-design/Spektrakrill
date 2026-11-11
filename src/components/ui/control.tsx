@@ -3,7 +3,7 @@ import { NumberEditor } from "./number-editor";
 import { controlDefault } from "@/lib/film/control-default";
 import { controlHelp } from "@/lib/film/control-guide";
 import { cn } from "@/lib/utils";
-import { useDarkroom } from "@/lib/film/store";
+import { useDarkroom, type ToolId } from "@/lib/film/store";
 import { haptic, hapticSlider } from "@/lib/film/haptic";
 import { ChevronDown, ChevronRight, Minus, Plus } from "lucide-react";
 import {
@@ -19,9 +19,17 @@ import {
 } from "react";
 
 const FieldLabel = createContext<string | undefined>(undefined);
+const ControlContext = createContext<{tool?:ToolId;disabled?:boolean}>({});
+/** Original tool identity supplies help/defaults even inside a composed workspace page. */
+export function ControlScope({tool,disabled,children}:{tool?:ToolId;disabled?:boolean;children:ReactNode}) {
+  const parent=useContext(ControlContext);
+  return <ControlContext.Provider value={{tool:tool??parent.tool,disabled:!!disabled||parent.disabled}}>{children}</ControlContext.Provider>;
+}
+function useControlTool(){const scope=useContext(ControlContext),selected=useDarkroom(s=>s.tool);return scope.tool??selected;}
+
 
 function ControlHint({ label, id }: { label: string; id?: string }) {
-  const tool = useDarkroom((s) => s.tool),
+  const tool = useControlTool(),
     show = useDarkroom((s) => s.prefs.showControlHelp),
     text = controlHelp(label, tool);
   if (!text) return null;
@@ -177,10 +185,12 @@ export function Toggle({
   onChange: (v: boolean) => void;
   label?: string;
 }) {
+  const disabled=useContext(ControlContext).disabled;
   return (
     <button
       type="button"
       role="switch"
+      disabled={disabled}
       aria-checked={checked}
       aria-label={label}
       onClick={() => onChange(!checked)}
@@ -195,7 +205,7 @@ export function Select({
   value,
   onChange,
   options,
-  disabled = false,
+  disabled:disabledProp = false,
   ariaLabel,
 }: {
   value: string;
@@ -204,6 +214,7 @@ export function Select({
   disabled?: boolean;
   ariaLabel?: string;
 }) {
+  const disabled=disabledProp||useContext(ControlContext).disabled;
   const fieldLabel = useContext(FieldLabel);
   const groups = new Map<string, { value: string; label: string }[]>();
   for (const o of options) {
@@ -252,6 +263,7 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
 }) {
+  const disabled=useContext(ControlContext).disabled;
   return (
     <div className="lab-seg">
       {options.map((o) => {
@@ -260,6 +272,7 @@ export function Segmented<T extends string>({
           <button
             key={o.value}
             type="button"
+            disabled={disabled}
             onClick={() => onChange(o.value)}
             className={cn("lab-seg-btn", on && "is-on")}
           >
@@ -288,7 +301,7 @@ export function SliderRow({
   step,
   value,
   onChange,
-  disabled = false,
+  disabled: disabledProp = false,
   defaultValue,
 }: {
   label: string;
@@ -301,8 +314,9 @@ export function SliderRow({
   disabled?: boolean;
   defaultValue?: number;
 }) {
+  const disabled=disabledProp||!!useContext(ControlContext).disabled;
   const helpId = useId();
-  const tool = useDarkroom((s) => s.tool);
+  const tool = useControlTool();
   const [editing, setEditing] = useState(false);
   const baseline = defaultValue ?? controlDefault(label, tool, min, max, step);
   const setScrubbing = useDarkroom((s) => s.setScrubbing);

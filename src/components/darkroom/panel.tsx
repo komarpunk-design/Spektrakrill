@@ -10,7 +10,7 @@ import {OutputControls} from './output-controls';
 import { DevelopmentControls } from "@/components/darkroom/development-controls";
 import { FRAME_STYLES, isOriginalEdge } from "@/lib/film/photo-frame";
 import { stockDetail, stockSpec, stockCategory } from "@/lib/film/stock-details";
-import { Field, Select, Segmented, SliderRow, ToggleRow } from "@/components/ui/control";
+import { ControlScope, Field, Select, Segmented, SliderRow, ToggleRow } from "@/components/ui/control";
 import { isNativeRawAvailable, pickNativeText, getNativeLog, clearNativeLog, openExternalUrl } from "@/lib/film/native-raw";
 import { clearJsLog, jsLogText, pushLabLog } from "@/lib/film/lab-log";
 import { diffParams, GROUP_LABEL, type ParamChange } from "@/lib/film/preset-diff";
@@ -19,7 +19,7 @@ import { applySpektraImport, importNotice } from "@/lib/film/import-pack";
 import { isUserProfile, removeUserProfile, shelfGroups } from "@/lib/film/user-profiles";
 import type { Catalog } from "@/lib/film/profiles";
 import { APP_COPY, APP_NAME, APP_VERSION, CHANNEL_HANDLE, CHANNEL_URL } from "@/lib/brand";
-import { cropForAspect, useDarkroom } from "@/lib/film/store";
+import { cropForAspect, useDarkroom, type ToolId } from "@/lib/film/store";
 import {
   boxShortName,
   FILM_GROUPS,
@@ -342,6 +342,8 @@ function ReceiptCard({
 export function Panel({
   catalog,
   workspacePage,
+  toolOverride,
+  embeddedModel = false,
   originalUrl,
   onSave,
   saving,
@@ -357,6 +359,8 @@ export function Panel({
 }: {
   catalog: Catalog;
   workspacePage?:string;
+  toolOverride?:ToolId;
+  embeddedModel?:boolean;
   originalUrl?:string|null;
   onSave?: () => void;
   saving?: boolean;
@@ -375,7 +379,8 @@ export function Panel({
   const patch = useDarkroom((s) => s.patch);
   const applyFilmDefaults = useDarkroom((s) => s.applyFilmDefaults);
   const advanced = true;
-  const tool = useDarkroom((s) => s.tool);
+  const selectedTool = useDarkroom((s) => s.tool);
+  const tool = toolOverride ?? selectedTool;
   const setTool = useDarkroom((s) => s.setTool);
   const looks = useDarkroom((s) => s.looks);
   const imported = useDarkroom((s) => s.imported);
@@ -530,7 +535,7 @@ export function Panel({
     URL.revokeObjectURL(a.href);
   };
 
-  return (
+  return (<ControlScope tool={tool}>
     <div
       className="flex flex-col py-1"
       onDragOver={(e) => {
@@ -618,11 +623,11 @@ export function Panel({
 </>:null}
           {isFilmBypass(params.filmStock) ? (
             <p className="lab-note">
-              Плёнка не применена. Кадр как снято. Движок RAW — в Опциях.
+              Плёнка не применена. Кадр как снято. Цветонаука RAW — в настройках приложения.
             </p>
           ) : (
             <>
-          {(!workspacePage||workspacePage==="grain")?<><ControlSection title="Зерно" description="Структура и мягкость эмульсии.">{params.experimental.grainRms?<div className="source-active-note">Активна RMS-модель Spektrafilm Experimental.<button type="button" onClick={()=>setTool('negs')}>Открыть Experimental →</button><button type="button" onClick={()=>setParam('experimental',{...params.experimental,grainRms:false})}>Использовать прежнюю модель зерна</button></div>:<>          <ToggleRow label="Зерно" checked={params.grainActive} onChange={(v) => setParam("grainActive", v)} />
+          {(!workspacePage||workspacePage==="grain")?<><ControlSection title="Зерно" description="Структура и мягкость эмульсии.">{params.experimental.grainRms?<div className="source-active-note">Активна RMS-модель Spektrafilm Experimental.<button type="button" onClick={()=>setTool('negs')}>Открыть Experimental →</button><button type="button" onClick={()=>setParam('experimental',{...params.experimental,grainRms:false})}>Использовать прежнюю модель зерна</button></div>:<>{!embeddedModel?<>          <ToggleRow label="Зерно" checked={params.grainActive} onChange={(v) => setParam("grainActive", v)} /></>:null}
           {params.grainActive ? (
             <>
               <SliderRow
@@ -709,7 +714,7 @@ export function Panel({
             </>
           ) : null}
 </>}</ControlSection></>:null}
-          {(!workspacePage||workspacePage==="halation")?<><ControlSection title="Галяция" description="Возврат света внутри плёнки.">{params.transport.model==='layered'?<div className="source-active-note">Активна галяция Fotufilm · Layered Transport.<button type="button" onClick={()=>setTool('fotufilm')}>Открыть Fotufilm →</button><button type="button" onClick={()=>setParam('transport',{...params.transport,model:'legacy'})}>Использовать галяцию Spektrafilm</button></div>:<>          <ToggleRow label="Галяция" checked={params.halationActive} onChange={(v) => setParam("halationActive", v)} />
+          {(!workspacePage||workspacePage==="halation")?<><ControlSection title="Галяция" description="Возврат света внутри плёнки.">{params.transport.model==='layered'?<div className="source-active-note">Активна галяция Fotufilm · Layered Transport.<button type="button" onClick={()=>setTool('fotufilm')}>Открыть Fotufilm →</button><button type="button" onClick={()=>setParam('transport',{...params.transport,model:'legacy'})}>Использовать галяцию Spektrafilm</button></div>:<>{!embeddedModel?<>          <ToggleRow label="Галяция" checked={params.halationActive} onChange={(v) => setParam("halationActive", v)} /></>:null}
           {params.halationActive ? (
             <>
               <SliderRow
@@ -805,11 +810,11 @@ export function Panel({
             </>
           ) : null}
 </>}</ControlSection></>:null}
-          {(!workspacePage||workspacePage==="emulsion-dir")?<><ControlSection title="DIR · взаимодействие слоёв" description="Локальный контраст и цветовое разделение.">{params.experimental.dirLangmuir?<div className="source-active-note">Активна модель взаимодействия слоёв Langmuir.<button type="button" onClick={()=>setTool('negs')}>Открыть Experimental / DIR →</button><button type="button" onClick={()=>setParam('experimental',{...params.experimental,dirLangmuir:false})}>Использовать DIR Spektrafilm</button></div>:<>          <ToggleRow
+          {(!workspacePage||workspacePage==="emulsion-dir")?<><ControlSection title="DIR · взаимодействие слоёв" description="Локальный контраст и цветовое разделение.">{params.experimental.dirLangmuir?<div className="source-active-note">Активна модель взаимодействия слоёв Langmuir.<button type="button" onClick={()=>setTool('negs')}>Открыть Experimental / DIR →</button><button type="button" onClick={()=>setParam('experimental',{...params.experimental,dirLangmuir:false})}>Использовать DIR Spektrafilm</button></div>:<>{!embeddedModel?<>          <ToggleRow
             label="DIR-каплеры"
             checked={params.couplersActive}
             onChange={(v) => setParam("couplersActive", v)}
-          />
+          /></>:null}
           {params.couplersActive ? (
             <>
               <SliderRow
@@ -1132,7 +1137,7 @@ export function Panel({
         </>
       ) : null}
       {tool === "print" ? (
-        workspacePage==='exp-paper'?<EmulsionControls mode="paper" presetSource="experimental"/>:params.output.mode!=='paper'?<div className="source-active-note">Активен цифровой результат Fotufilm. Печать Spektrafilm сейчас не используется.<button type="button" onClick={()=>setTool('fotufilm')}>Открыть Fotufilm →</button><button type="button" onClick={()=>patch({output:{...params.output,mode:'paper'},scanFilm:false})}>Включить печать Spektrafilm</button></div>:<>
+        workspacePage==='exp-paper'?<EmulsionControls mode="paper" presetSource="experimental"/>:params.output.mode!=='paper'&&params.experimental.workflow==='normal'?<div className="source-active-note">Активен цифровой результат Fotufilm. Печать Spektrafilm сейчас не используется.<button type="button" onClick={()=>setTool('fotufilm')}>Открыть Fotufilm →</button><button type="button" onClick={()=>patch({output:{...params.output,mode:'paper'},scanFilm:false})}>Включить печать Spektrafilm</button></div>:<>
           <div className="lab-film-head">
             <button
               type="button"
@@ -1428,7 +1433,7 @@ export function Panel({
       ) : null}
       {tool === "scan" ? (
         <>
-          {params.output.mode!=='paper'?<div className="source-active-note">Выбран результат Fotufilm. Здесь остаются общие резкость и мягкость скана.<button type="button" onClick={()=>setTool('fotufilm')}>Открыть Fotufilm →</button><button type="button" onClick={()=>patch({output:{...params.output,mode:'paper'},scanFilm:true})}>Использовать прямой скан Spektrafilm</button></div>:null}
+          {params.output.mode!=='paper'&&params.experimental.workflow==='normal'?<div className="source-active-note">Выбран результат Fotufilm. Здесь остаются общие резкость и мягкость скана.<button type="button" onClick={()=>setTool('fotufilm')}>Открыть Fotufilm →</button><button type="button" onClick={()=>patch({output:{...params.output,mode:'paper'},scanFilm:true})}>Использовать прямой скан Spektrafilm</button></div>:null}
           {params.output.mode==='paper'?<>          <ToggleRow
             label="Скан как плёнка"
             checked={params.scanFilm}
@@ -1599,10 +1604,8 @@ export function Panel({
           </> : null}</>:null}
         </>
       ) : null}
-      {tool === "lab" ? (
-        <>
-
-          <div className="px-4 py-1.5">
+      {tool === "lab" ? (<>
+{(!workspacePage||workspacePage==="spectral-calc")?<>          <div className="px-4 py-1.5">
             <Field label="RGB → спектр">
               <Select
                 value={params.rgbToRawMethod}
@@ -1633,7 +1636,8 @@ export function Panel({
             value={params.spectralBlur}
             onChange={(v) => setParam("spectralBlur", v)} defaultValue={defaultParams().spectralBlur}
           />
-          <div className="px-4 py-1.5">
+</>:null}
+{(!workspacePage||workspacePage==="input-color")?<>          <div className="px-4 py-1.5">
             <Field label="Входной гамут">
               <Select
                 value={params.inputGamutCompress}
@@ -1645,7 +1649,13 @@ export function Panel({
               />
             </Field>
           </div>
-          <div className="px-4 py-1.5">
+              <ToggleRow
+                label="Декод CCTF"
+                checked={params.applyCctfDecoding}
+                onChange={(v) => setParam("applyCctfDecoding", v)}
+              />
+</>:null}
+{(!workspacePage||workspacePage==="output-color")?<>          <div className="px-4 py-1.5">
             <Field label="Выходной гамут">
               <Select
                 value={params.outputGamutCompress}
@@ -1660,17 +1670,6 @@ export function Panel({
               />
             </Field>
           </div>
-          {advanced ? (
-            <>
-              <SliderRow
-                label="LUT превью"
-                hint={String(params.lutResolution)}
-                min={9}
-                max={33}
-                step={4}
-                value={params.lutResolution}
-                onChange={(v) => setParam("lutResolution", v)} defaultValue={defaultParams().lutResolution}
-              />
               <SliderRow
                 label="Апскейл"
                 hint={`${params.upscaleFactor}×`}
@@ -1680,15 +1679,8 @@ export function Panel({
                 value={params.upscaleFactor}
                 onChange={(v) => setParam("upscaleFactor", v)} defaultValue={defaultParams().upscaleFactor}
               />
-              <ToggleRow
-                label="Декод CCTF"
-                checked={params.applyCctfDecoding}
-                onChange={(v) => setParam("applyCctfDecoding", v)}
-              />
-            </>
-          ) : null}
-        </>
-      ) : null}
+</>:null}
+      </>) : null}
       {tool === "export" ? (
         <>
           <div className="px-4 py-1.5">
@@ -1743,7 +1735,7 @@ export function Panel({
       ) : null}
       {tool === "log" ? <LogPane onNotice={onNotice} /> : null}
       {tool === "settings" ? <SettingsPane onNotice={onNotice} onOpenEnlarger={onOpenEnlarger} /> : null}
-    </div>
+    </div></ControlScope>
   );
 }
 
@@ -1863,8 +1855,8 @@ function SettingsPane({ onNotice, onOpenEnlarger }: { onNotice?: (msg: string) =
           onChange={(v) => setPref("showToolLabels", v)}
         />
         <ToggleRow
-          label="Лаб и журнал в рейке"
-          hint="Иначе открываются из этой вкладки"
+          label="Журнал в нижней панели"
+          hint="Быстрый доступ к диагностике обработки"
           checked={prefs.showLabTabs}
           onChange={(v) => setPref("showLabTabs", v)}
         />
@@ -1899,7 +1891,7 @@ function SettingsPane({ onNotice, onOpenEnlarger }: { onNotice?: (msg: string) =
         </div>
         <p className="px-4 pb-3 pt-0.5 text-[0.65rem] leading-snug text-muted">
           {RAW_ENGINES.find((e) => e.id === params.rawEngine)?.hint}. Не LUT — цвет
-          сенсора до спектральной плёнки. Стили HNCS / Lumix / Adobe — во вкладке Тон.
+          сенсора до спектральной плёнки. Стили HNCS / Lumix / Adobe — в «Финиш → Цифровой тон».
           Spektrafilm оставляет текущий экспорт как есть.
         </p>
       </div>
@@ -1934,6 +1926,16 @@ function SettingsPane({ onNotice, onOpenEnlarger }: { onNotice?: (msg: string) =
           Длинная сторона на экране. Меньше — легче крутить, больше — резче. Сохранение всегда в полном размере.
         </p>
       </div>
+              <SliderRow
+                label="LUT превью"
+                hint={String(params.lutResolution)}
+                min={9}
+                max={33}
+                step={4}
+                value={params.lutResolution}
+                onChange={(v) => setParam("lutResolution", v)} defaultValue={defaultParams().lutResolution}
+              />
+
       <p className="lab-kicker">Разделы</p>
       <div className="lab-set-card">
         <button type="button" className="lab-set-go" onClick={() => setTool("export")}>
@@ -1945,8 +1947,8 @@ function SettingsPane({ onNotice, onOpenEnlarger }: { onNotice?: (msg: string) =
         </button>
         <button type="button" className="lab-set-go" onClick={() => setTool("lab")}>
           <span>
-            <span className="lab-set-go-title">Лаб</span>
-            <span className="lab-set-go-hint">Спектр, гамут, Hanatos</span>
+            <span className="lab-set-go-title">Спектр плёнки</span>
+            <span className="lab-set-go-hint">Реконструкция света и Hanatos</span>
           </span>
           <ChevronRight className="size-4 shrink-0 text-subtle" strokeWidth={1.75} />
         </button>
@@ -1958,7 +1960,7 @@ function SettingsPane({ onNotice, onOpenEnlarger }: { onNotice?: (msg: string) =
           <ChevronRight className="size-4 shrink-0 text-subtle" strokeWidth={1.75} />
         </button>
       </div>
-      <p className="lab-set-foot">Удержание вкладки сбрасывает её параметры.</p>
+      <p className="lab-set-foot">Сброс текущего инструмента — круговая стрелка в заголовке панели. Изменение можно отменить.</p>
     </div>
   );
 }

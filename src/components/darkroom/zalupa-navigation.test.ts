@@ -2,122 +2,138 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { defaultParams } from "../../lib/film/defaults.ts";
 import {
-  pageForTool,
-  resetZPage,
-  zPage,
-  zChanges,
-  zDeck,
   Z_DECKS,
+  Z_SERVICE,
+  Z_PAGE_KEYS,
   zPages,
+  zPage,
+  zDeck,
+  pageForTool,
+  zChanges,
+  resetZPage,
+  zBypassReason,
 } from "./zalupa-navigation.ts";
-test("source-specific pages and same-tool parameters route to their visible controls", () => {
-  for (const [tool, label, expected] of [
+import index from "../../lib/film/control-index.json" with { type: "json" };
+
+test("seven freely navigable photographic stages and one catalogue replace donor navigation", () => {
+  assert.deepEqual(
+    Z_DECKS.map((d) => d.title),
+    ["Камера", "Плёнка", "Проявка", "Эффекты", "Печать", "Скан", "Финиш"],
+  );
+  assert.equal(new Set(zPages.map((p) => p.id)).size, zPages.length);
+  assert.equal(Z_DECKS.flatMap((d) => [...d.pages]).filter((p) => p.id === "films").length, 1);
+  assert.ok(!Z_SERVICE.some((p) => p.id === "lab" || p.id === "export"));
+  for (const p of zPages)
+    assert.ok(Z_PAGE_KEYS[p.id] || ["gallery", "presets", "stock", "log"].includes(p.id), p.id);
+});
+test("old functions and all calculation controls resolve to functional pages", () => {
+  for (const [tool, label, id] of [
     ["camera", "EV", "exposure"],
     ["camera", "Тинт", "balance"],
     ["camera", "UV-срез", "lens"],
     ["camera", "Формат, мм", "format"],
     ["film", "Частица, µm²", "grain"],
     ["film", "Рассеяние", "halation"],
-    ["film", "Межслойное", "emulsion-dir"],
+    ["film", "Межслойное", "dir"],
+    ["negs", "Насыщение донора R", "dir"],
+    ["negs", "RMS красного канала", "grain"],
+    ["negs", "DIR-каплеры", "dir"],
+    ["fotufilm", "Толщина основы", "halation"],
+    ["fotufilm", "Характер минилаба", "output"],
+    ["lab", "Входной гамут", "input-color"],
+    ["lab", "Декод CCTF", "input-color"],
+    ["lab", "LUT превью", "settings"],
+    ["lab", "RGB → спектр", "spectrum"],
+    ["lab", "Спектр. размытие", "spectrum"],
+    ["lab", "Выходной гамут", "output-color"],
+    ["lab", "Апскейл", "output-color"],
+    ["emulsion", "Фильтр перед объективом", "taking-filter"],
+    ["emulsion", "Циан основы", "film-base"],
+    ["development", "Химия плёнки по слоям", "chemistry"],
+    ["print", "Циан основы", "paper-base"],
     ["crop", "DX-полоса", "frame"],
-    ["fotufilm", "Характер минилаба", "fotufilm-output"],
-    ["fotufilm", "Толщина основы", "fotufilm-halation"],
-    ["negs", "Насыщение донора R", "exp-dir"],
   ] as const)
-    assert.equal(pageForTool(tool, label).id, expected);
-  assert.equal(new Set(zPages.map((p) => p.id)).size, zPages.length);
-  for (const d of Z_DECKS) assert.ok(d.pages.length > 0);
+    assert.equal(pageForTool(tool, label).id, id, tool + ": " + label);
+  for (const row of index.rows)
+    assert.ok(
+      zPages.some((p) => p.id === pageForTool(row.tool as any, row.label).id),
+      row.label,
+    );
 });
-test("page reset preserves other pages of the same original tool and all other source models", () => {
+test("grain reset covers both alternatives without changing neighbouring effects or output", () => {
   const p = defaultParams();
-  p.exposureCompensationEv = 1.25;
-  p.tint = 17;
-  p.cameraDiffusion.strength = 1.5;
-  p.filmStock = "kodak_gold_200";
+  p.grainParticleArea = 0.8;
+  p.experimental.grainRms = true;
+  p.experimental.grainRmsRed = 22;
   p.transport.model = "layered";
   p.transport.baseThickness = 2;
-  const next = resetZPage(p, zPage("exposure"));
-  assert.equal(next.exposureCompensationEv, defaultParams().exposureCompensationEv);
-  assert.equal(next.tint, 17);
-  assert.equal(next.cameraDiffusion.strength, 1.5);
-  assert.equal(next.filmStock, "kodak_gold_200");
-  assert.equal(next.transport.baseThickness, 2);
-  assert.equal(p.exposureCompensationEv, 1.25);
-  assert.equal(zChanges(next, zPage("exposure")), 0);
-  assert.ok(zChanges(next, zPage("balance")) > 0);
-});
-test("Fotufilm and Experimental page resets retain the other imported stage", () => {
-  const p = defaultParams();
+  p.experimental.dirDonorRed = 3;
   p.output.mode = "lab-scan";
-  p.output.look = 0.55;
+  const result = resetZPage(p, zPage("grain"));
+  for (const key of ["grainParticleArea", "grainActive", "grainBlur"] as const)
+    assert.deepEqual(result[key], defaultParams()[key]);
+  assert.equal(result.experimental.grainRmsRed, defaultParams().experimental.grainRmsRed);
+  assert.deepEqual(result.transport, p.transport);
+  assert.deepEqual(result.output, p.output);
+  assert.equal(result.experimental.dirDonorRed, 3);
+  assert.equal(p.experimental.grainRmsRed, 22);
+  assert.equal(zChanges(result, zPage("grain")), 0);
+});
+test("DIR and halation reset all their alternatives independently", () => {
+  const p = defaultParams();
+  p.experimental.dirLangmuir = true;
+  p.experimental.dirTailUm = 700;
+  p.couplersAmount = 2;
   p.transport.model = "layered";
-  p.transport.baseThickness = 1.5;
-  p.experimental.dirDonorRed = 1.7;
-  p.experimental.grainRmsRed = 15;
-  const out = resetZPage(p, zPage("fotufilm-output"));
-  assert.deepEqual(out.output, defaultParams().output);
-  assert.deepEqual(out.transport, p.transport);
-  const grain = resetZPage(p, zPage("exp-grain"));
-  assert.equal(grain.experimental.grainRmsRed, defaultParams().experimental.grainRmsRed);
-  assert.equal(grain.experimental.dirDonorRed, 1.7);
-  assert.deepEqual(grain.output, p.output);
+  p.transport.hazeUm = 80;
+  p.scatterAmount = 1;
+  p.tint = 9;
+  const d = resetZPage(p, zPage("dir"));
+  assert.deepEqual(d.transport, p.transport);
+  assert.equal(d.experimental.dirTailUm, defaultParams().experimental.dirTailUm);
+  const h = resetZPage(p, zPage("halation"));
+  assert.deepEqual(h.transport, defaultParams().transport);
+  assert.equal(h.scatterAmount, defaultParams().scatterAmount);
+  assert.equal(h.experimental.dirTailUm, 700);
+  assert.equal(h.tint, 9);
 });
-
-test("one source owns every processing page; the film catalogue remains shared", () => {
-  assert.deepEqual(
-    Z_DECKS.map((d) => d.source),
-    ["catalog", "spektrafilm", "experimental", "negs", "fotufilm"],
-  );
-  for (const [page, source] of [
-    ["films", "catalog"],
-    ["grain", "spektrafilm"],
-    ["develop", "spektrafilm"],
-    ["paper", "spektrafilm"],
-    ["spectrum", "experimental"],
-    ["exp-chemistry", "experimental"],
-    ["exp-paper", "experimental"],
-    ["exp-grain", "experimental"],
-    ["exp-dir", "experimental"],
-    ["negative", "experimental"],
-    ["prep", "negs"],
-    ["negs-format", "negs"],
-    ["negs-profiles", "negs"],
-    ["fotufilm-output", "fotufilm"],
-    ["fotufilm-halation", "fotufilm"],
-  ])
-    assert.equal(zDeck(page)?.source, source);
-  for (const [tool, label, id] of [
-    ["development", "Химия плёнки по слоям", "exp-chemistry"],
-    ["development", "Коэффициент проявки γ", "develop"],
-    ["print", "Настройка основы бумаги", "exp-paper"],
-    ["print", "Экспозиция", "paper"],
-    ["texture", "Размытие зерна", "exp-grain"],
-    ["texture", "Диффузия, µm", "exp-dir"],
-  ])
-    assert.equal(pageForTool(tool as any, label).id, id);
-  assert.ok(!zPages.some((p) => p.id === "texture" || p.id === "edit"));
-});
-test("native page reset does not silently reset imported chemistry or bases", () => {
+test("shared exposure/gamma/format keep one state; resets isolate chemistry and paper base", () => {
   const p = defaultParams();
   p.filmGamma = 1.5;
-  p.experimental.filmChemistry = true;
-  p.experimental.filmFast = 1.7;
-  p.experimental.printBaseActive = true;
-  p.experimental.printBaseCyan = 1.8;
-  const native = resetZPage(p, zPage("develop"));
-  assert.equal(native.filmGamma, 1);
-  assert.equal(native.experimental.filmFast, 1.7);
-  assert.equal(native.experimental.filmChemistry, true);
+  p.experimental.filmFast = 1.8;
+  p.experimental.printBaseCyan = 1.4;
+  p.tint = 12;
+  assert.ok(Z_PAGE_KEYS.develop.includes("filmGamma"));
+  assert.ok(Z_PAGE_KEYS.chemistry.includes("filmGamma"));
+  const d = resetZPage(p, zPage("develop"));
+  assert.equal(d.experimental.filmFast, 1.8);
   const paper = resetZPage(p, zPage("paper"));
-  assert.equal(paper.experimental.printBaseCyan, 1.8);
-  assert.equal(paper.experimental.printBaseActive, true);
-  const chemical = resetZPage(p, zPage("exp-chemistry"));
-  assert.equal(chemical.experimental.filmFast, defaultParams().experimental.filmFast);
-  assert.equal(chemical.experimental.printBaseCyan, 1.8);
+  assert.equal(paper.experimental.printBaseCyan, 1.4);
+  const spectrum = resetZPage(p, zPage("spectrum"));
+  assert.equal(spectrum.tint, 12);
 });
-
-test("legacy model notices open the actual owning page", () => {
-  assert.equal(pageForTool("negs", undefined, "grain").id, "exp-grain");
-  assert.equal(pageForTool("negs", undefined, "emulsion-dir").id, "exp-dir");
-  assert.equal(pageForTool("fotufilm", undefined, "halation").id, "fotufilm-halation");
+test("negative route and digital output explicitly report bypasses without clearing values", () => {
+  const p = defaultParams();
+  p.filmStock = "kodak_gold_200";
+  p.experimental.workflow = "negative-print";
+  p.output.mode = "lab-scan";
+  for (const id of ["grain", "halation", "dir", "prep", "develop"])
+    assert.ok(zBypassReason(p, id), id);
+  for (const id of ["paper", "paper-base", "test-print"])
+    assert.equal(
+      zBypassReason(p, id),
+      null,
+      id + " still participates in negative-print regardless of saved digital output",
+    );
+  p.experimental.workflow = "negative-scan";
+  for (const id of ["paper", "paper-base", "test-print"]) assert.ok(zBypassReason(p, id), id);
+  assert.equal(zBypassReason(p, "chemistry"), null);
+  assert.equal(zBypassReason(p, "balance"), null);
+  assert.equal(zBypassReason(p, "negative"), null);
+  assert.equal(zBypassReason(p, "frame"), null);
+  const before = structuredClone(p);
+  for (const page of zPages) zBypassReason(p, page.id);
+  assert.deepEqual(p, before);
+  assert.equal(zDeck("negative")?.id, "scan");
+  assert.equal(zDeck("output")?.id, "print");
 });

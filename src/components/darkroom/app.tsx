@@ -8,7 +8,8 @@ import { nativeTestPrint, jpegB64ToObjectUrl } from "@/lib/film/native-raw";
 import { frameImageData, edgeLabel } from "@/lib/film/photo-frame";
 import { toolChangeCount } from "@/lib/film/tool-state";
 import { Histogram } from "@/components/darkroom/histogram";
-import { Panel, TOOLS } from "@/components/darkroom/panel";
+import { TOOLS } from "@/components/darkroom/panel";
+import { ProcessPanel as Panel } from "./process-panel";
 import { GalleryPane } from "@/components/darkroom/gallery";
 import { StockPane } from "@/components/darkroom/stock";
 import { Viewer } from "@/components/darkroom/viewer";
@@ -1640,7 +1641,7 @@ export function DarkroomApp() {
       hidden={chromeHidden} onShowChrome={()=>setChromeHidden(false)}
       extraActions={[...(canStock?[{label:'Добавить кадр в очередь',run:()=>void addToStock(),disabled:busy||exporting||batching}]:[]),...(prefs.experimentalEnlarger?[{label:'Пробная печать',run:()=>setEnlargerOpen(true),disabled:busy||exporting||batching}]:[])]}
       panel={<FlatControlSections><Panel
-              catalog={catalog} workspacePage={workspacePage.id} originalUrl={origUrl}
+              catalog={catalog} workspacePage={workspacePage.id} originalUrl={origUrl} onNavigate={id=>openWorkspace(zPage(id))}
               onSave={() => void saveFrame()}
               saving={exporting}
               canSave={canSave}
