@@ -2,9 +2,10 @@ import { useDarkroom } from "@/lib/film/store";
 import { Field, Select, SliderRow, ToggleRow } from "@/components/ui/control";
 import { ControlSection } from "./workflow-ui";
 import { constructionName, constructionCapabilities } from "@/lib/film/layered-transport";
-export function HalationControls({ showLegacyDetails = false }: { showLegacyDetails?: boolean }) {
+export function HalationControls({ showLegacyDetails = false,sourceOnly=false }: { showLegacyDetails?: boolean;sourceOnly?:boolean }) {
   const params = useDarkroom((s) => s.params),
     setParam = useDarkroom((s) => s.setParam),
+    patch = useDarkroom((s) => s.patch),
     p = params.transport;
   const capabilities = constructionCapabilities(params.filmStock);
   const update = (key: "antiHalation" | "baseThickness" | "pressurePlate" | "hazeUm", v: number) =>
@@ -12,14 +13,14 @@ export function HalationControls({ showLegacyDetails = false }: { showLegacyDeta
   return (
     <>
       <ToggleRow
-        label="Гало вокруг светов"
+        label={sourceOnly?"Использовать Layered Transport":"Гало вокруг светов"}
         hint="Свечение у ламп, солнца и ярких бликов на плёнке."
-        checked={params.halationActive}
-        onChange={(v) => setParam("halationActive", v)}
+        checked={sourceOnly?p.model==="layered"&&params.halationActive:params.halationActive}
+        onChange={(v) => sourceOnly?patch({transport:{...p,model:v?"layered":"legacy"},...(v?{halationActive:true}:{})}):setParam("halationActive", v)}
       />
-      {params.halationActive ? (
+      {params.halationActive && (!sourceOnly||p.model==="layered") ? (
         <>
-          <div className="px-4 py-2">
+          {!sourceOnly?<div className="px-4 py-2">
             <Field label="Модель свечения">
               <Select
                 ariaLabel="Модель свечения"
@@ -31,7 +32,7 @@ export function HalationControls({ showLegacyDetails = false }: { showLegacyDeta
                 ]}
               />
             </Field>
-          </div>
+          </div>:null}
           <SliderRow
             label="Сила гало"
             hint={params.halationAmount.toFixed(2)}

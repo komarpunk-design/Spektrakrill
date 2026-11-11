@@ -2,12 +2,14 @@ import type {ToolId} from './store.ts';
 export const WORKFLOW_STAGES=[
  {id:'library',label:'Снимки',number:'01',defaultTool:'gallery',tools:['gallery','stock','presets']},
  {id:'source',label:'Исходник',number:'02',defaultTool:'prep',tools:['prep','camera','crop','tone']},
- {id:'film',label:'Плёнка',number:'03',defaultTool:'film',tools:['edit','film','development','texture','emulsion','negative']},
+ {id:'film',label:'Плёнка',number:'03',defaultTool:'film',tools:['fotufilm','negs','edit','film','development','texture','emulsion','negative']},
  {id:'print',label:'Результат',number:'04',defaultTool:'outputs',tools:['outputs','print','scan']},
  {id:'output',label:'Сохранить',number:'05',defaultTool:'export',tools:['frame','export']},
  {id:'service',label:'Сервис',number:'',defaultTool:'settings',tools:['settings','lab','log']},
 ] as const;
 export const TOOL_GUIDE:Record<ToolId,{title:string;short:string;purpose:string;when:string}>={
+ fotufilm:{title:'Инструменты Fotufilm',short:'Fotufilm',purpose:'Outputs, Lab Scan и послойная галяция Layered Transport.',when:'Отдельный набор перенесённых моделей.'},
+ negs:{title:'Инструменты Negs',short:'Negs',purpose:'Подготовка исходника, RMS-зерно и взаимодействие слоёв.',when:'Дополнения Negs отделены от исходных инструментов.'},
  edit:{title:'Обработка фотографии',short:'Обработка',purpose:'Основные настройки света, плёнки и готового изображения в одном месте.',when:'Начните здесь после открытия фотографии.'},
  gallery:{title:'Галерея',short:'Галерея',purpose:'Откройте исходную фотографию или вернитесь к сохранённым снимкам.',when:'Начните здесь, если кадр ещё не открыт.'},
  stock:{title:'Пакетная обработка',short:'Очередь',purpose:'Сохраните несколько кадров с выбранными настройками.',when:'Для серии фотографий, которую нужно обработать одинаково.'},

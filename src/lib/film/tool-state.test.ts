@@ -26,10 +26,16 @@ describe('workflow reset ownership',()=>{
  const out=resetToolParams(p,'texture');assert.equal(out.experimental.grainRmsRed,defaultParams().experimental.grainRmsRed);assert.equal(out.experimental.filmRed,1.4);assert.equal(out.experimental.printBaseScale,1.2);assert.equal(out.prep.shadows,20);assert.equal(out.frameStyle,'135');assert.equal(out.filmStock,p.filmStock);assert.equal(p.experimental.grainRmsRed,31);
  });
  it('resets output without resetting paper or photographic frame',()=>{const p=defaultParams();p.output.mode='lab-scan';p.printExposure=2;p.frameStyle='120';const out=resetToolParams(p,'outputs');assert.equal(out.output.mode,'paper');assert.equal(out.printExposure,2);assert.equal(out.frameStyle,'120');});
- it('separates crop from film edges',()=>{const p=defaultParams();p.crop=true;p.frameStyle='135';p.whitePadding=.1;const out=resetToolParams(p,'crop');assert.equal(out.crop,false);assert.equal(out.frameStyle,'135');assert.equal(out.whitePadding,.1);assert.equal(resetToolParams(p,'frame').whitePadding,defaultParams().whitePadding);});
+ it('restored 9.47 crop owns its visible frame controls',()=>{const p=defaultParams();p.crop=true;p.frameStyle='135';p.whitePadding=.1;const out=resetToolParams(p,'crop');assert.equal(out.crop,false);assert.equal(out.frameStyle,'none');assert.equal(out.whitePadding,defaultParams().whitePadding);assert.equal(resetToolParams(p,'frame').whitePadding,defaultParams().whitePadding);});
 });
 
 
 describe('simple editor reset',()=>{
  it('resets the main exposure without erasing advanced Prep or chosen film',()=>{const p=defaultParams();p.prep.exposure=1;p.prep.shadows=25;p.exposureCompensationEv=-1;p.filmGamma=1.2;p.filmStock='negs_cinestill_800t';p.transport.model='layered';const out=resetToolParams(p,'edit');assert.equal(out.prep.exposure,0);assert.equal(out.prep.shadows,25);assert.equal(out.exposureCompensationEv,-1);assert.equal(out.filmGamma,1.2);assert.equal(out.filmStock,p.filmStock);assert.equal(out.transport.model,'legacy');});
+});
+
+
+describe('source-separated tool resets',()=>{
+ it('Fotufilm reset preserves the Spektrafilm material, grain and print settings',()=>{const p=defaultParams();p.filmStock='kodak_portra_400';p.grainBlur=.9;p.printExposure=2;p.experimental.filmFast=1.4;p.transport.model='layered';p.output.mode='lab-scan';const out=resetToolParams(p,'fotufilm');assert.equal(out.transport.model,'legacy');assert.equal(out.output.mode,'paper');assert.equal(out.filmStock,p.filmStock);assert.equal(out.grainBlur,.9);assert.equal(out.printExposure,2);assert.deepEqual(out.experimental,p.experimental);});
+ it('Film reset leaves the active Fotufilm transport and output untouched',()=>{const p=defaultParams();p.transport.model='layered';p.halationAmount=2;p.output.mode='lab-scan';const out=resetToolParams(p,'film');assert.deepEqual(out.transport,p.transport);assert.deepEqual(out.output,p.output);assert.equal(out.halationAmount,2);});
 });

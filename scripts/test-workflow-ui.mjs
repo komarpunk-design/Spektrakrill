@@ -1,3 +1,2 @@
-// 9.51 replaces the stage/sub-tab rail with the simple editor and flat tools directory.
-// Keep the old workflow smoke command as an alias for the current interface contract.
-import './test-simple-editor-ui.mjs';
+// 9.52 restores 9.47 layout and separates imported controls by source.
+import './test-restored-947-ui.mjs';

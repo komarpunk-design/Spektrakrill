@@ -3179,185 +3179,35 @@ a.lab-set-go {
 .development-controls summary {cursor:pointer;font-size:11px;color:var(--color-muted);padding:8px 0;}
 .development-controls details p {margin:10px 0 0;}
 
-.emulsion-controls {display:flex;flex-direction:column;gap:16px;padding:14px;}
-.emulsion-controls h2{font-size:24px;margin:8px 0;}
-.emulsion-controls .lab-note{padding:0;font-size:11px;line-height:1.6;}
-.emulsion-controls .lab-slider-row{padding:0;}
-
-.lab-stock-title-row {display:flex;align-items:center;justify-content:space-between;gap:12px;}
-.lab-stock-star {flex:none;border:1px solid var(--line,#333b3c);border-radius:8px;background:transparent;color:var(--accent,#cce18c);width:36px;height:36px;font-size:24px;cursor:pointer;}
-.lab-model-note {color:#d7c78d!important;font-size:11px;line-height:1.6;}
-
-/* Workflow: six permanent stages, with tools kept inside their stage. */
-.workflow-dock-heading { grid-area:head; min-width:0; }
-.workflow-tools { display:flex; gap:5px; padding:9px 10px; overflow-x:auto; scrollbar-width:thin; flex-shrink:0; border-bottom:1px solid var(--wb-line,#343b40); background:#20272b; }
-.workflow-tools button { flex:0 0 auto; padding:8px 10px; border:1px solid transparent; border-radius:5px; font-size:11px; line-height:1.2; color:#b8c1c5; white-space:nowrap; }
-.workflow-tools button[aria-pressed=true] { color:#d4e9a6; background:#c6de8912; border-color:#c6de8940; }
-.workflow-tools button i { display:inline-block; width:5px; height:5px; border-radius:50%; background:#d4e9a6; margin-left:5px; vertical-align:middle; }
-.workflow-intro { padding:16px; border-bottom:1px solid #364047; margin-bottom:10px; }
-.workflow-intro>div { display:flex; justify-content:space-between; align-items:center; gap:8px; color:#a7b4bc; font-size:10px; }
-.workflow-intro button { padding:4px 6px; border:1px solid #475057; border-radius:4px; font-size:9px; }
-.workflow-intro h2 { font-size:17px; line-height:1.3; color:#e5eae5; margin:10px 0 8px; font-weight:600; }
-.workflow-intro p { color:#b9c4cb; font-size:12px; line-height:1.55; margin:0; }
-.workflow-intro small { display:block; margin-top:9px; color:#929ea5; font-size:10px; line-height:1.55; }
-.control-section { margin:10px; border:1px solid #3a444b; border-radius:6px; background:#20262b; overflow:hidden; }
-.control-section>summary { cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px; list-style:none; }
+/* Imported source controls use the 9.47 inspector without changing its layout. */
+.source-controls>header { padding:15px 16px; border-bottom:1px solid #343d43; }
+.source-controls>header>span { color:#bfd48d; font-size:10px; letter-spacing:.1em; }
+.source-controls h2 { font-size:17px; font-weight:600; margin:7px 0; color:#e7eae5; }
+.source-controls>header p,.source-note { color:#9eabb3; font-size:11px; line-height:1.6; }
+.source-controls>section { padding:14px 0; border-bottom:1px solid #343d43; }
+.source-controls h3,.source-extras h3 { color:#d1dec0; font-size:12px; margin:0 16px 12px; font-weight:600; }
+.source-note { margin:0 16px 8px; }
+.source-link,.source-back { display:block; padding:11px 14px; margin:10px 12px; border:1px solid #414c52; background:#242e33; border-radius:4px; color:#cbdcaa; font-size:11px; text-align:left; }
+.source-active-note,.output-notice { margin:10px 14px; padding:11px; border:1px solid #64714c; border-radius:4px; color:#bdcba4; font-size:11px; line-height:1.6; }
+.source-active-note button { display:block; color:#d1e5a8; padding:7px 0 0; text-decoration:underline; }
+.source-extras { border-bottom:1px solid #343d43; padding:12px 0; }
+.control-help { display:block; margin-top:4px; color:#9eabb3; font-size:10px; font-weight:400; line-height:1.5; }
+.lab-slider-row>.control-help { grid-column:1/-1; }
+.control-section { border:1px solid #3c474f; border-radius:5px; margin:10px; background:#20282d; }
+.control-section>summary { cursor:pointer; display:flex; gap:8px; justify-content:space-between; padding:11px; list-style:none; }
 .control-section>summary::-webkit-details-marker { display:none; }
-.control-section>summary strong { display:block; color:#dce3e5; font-size:12px; font-weight:600; }
-.control-section>summary small { display:block; color:#a2afb6; font-size:10px; line-height:1.5; margin-top:4px; }
-.control-section-meta { display:flex; gap:6px; align-items:center; flex-shrink:0; }
-.control-section-meta b { font-size:9px; font-weight:500; color:#c6de89; }
-.control-section-meta i { font-style:normal; color:#c6de89; font-size:17px; }
-.control-section[open]>summary { border-bottom:1px solid #3a444b; }
+.control-section>summary strong { display:block; color:#dce4e7; font-size:12px; }
+.control-section>summary small { display:block; color:#9eabb3; font-size:10px; margin-top:4px; line-height:1.5; }
 .control-section-body { padding:8px 0; }
-.control-section .control-section { background:#252e33; margin:8px; }
-.control-help { display:block; color:#a2afb6; font-size:10px; line-height:1.5; font-weight:400; margin-top:4px; white-space:normal; }
-.lab-slider-row>.control-help,.lab-slider-row>.control-help-disclosure { grid-column:1/-1; }
-.control-help-disclosure { color:#a2afb6; font-size:10px; margin-top:4px; }
-.control-help-disclosure>summary { cursor:pointer; }
-.workflow-links { display:grid; gap:7px; margin:12px; }
-.workflow-links button { text-align:left; padding:11px; border:1px solid #3a444b; border-radius:5px; background:#242d32; }
-.workflow-links strong { display:flex; justify-content:space-between; color:#d4e9a6; font-size:12px; font-weight:500; }
-.workflow-links small { display:block; color:#a2afb6; font-size:10px; line-height:1.5; margin-top:5px; }
-.lab-stage.is-gallery { flex-direction:column; }
-.lab-stage.is-gallery>.lab-library,.lab-stage.is-gallery>.lab-stock { flex:1; min-height:0; }
-.lab-app .workflow-rail .lab-tool:last-child { margin-left:0; }
-.lab-app .workflow-rail .lab-tool { flex:1 0 0; min-width:0; }
-.lab-app .workflow-rail .lab-tool-label { font-size:10px; white-space:nowrap; }
-.lab-app.is-sheet-peek:not(.is-sheet-live) .workflow-dock-heading { display:none; }
-@media(min-width:1100px) {
- .lab-app .lab-dock,.lab-app.is-sheet-peek .lab-dock,.lab-app.is-sheet-live.is-sheet-peek .lab-dock { grid-template-rows:auto minmax(0,1fr); }
- .lab-app.is-sheet-peek:not(.is-sheet-live) .workflow-dock-heading { display:block; }
- .lab-app .workflow-rail .lab-tool { flex:0 0 auto; }
-}
-.output-description { margin-top:12px; line-height:1.65; }
-.output-notice { margin:12px; padding:12px; border:1px solid #5b6245; border-radius:6px; color:#c4cca8; font-size:11px; line-height:1.65; }
-.output-notice>.lab-btn { margin-top:12px; width:100%; }
-.output-notice .workflow-links { margin:10px 0 0; }
-.shelf-collection { margin:2px 0 12px; }
-.shelf-expand { display:block; width:100%; margin:10px 0 0; padding:10px; border:1px solid #414c52; border-radius:4px; }
-@media(max-width:1099px){
- .workflow-intro { padding:12px 16px; }
- .workflow-intro h2 { font-size:15px; margin:8px 0 6px; }
- .workflow-intro small { font-size:10px; }
-}
-.lab-box-source { display:block; color:#b4c29d; font-size:8px; line-height:1.3; margin-top:4px; }
-
-/* 9.51: one editing page and a single tools directory. Light instrument panels. */
-.lab-app.simple-editor {
- --color-bg:#eef1f3; --color-surface:#ffffff; --color-raised:#f4f6f7; --color-hover:#e6ecef;
- --color-track:#c5cfd5; --color-fg:#20323c; --color-muted:#425b69; --color-subtle:#5b707b;
- --color-border:#d2dce1; --color-accent:#277567; --color-accent-fg:#ffffff;
- --wb-panel:#f8fafb; --wb-line:#d1dce1; --wb-accent:#286e61;
- background:#eef2f4; color:#20323c;
-}
-.simple-editor .lab-top,.simple-editor .lab-rail,.simple-editor .lab-dock,.simple-editor .workbench-library,.simple-editor .workbench-status { background:#f8fafb; color:#20323c; border-color:#d1dce1; }
-.simple-editor .lab-stage,.simple-editor .lab-lcd,.simple-editor .lab-print-well { background:#dbe1e4; background-image:none; }
-.simple-editor .workbench-stagebar { background:#eaf0f3; color:#425b69; border-color:#ccd7dd; }
-.simple-editor .workbench-stagebar button { color:#425b69; }
-.simple-editor .lab-top .lab-iconbtn,.simple-editor .workbench-command { background:#fff; color:#2c4857; border-color:#cedae0; }
-.simple-editor .workbench-brand { color:#233d49; }
-.simple-editor .lab-tool.is-on { background:#dcece7; color:#1d6558; }
-.simple-editor .lab-tool.is-on::before { background:#277567; }
-.simple-editor .lab-btn.is-solid { background:#277567; color:white; }
-.simple-editor .lab-select,.simple-editor input,.simple-editor textarea { background:#fff; color:#20323c; border-color:#c4d0d7; }
-.simple-editor .lab-select-wrap { color:#4b626f; }
-.simple-editor .lab-switch { background:#becbd2; }
-.simple-editor .lab-switch.is-on { background:#277567; }
-.simple-editor .lab-switch-knob { background:#fff; }
-.simple-editor .lab-range-thumb { background:#277567; }
-.simple-editor .lab-range-fill { background:#277567; }
-.simple-editor .lab-range-track { background:#c7d2d8; }
-.simple-editor .lab-stepper,.simple-editor .lab-step { background:#edf2f5; color:#2b4b5c; border-color:#cad7de; }
-.simple-editor .lab-dock-head { min-height:38px; background:#edf3f6; }
-.simple-editor .lab-dock-title { color:#344f5d; }
-.simple-editor .workflow-intro { padding:14px 16px; border-color:#d3dfe5; margin-bottom:0; }
-.simple-editor .workflow-intro h2 { color:#263e4c; font-size:16px; margin:0 0 6px; }
-.simple-editor .workflow-intro p { color:#526b79; font-size:12px; }
-.simple-editor .control-help { color:#526b79; font-size:11px; line-height:1.5; }
-.simple-editor .control-section { background:#fff; border-color:#cdd9e0; }
-.simple-editor .control-section>summary strong { color:#2b4655; }
-.simple-editor .control-section>summary small { color:#56707e; }
-.simple-editor .control-section[open]>summary { border-color:#d5e0e6; }
-.simple-editor .control-section-meta b,.simple-editor .control-section-meta i { color:#277567; }
-.simple-editor .control-section-flat { border-top:1px solid #dce5ea; margin:14px 10px 8px; padding-top:12px; }
-.simple-editor .control-section-flat h3 { color:#344f5e; font-size:12px; font-weight:600; margin:0 6px 4px; }
-.simple-editor .control-section-flat>p { color:#607783; font-size:11px; margin:0 6px 10px; line-height:1.5; }
-.simple-editor .lab-app .lab-tool:last-child,.simple-editor .simple-rail .lab-tool:last-child { margin:0; }
-.simple-editor .workspace-back { padding:9px 14px; background:#edf3f6; border-bottom:1px solid #d4dfe5; }
-.simple-editor .workspace-back button { color:#2b6e60; font-size:12px; }
-.simple-editor .workflow-links { display:flex; flex-wrap:wrap; gap:6px; }
-.simple-editor .workflow-links button { padding:8px 10px; background:#e8f1ed; border-color:#c7dcd3; flex:1 1 120px; }
-.simple-editor .workflow-links strong { color:#276453; font-size:11px; }
-.simple-editor .workflow-links small { display:none; }
-.simple-editor .lab-stock-detail { background:#edf4f7; color:#344f5e; border-color:#cfdee5; }
-.simple-editor .lab-box { background:#fff; color:#2b4453; border-color:#c7d6de; }
-.simple-editor .lab-box.is-on { border-color:#277567; background:#e1efe9; }
-.simple-editor .lab-box-source { color:#4c7062; }
-.simple-editor .lab-note,.simple-editor .lab-kicker,.simple-editor .lab-model-note { color:#59717e; }
-.simple-editor .lab-set-card,.simple-editor .output-notice { background:#fff; color:#415b69; border-color:#cfdee5; }
-.simple-editor .lab-set-go,.simple-editor .lab-credit { color:#315b6b; }
-.simple-editor .development-controls,.simple-editor .development-section { background:transparent; color:#2d4654; border-color:#cedce3; }
-.simple-editor .lab-empty { color:#324d5b; }
-.simple-editor .lab-empty-brand { color:#294857; }
-.simple-editor .lab-empty p,.simple-editor .workbench-eyebrow { color:#526c7a; }
-.edit-heading { padding:18px 18px 10px; }
-.edit-heading>span,.edit-welcome>span { color:#307567; letter-spacing:.12em; font-size:10px; font-weight:600; }
-.edit-heading h2 { color:#243f4e; font-size:20px; font-weight:600; margin:5px 0 8px; }
-.edit-heading p,.edit-caption { color:#526e7c; font-size:12px; line-height:1.6; }
-.edit-block { margin:12px; border:1px solid #d3dfe5; border-radius:9px; background:#fff; overflow:hidden; padding-bottom:10px; }
-.edit-block-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:13px 14px; border-bottom:1px solid #e0e8ed; background:#f2f7f9; margin-bottom:5px; }
-.edit-block-heading h3 { color:#294858; font-size:13px; font-weight:650; }
-.edit-block-heading button { color:#287060; font-size:10px; }
-.edit-current-film { padding:8px 16px; color:#2d4c5d; font-size:14px; font-weight:500; }
-.edit-caption { margin:7px 16px; }
-.edit-next { margin:18px 16px; }
-.edit-next>.lab-btn { width:100%; }
-.edit-next>p { font-size:11px; color:#526e7c; line-height:1.6; margin-top:10px; }
-.edit-welcome { padding:28px 20px; }
-.edit-welcome h2 { font-size:23px; font-weight:600; line-height:1.25; color:#284656; margin:10px 0; }
-.edit-welcome p { font-size:13px; line-height:1.7; color:#55707e; margin-bottom:20px; }
-.edit-welcome ol { list-style:decimal; padding-left:18px; font-size:12px; color:#55707e; line-height:1.8; margin-top:24px; }
-.transport-page { background:#fff; border:1px solid #d2dfe5; border-radius:8px; margin:12px; padding:10px 0; }
-.transport-page>h3 { padding:4px 16px 12px; color:#2b4959; font-size:14px; font-weight:600; }
-.transport-construction { color:#5d7481; font-size:10px; line-height:1.6; margin:8px 16px 12px; }
-.tools-menu-backdrop { position:fixed; inset:0; z-index:90; display:flex; align-items:center; justify-content:center; padding:20px; background:#243b4f66; backdrop-filter:blur(3px); }
-.tools-menu { width:min(700px,100%); max-height:85dvh; display:flex; flex-direction:column; background:#f7fafc; border:1px solid #c6d5de; border-radius:14px; box-shadow:0 25px 90px #203a4d33; color:#294858; overflow:hidden; }
-.tools-menu>header { display:flex; justify-content:space-between; align-items:start; gap:10px; padding:22px 22px 14px; }
-.tools-menu h2 { font-size:21px; font-weight:650; }
-.tools-menu header p { font-size:12px; color:#5c7684; margin-top:4px; }
-.tools-menu header button { padding:6px 10px; background:#e2eaf0; border-radius:5px; }
-.tools-menu>input { margin:0 20px 12px; border:1px solid #b9cdd9; padding:12px; border-radius:6px; font-size:13px; }
-.tools-menu-list { overflow-y:auto; padding:0 20px 22px; }
-.tools-menu-list section { margin-top:13px; }
-.tools-menu-list h3 { font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#587584; margin-bottom:7px; }
-.tools-menu-list section>button { display:block; width:100%; text-align:left; padding:11px 12px; margin-bottom:6px; border:1px solid #d1dfe7; border-radius:6px; background:#fff; }
-.tools-menu-list strong { display:block; font-size:13px; font-weight:550; color:#294b5e; }
-.tools-menu-list span { display:block; font-size:11px; color:#5a7584; line-height:1.5; margin-top:3px; }
-@media(min-width:1100px){
- .lab-app.simple-editor,.lab-app.simple-editor.is-sheet-half,.lab-app.simple-editor.is-sheet-full,.lab-app.simple-editor.is-sheet-peek,.lab-app.simple-editor:has(.lab-rail.has-labels) { grid-template-columns:84px minmax(0,1fr) 380px; grid-template-areas:"top top top" "rail stage dock" "status status status"; }
- .simple-editor .workbench-library { display:none; }
- .simple-editor .lab-rail { padding:12px 6px; }
- .simple-editor .simple-rail .lab-tool { margin:0; min-height:62px; }
- .simple-editor .lab-dock { grid-template-rows:auto minmax(0,1fr); }
-}
-@media(max-width:1099px){
- .lab-app.simple-editor .lab-tool-label { font-size:10px; }
- .simple-editor .lab-stage.is-gallery { background:#f3f7f9; }
- .tools-menu-backdrop { padding:10px; }
- .tools-menu { max-height:92dvh; }
-}
-.simple-editor .lab-sliders :is(h1,h2,h3,h4) { color:#294858; }
-.simple-editor .lab-stock-detail>span,.simple-editor .lab-stock-detail p,.simple-editor .lab-stock-detail strong { color:#425f6e; }
-.simple-editor .workbench-brand strong { color:#284656; }
-.simple-editor .workbench-brand span { color:#607b88; }
-.simple-editor .workbench-document { background:#eaf0f3; color:#425b69; border-color:#ccd7dd; }
-.simple-editor .workbench-document button { color:#425b69; }
-.simple-editor .lab-empty-sample { background:#fff; border-color:#bccdd7; }
-.simple-editor .lab-empty-sample span { color:#3d5968; }
-.simple-editor .lab-slider-row.is-disabled { opacity:.6; }
-.simple-editor .lab-slider-row.is-disabled .lab-range-wrap { cursor:not-allowed; }
-.edit-return-photo { display:block; margin-top:18px; color:#276d5e; font-size:12px; text-align:left; }
-.simple-editor .workbench-export { color:#fff; }
-.simple-editor .lab-hud,.simple-editor .lab-hud-btn,.simple-editor .lab-hud-readout,.simple-editor .lab-status { color:#eef5f8; }
-.simple-editor .workbench-empty-mark { background:#f5fafc; border-color:#a9bfca; box-shadow:0 12px 30px #2b526522; }
+.control-section-meta { color:#c6dc96; font-size:10px; display:flex; gap:6px; }
+.control-section-flat { margin:12px 10px; border-top:1px solid #3c474f; padding-top:12px; }
+.control-section-flat>p { color:#9eabb3; font-size:10px; line-height:1.5; margin:0 8px 10px; }
+.transport-construction { color:#9eabb3; font-size:10px; line-height:1.6; margin:8px 16px 12px; }
+.lab-slider-row.is-disabled { opacity:.55; }
+.workflow-links { display:flex; flex-wrap:wrap; gap:6px; margin:10px; }
+.workflow-links button { padding:8px; border:1px solid #414c52; border-radius:4px; color:#cbdcaa; font-size:11px; }
+.workflow-links small { display:none; }
+.workflow-links strong>span { margin-left:8px; }
+.shelf-collection { margin:2px 0 10px; }
+.shelf-expand { width:100%; padding:9px; border:1px solid #414c52; border-radius:4px; margin-top:9px; }
+.lab-box-source { display:block; font-size:8px; color:#b2c59a; margin-top:4px; }

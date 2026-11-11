@@ -11,7 +11,7 @@ const choices=[
  {value:'lab-scan',label:'Lab Scan · минилаб',detail:'Позитив с характером минилаба: глубокий чёрный, прохладные тени, характерные зелёные и синие. Экспериментальная адаптация Lab Scan из Fotufilm.'},
  {value:'negative',label:'Негатив · на просвет',detail:'Показывает проявленную плёнку до печати и инверсии. Цветная маска и обратные тона здесь ожидаемы.'},
 ];
-export function OutputControls(){
+export function OutputControls({embedded=false}:{embedded?:boolean}){
  const params=useDarkroom(s=>s.params),patch=useDarkroom(s=>s.patch),p=params.output??defaultOutput();
  const update=(v:Partial<OutputParams>)=>patch({output:{...p,...v},...(v.mode?{scanFilm:false}:{})});
  const active=choices.find(x=>x.value===p.mode)!,film=bundledCatalog.films.find(f=>f.id===params.filmStock),isPositive=film?.type==='positive',noFilm=isFilmBypass(params.filmStock),negativeWorkflow=params.experimental.workflow!=='normal';
@@ -26,6 +26,6 @@ export function OutputControls(){
  {['digital','auto-levels','lab-scan'].includes(p.mode)&&!noFilm&&!isPositive&&!negativeWorkflow?<ControlSection title="Плотность и цвет скана" description="Операторские поправки после проявки. Экспозиция съёмки и Push / Pull остаются прежними." keys={['output.exposure','output.cyan','output.magenta','output.yellow']}>
  {row('exposure','Яркость скана',-6,6)}{row('cyan','Ключ Cyan',-1,1)}{row('magenta','Ключ Magenta',-1,1)}{row('yellow','Ключ Yellow',-1,1)}
  </ControlSection>:null}
- <ToolLinks tools={p.mode==='paper'?['print','scan','export']:['scan','export']}/>
+ {!embedded?<ToolLinks tools={p.mode==='paper'?['print','scan','export']:['scan','export']}/>:null}
  </>;
 }
