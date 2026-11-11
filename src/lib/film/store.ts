@@ -9,6 +9,7 @@ import type { DarkroomParams } from "./types";
 
 export type SourceKind = "none" | "file";
 export type ToolId =
+  | "edit"
   | "film"
   | "development"
   | "emulsion"
@@ -115,6 +116,7 @@ function debounceLocalStorage(ms: number): StateStorage {
 }
 
 const TOOL_IDS: ToolId[] = [
+  "edit",
   "film",
   "development",
   "emulsion",
@@ -263,7 +265,7 @@ export const useDarkroom = create<DarkroomStore>()(
       showOriginal: false,
       advanced: false,
       scrubbing: false,
-      tool: "film",
+      tool: "edit",
       prefs: defaultAppPrefs(),
       chromeHidden: false,
       undoStack: [],

@@ -276,6 +276,7 @@ export function SliderRow({
   step,
   value,
   onChange,
+  disabled=false,
 }: {
   label: string;
   hint?: string;
@@ -284,6 +285,7 @@ export function SliderRow({
   step: number;
   value: number;
   onChange: (v: number) => void;
+  disabled?:boolean;
 }) {
   const helpId=useId();
   const setScrubbing = useDarkroom((s) => s.setScrubbing);
@@ -306,7 +308,7 @@ export function SliderRow({
   const fillWidth = zeroPct == null ? fill : Math.abs(fill - zeroPct);
 
   const commit = (next: number) => {
-    if (next === valueRef.current) return;
+    if (disabled||next === valueRef.current) return;
     hapticSlider(valueRef.current, next, min, max);
     valueRef.current = next;
     onChange(next);
@@ -341,6 +343,7 @@ export function SliderRow({
   };
 
   const onDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if(disabled)return;
     if (e.button != null && e.button !== 0) return;
     const rect = wrapRef.current?.getBoundingClientRect();
     drag.current = {
@@ -371,6 +374,7 @@ export function SliderRow({
   };
 
   const setToMin = () => {
+    if(disabled)return;
     const next = clampStep(min, min, max, step);
     if (Math.abs(valueRef.current - next) <= 1e-9) return;
     haptic(Math.abs(next) <= 1e-9 ? "zero" : "edge");
@@ -393,6 +397,7 @@ export function SliderRow({
   };
 
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    if(disabled)return;
     if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
       e.preventDefault();
       commit(clampStep(valueRef.current - step, min, max, step));
@@ -409,7 +414,7 @@ export function SliderRow({
   };
 
   return (
-    <div className="lab-slider-row" ref={rowRef}>
+    <div className={disabled?"lab-slider-row is-disabled":"lab-slider-row"} ref={rowRef}>
       <span className="lab-slider-head">
         <span className="lab-slider-label">{label}</span>
         {hint ? <span className="lab-slider-hint">{hint}</span> : null}
@@ -418,7 +423,8 @@ export function SliderRow({
         ref={wrapRef}
         className="lab-range-wrap"
         role="slider"
-        tabIndex={0}
+        tabIndex={disabled?-1:0}
+        aria-disabled={disabled}
         aria-label={label}
         aria-describedby={controlHelp(label)?helpId:undefined}
         aria-valuemin={min}

@@ -1,11 +1,12 @@
 export const APP_NAME = "Spektrafilm";
-export const APP_VERSION = "9.50";
+export const APP_VERSION = "9.51";
 export const THEME_COLOR = "#0c0c0d";
 export const GRAY_18 = "#767676";
 export const CHANNEL_URL = "https://github.com/andreavolpato/spektrafilm";
 export const CHANNEL_HANDLE = "spektrafilm";
 export const APP_TAGLINE = "Спектр, плёнка, отпечаток.";
 export const APP_COPY = [
+  "Layered Transport из Fotufilm: антигаляционный слой, толщина основы, прижимная пластина и мутность. Светлый интерфейс с одним экраном основных настроек.",
   "Шесть этапов обработки с пояснениями. Outputs: цифровой позитив, Auto Levels и экспериментальная адаптация Lab Scan из Fotufilm.",
   "Negs / Fotufilm: 31 материал, 41 профиль с временами проявки. Подготовка изображения Prep, собственное зерно, поиск и избранные плёнки.",
   "На телефоне кадр считает нативный спектральный движок: 81 длина волны, от сенсора до плотности красителя.",

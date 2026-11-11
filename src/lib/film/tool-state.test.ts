@@ -28,3 +28,8 @@ describe('workflow reset ownership',()=>{
  it('resets output without resetting paper or photographic frame',()=>{const p=defaultParams();p.output.mode='lab-scan';p.printExposure=2;p.frameStyle='120';const out=resetToolParams(p,'outputs');assert.equal(out.output.mode,'paper');assert.equal(out.printExposure,2);assert.equal(out.frameStyle,'120');});
  it('separates crop from film edges',()=>{const p=defaultParams();p.crop=true;p.frameStyle='135';p.whitePadding=.1;const out=resetToolParams(p,'crop');assert.equal(out.crop,false);assert.equal(out.frameStyle,'135');assert.equal(out.whitePadding,.1);assert.equal(resetToolParams(p,'frame').whitePadding,defaultParams().whitePadding);});
 });
+
+
+describe('simple editor reset',()=>{
+ it('resets the main exposure without erasing advanced Prep or chosen film',()=>{const p=defaultParams();p.prep.exposure=1;p.prep.shadows=25;p.exposureCompensationEv=-1;p.filmGamma=1.2;p.filmStock='negs_cinestill_800t';p.transport.model='layered';const out=resetToolParams(p,'edit');assert.equal(out.prep.exposure,0);assert.equal(out.prep.shadows,25);assert.equal(out.exposureCompensationEv,-1);assert.equal(out.filmGamma,1.2);assert.equal(out.filmStock,p.filmStock);assert.equal(out.transport.model,'legacy');});
+});

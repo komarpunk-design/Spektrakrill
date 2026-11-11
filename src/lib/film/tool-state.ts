@@ -5,11 +5,13 @@ import type { ToolId } from "./store.ts";
 
 export const TOOL_KEYS: Record<ToolId, (keyof DarkroomParams)[]> = {
   prep: ["prep"],
+  edit: ["printPaper","whiteBalance","temperature","grainActive","halationActive","halationAmount","halationSpatialScale","transport","output"],
   outputs: ["output"],
   emulsion: [],
   development: ["filmGamma", "exposureCompensationEv", "autoExposure", "printExposureCompensation"],
   film: ["filmStock"],
   texture: [
+    "transport",
     "grainActive",
     "grainParticleArea",
     "grainBlur",
@@ -145,12 +147,13 @@ export const TOOL_EXPERIMENTAL_KEYS:Partial<Record<ToolId,(keyof ExperimentalPar
 /** Ownership is shared by the edited badge and reset; nested groups are isolated. */
 export function toolChangeCount(params:DarkroomParams,tool:ToolId):number{
  const baseline=defaultParams();
- return TOOL_KEYS[tool].filter(k=>JSON.stringify(params[k])!==JSON.stringify(baseline[k])).length+
+ return (tool==="edit"&&params.prep.exposure!==baseline.prep.exposure?1:0)+TOOL_KEYS[tool].filter(k=>JSON.stringify(params[k])!==JSON.stringify(baseline[k])).length+
  (TOOL_EXPERIMENTAL_KEYS[tool]??[]).filter(k=>JSON.stringify(params.experimental?.[k])!==JSON.stringify(baseline.experimental[k])).length;
 }
 export function resetToolParams(params:DarkroomParams,tool:ToolId):DarkroomParams{
  const baseline=defaultParams(),next={...params};
  for(const k of TOOL_KEYS[tool])(next as unknown as Record<string,unknown>)[k]=baseline[k];
+ if(tool==="edit")next.prep={...params.prep,exposure:baseline.prep.exposure};
  const nested=TOOL_EXPERIMENTAL_KEYS[tool]??[];
  if(nested.length){next.experimental={...params.experimental};for(const k of nested)(next.experimental as Record<string,unknown>)[k]=baseline.experimental[k];}
  return next;

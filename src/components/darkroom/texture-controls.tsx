@@ -1,3 +1,4 @@
+import {HalationControls} from "./halation-controls";
 import {useDarkroom} from '@/lib/film/store';
 import {SliderRow,ToggleRow} from '@/components/ui/control';
 import {ControlSection} from '@/components/darkroom/workflow-ui';
@@ -20,103 +21,7 @@ export function TextureControls(){
  </ControlSection>:null}
  <SliderRow label="Облака, µm" hint={fmt(params.grainDyeCloudsUm)} min={0} max={4} step={.1} value={params.grainDyeCloudsUm} onChange={v=>setParam('grainDyeCloudsUm',v)}/>
  </>:null}</ControlSection>
- <ControlSection title="Галяция · свечение" description="Тёплые ореолы у ламп, бликов и других ярких участков." keys={["halationActive","halationAmount","halationSpatialScale","scatterAmount"]}>
-          <ToggleRow label="Галяция" checked={params.halationActive} onChange={(v) => setParam("halationActive", v)} />
-          {params.halationActive ? (
-            <>
-              <SliderRow
-                label="Сила"
-                hint={fmt(params.halationAmount)}
-                min={0}
-                max={3}
-                step={0.05}
-                value={params.halationAmount}
-                onChange={(v) => setParam("halationAmount", v)}
-              />
-              <SliderRow
-                label="Размер"
-                hint={fmt(params.halationSpatialScale)}
-                min={0.2}
-                max={3}
-                step={0.1}
-                value={params.halationSpatialScale}
-                onChange={(v) => setParam("halationSpatialScale", v)}
-              />
-              <SliderRow
-                label="Рассеяние"
-                hint={fmt(params.scatterAmount)}
-                min={0}
-                max={2}
-                step={0.05}
-                value={params.scatterAmount}
-                onChange={(v) => setParam("scatterAmount", v)}
-              />
-              <ControlSection title="Точное свечение" description="Рассеяние, защита светов и распространение света внутри эмульсии.">{(
-                <>
-                  <SliderRow
-                    label="Масштаб рассеяния"
-                    hint={fmt(params.scatterSpatialScale)}
-                    min={0.2}
-                    max={3}
-                    step={0.1}
-                    value={params.scatterSpatialScale}
-                    onChange={(v) => setParam("scatterSpatialScale", v)}
-                  />
-                  <SliderRow
-                    label="Подсветка EV"
-                    hint={fmt(params.boostEv, 1)}
-                    min={0}
-                    max={4}
-                    step={0.5}
-                    value={params.boostEv}
-                    onChange={(v) => setParam("boostEv", v)}
-                  />
-                  <SliderRow
-                    label="Защита EV"
-                    hint={fmt(params.protectEv, 1)}
-                    min={0}
-                    max={8}
-                    step={0.5}
-                    value={params.protectEv}
-                    onChange={(v) => setParam("protectEv", v)}
-                  />
-                  <SliderRow
-                    label="Диапазон"
-                    hint={fmt(params.boostRange, 2)}
-                    min={0.05}
-                    max={1}
-                    step={0.05}
-                    value={params.boostRange}
-                    onChange={(v) => setParam("boostRange", v)}
-                  />
-                  <SliderRow
-                    label="Отскоки"
-                    hint={String(params.halationNBounces)}
-                    min={1}
-                    max={5}
-                    step={1}
-                    value={params.halationNBounces}
-                    onChange={(v) => setParam("halationNBounces", v)}
-                  />
-                  <SliderRow
-                    label="Затухание"
-                    hint={fmt(params.halationBounceDecay, 2)}
-                    min={0.1}
-                    max={0.95}
-                    step={0.05}
-                    value={params.halationBounceDecay}
-                    onChange={(v) => setParam("halationBounceDecay", v)}
-                  />
-                  <ToggleRow
-                    label="Нормализация"
-                    checked={params.halationRenormalize}
-                    onChange={(v) => setParam("halationRenormalize", v)}
-                  />
-                </>
-              )}</ControlSection>
-            </>
-          ) : null}
-</ControlSection>
+ <section className="transport-page"><h3>Гало и слои плёнки</h3><HalationControls showLegacyDetails/></section>
  <ControlSection title="DIR · взаимодействие слоёв" description="Развитие соседних слоёв меняет цвет и локальный контраст у границ." keys={["couplersActive","couplersAmount","inhibitionInterlayer"]}>
           <ToggleRow
             label="DIR-каплеры"

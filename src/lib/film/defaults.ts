@@ -1,3 +1,4 @@
+import {defaultTransport,sanitizeTransport} from "./layered-transport.ts";
 import {defaultOutput,sanitizeOutput} from "./output-model.ts";
 import { defaultPrep, sanitizePrep } from "./negs-prep.ts";
 import { defaultExperimental, sanitizeExperimental } from "./experimental.ts";
@@ -86,6 +87,7 @@ export function sanitizeParams(raw: unknown): DarkroomParams {
   const merged: DarkroomParams = { ...base, ...p };
   merged.experimental=sanitizeExperimental(p.experimental);
   merged.prep=sanitizePrep(p.prep);
+  merged.transport=sanitizeTransport(p.transport);
   merged.output=sanitizeOutput(p.output);
   merged.filmGamma = Number.isFinite(merged.filmGamma) && merged.filmGamma > 0 ? merged.filmGamma : 1;
   merged.exposureCompensationEv = Number.isFinite(merged.exposureCompensationEv) ? merged.exposureCompensationEv : 0;
@@ -141,6 +143,7 @@ export function sanitizeParams(raw: unknown): DarkroomParams {
 export const defaultParams = (): DarkroomParams => ({
   experimental: defaultExperimental(),
   prep: defaultPrep(),
+  transport: defaultTransport(),
   output: defaultOutput(),
   filmStock: "none",
   printPaper: "kodak_portra_endura",

@@ -2261,6 +2261,8 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
     // <= 0 self-gates to the pointwise path.
     spk::configure_experimental_projection(fparams,film);
     fparams.prep=spk::read_negs_prep(p->experimental_json);
+    fparams.layered_transport=spk::transport::read_params(p->experimental_json);
+    fparams.transport_stock=p->film_profile?p->film_profile:"";
     fparams.raw_auto_exposure=!film.experimental_method.empty() && p->auto_exposure!=0;
     fparams.raw_auto_exposure_method=p->auto_exposure_method;
     apply_user_dir_couplers(fparams.dir_couplers, p);
@@ -2810,6 +2812,8 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
     fparams.density_curve_gamma[2] = fg;
     spk::configure_experimental_projection(fparams,film);
     fparams.prep=spk::read_negs_prep(p->experimental_json);
+    fparams.layered_transport=spk::transport::read_params(p->experimental_json);
+    fparams.transport_stock=p->film_profile?p->film_profile:"";
     fparams.raw_auto_exposure=!film.experimental_method.empty() && p->auto_exposure!=0;
     fparams.raw_auto_exposure_method=p->auto_exposure_method;
     apply_user_dir_couplers(fparams.dir_couplers, p);

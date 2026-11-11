@@ -1,3 +1,4 @@
+import {EditWorkspace} from "./edit-workspace";
 import {OutputControls} from "./output-controls";
 import {ToolIntro,ToolLinks,ControlSection} from "@/components/darkroom/workflow-ui";
 import {TextureControls} from "@/components/darkroom/texture-controls";
@@ -48,6 +49,7 @@ import { Copy, RotateCcw, RotateCw, Search, Trash2, ChevronRight, ChevronLeft, I
 import { useEffect, useMemo, useRef, useState } from "react";
 
 export const TOOLS = [
+  {id:"edit" as const,label:"Обработка"},
   {id:"outputs" as const,label:"Outputs"},
   { id: "film" as const, label: "Плёнка" },
   { id: "development" as const, label: "Push / Pull" },
@@ -340,6 +342,7 @@ export function Panel({
   canSave,
   onNotice,
   onOpenEnlarger,
+  onOpen,
   onAutoWb,
   onPickWb,
   pickingWb,
@@ -353,6 +356,7 @@ export function Panel({
   canSave?: boolean;
   onNotice?: (msg: string) => void;
   onOpenEnlarger?: () => void;
+  onOpen?: () => void;
   onAutoWb?: () => void;
   onPickWb?: () => void;
   pickingWb?: boolean;
@@ -534,7 +538,8 @@ export function Panel({
         void file.text().then((t) => onImportText(t, file.name));
       }}
     >
-      <ToolIntro tool={tool}/>
+      {tool!=="edit"?<ToolIntro tool={tool}/>:null}
+      {tool==="edit"?<EditWorkspace hasImage={hasImage} onOpen={onOpen}/>:null}
       {tool === "emulsion" ? <EmulsionControls /> : null}
       {tool === "texture" ? <TextureControls /> : null}
       {tool === "negative" ? <EmulsionControls mode="negative" /> : null}
@@ -1440,6 +1445,7 @@ export function Panel({
       ) : null}
       {tool === "export" ? (
         <>
+          <ToolLinks tools={["frame"]}/>
           <div className="px-4 py-1.5">
             <Field label="Формат">
               <Segmented
@@ -1534,7 +1540,7 @@ function SettingsPane({ onNotice, onOpenEnlarger }: { onNotice?: (msg: string) =
             <p className="lab-about-name">{APP_NAME}</p>
             <p className="lab-about-ver">Версия {APP_VERSION}</p>
             <p className="lab-about-copy">Движок Spektrafilm for Android и функции ветки experimental Andrea Volpato (28bf883). Код GPLv3, данные профилей CC BY-SA 4.0.</p>
-            {[{name:"Negs — Noah Haasis · Prep и плёнки",url:"https://github.com/noahhaasis/negs/tree/26c903be9064b4fbfd46a8396620ba7e1e9bc1df"},{name:"Fotufilm · Lab Scan: Apache-2.0 · MUAStudio Inc.",url:"https://github.com/DhaliwalX/fotufilm-engine/tree/b9049f3e8897a51ab8f917edb39f023cb340d2e2"},{name:"Fotufilm — MUAStudio Inc. · данные CC BY-SA 4.0",url:"https://github.com/DhaliwalX/fotufilm-engine/tree/96623ba0831a52dbddcda35727a206d4123a8b5f"},{name:"Spektrafilm · experimental 28bf883",url:"https://github.com/andreavolpato/spektrafilm/tree/28bf883e1672e884307edc75852549376e13644e"},{name: "Spektrafilm for Android — Akshay Sharma", url: "https://github.com/thetechgeekko/Spektrafilm-android"}, {name: "Моделирование плёнки — Andrea Volpato", url: "https://github.com/andreavolpato/spektrafilm"}, {name: "Использованный форк — hwx959", url: "https://github.com/hwx959/Spektrafilm-android"}].map(credit => <a key={credit.url} className="lab-credit" href={credit.url} target="_blank" rel="noopener noreferrer" onClick={event => { event.preventDefault(); void openExternalUrl(credit.url); }}>{credit.name}</a>)}
+            {[{name:"Fotufilm · Layered Transport: Apache-2.0, конструкции CC BY-SA 4.0",url:"https://github.com/DhaliwalX/fotufilm-engine/tree/b9049f3e8897a51ab8f917edb39f023cb340d2e2"},{name:"Negs — Noah Haasis · Prep и плёнки",url:"https://github.com/noahhaasis/negs/tree/26c903be9064b4fbfd46a8396620ba7e1e9bc1df"},{name:"Fotufilm · Lab Scan: Apache-2.0 · MUAStudio Inc.",url:"https://github.com/DhaliwalX/fotufilm-engine/tree/b9049f3e8897a51ab8f917edb39f023cb340d2e2"},{name:"Fotufilm — MUAStudio Inc. · данные CC BY-SA 4.0",url:"https://github.com/DhaliwalX/fotufilm-engine/tree/96623ba0831a52dbddcda35727a206d4123a8b5f"},{name:"Spektrafilm · experimental 28bf883",url:"https://github.com/andreavolpato/spektrafilm/tree/28bf883e1672e884307edc75852549376e13644e"},{name: "Spektrafilm for Android — Akshay Sharma", url: "https://github.com/thetechgeekko/Spektrafilm-android"}, {name: "Моделирование плёнки — Andrea Volpato", url: "https://github.com/andreavolpato/spektrafilm"}, {name: "Использованный форк — hwx959", url: "https://github.com/hwx959/Spektrafilm-android"}].map(credit => <a key={credit.url} className="lab-credit" href={credit.url} target="_blank" rel="noopener noreferrer" onClick={event => { event.preventDefault(); void openExternalUrl(credit.url); }}>{credit.name}</a>)}
             {APP_COPY.map((p) => (
               <p key={p.slice(0, 24)} className="lab-about-copy">
                 {p}

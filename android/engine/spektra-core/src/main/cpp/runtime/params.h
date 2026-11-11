@@ -1,3 +1,4 @@
+#include "model/layered_transport.h"
 /*
  * Spektrafilm for Android — native engine: minimal digested filming params.
  * Copyright (C) 2026 Spektrafilm Android contributors.
@@ -42,6 +43,8 @@ enum class InputColorSpace {
 // the Python digested RuntimePhotoParams for the parity toggles.
 struct FilmingParams {
     NegsPrep prep;
+    transport::Params layered_transport;
+    std::string transport_stock;
     bool raw_auto_exposure = false;
     const char* raw_auto_exposure_method = nullptr;
     bool experimental_projection_active = false;
