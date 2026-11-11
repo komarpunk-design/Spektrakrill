@@ -15,7 +15,7 @@ function copyApkPublic(): Plugin {
         const src = path.resolve(__dirname, "public", name);
         if (existsSync(src)) cpSync(src, path.join(dest, name), { recursive: true });
       }
-      for (const name of ["favicon.svg", "og.jpg"]) {
+      for (const name of ["favicon.svg", "og.jpg", "zalupa-ui-notice.txt"]) {
         const src = path.resolve(__dirname, "public", name);
         if (existsSync(src)) cpSync(src, path.join(dest, name));
       }

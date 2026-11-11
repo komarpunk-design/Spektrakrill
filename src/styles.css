@@ -1,4 +1,5 @@
 @import "tailwindcss" source("../src");
+@import "./zalupa-ui.css";
 
 @theme {
   --color-bg: #0c0c0d;

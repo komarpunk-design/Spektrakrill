@@ -13,6 +13,10 @@ export function WorkflowTools({ tool, select }: { tool: ToolId; select: (tool: T
   );
 }
 const InsideSection = createContext(false);
+/** Fotufilm's FlatSections: controls on a deck page, without nested disclosures. */
+export function FlatControlSections({children}:{children:ReactNode}){
+  return <InsideSection.Provider value={true}>{children}</InsideSection.Provider>;
+}
 export function ToolIntro({ tool }: { tool: ToolId }) {
   const guide = TOOL_GUIDE[tool];
   return (

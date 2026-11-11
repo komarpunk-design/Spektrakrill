@@ -488,10 +488,9 @@ export function Viewer({
             </div>
             <span className="workbench-eyebrow">ЦИФРОВАЯ ФОТОЛАБОРАТОРИЯ</span>
             <h1 className="lab-empty-brand">
-              Каждый кадр —<br />
-              новая история.
+              Spektrafilm
             </h1>
-            <p>Откройте фотографию. Выберите плёнку, настройте свет и создайте свой отпечаток.</p>
+            <p>Откройте фотографию и выберите плёнку в нижней панели.</p>
             <button
               type="button"
               className="lab-btn is-solid"

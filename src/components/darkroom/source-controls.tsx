@@ -12,7 +12,7 @@ export function SourceBack({ source }: { source: ToolId }) {
     </button>
   );
 }
-export function FotufilmControls() {
+export function FotufilmControls({page}:{page?:string}) {
   return (
     <div className="source-controls" data-source="fotufilm">
       <header>
@@ -23,21 +23,21 @@ export function FotufilmControls() {
           остаются на прежних вкладках.
         </p>
       </header>
-      <section>
+      {(!page||page==='fotufilm-output')?<><section>
         <h3>Outputs · готовый результат</h3>
         <OutputControls embedded />
-      </section>
-      <section>
+      </section></>:null}
+      {(!page||page==='fotufilm-halation')?<><section>
         <h3>Layered Transport · слои плёнки</h3>
         <p className="source-note">
           Послойный расчёт галяции. Отключение этой модели возвращает прежнюю галяцию Spektrafilm.
         </p>
         <HalationControls sourceOnly />
-      </section>
+      </section></>:null}
     </div>
   );
 }
-export function NegsControls() {
+export function NegsControls({page}:{page?:string}) {
   const setTool = useDarkroom((s) => s.setTool),
     p = useDarkroom((s) => s.params),
     setParam = useDarkroom((s) => s.setParam);
@@ -54,11 +54,11 @@ export function NegsControls() {
       <button type="button" className="source-link" onClick={() => setTool("prep")}>
         Подготовка изображения · Prep →
       </button>
-      <section>
+      {(!page||page==='negs-format')?<><section>
         <h3>Физический формат кадра</h3>
         <div className="px-4 py-2"><Field label="Формат кадра · Negs"><Select ariaLabel="Формат кадра · Negs" value={String(p.filmFormatMm)} onChange={value=>setParam('filmFormatMm',Number(value))} options={[...(!NEGS_FILM_FORMATS.some(f=>f.mm===p.filmFormatMm)?[{value:String(p.filmFormatMm),label:`Свой · ${p.filmFormatMm} мм`}]:[]),...NEGS_FILM_FORMATS.map(f=>({value:String(f.mm),label:f.label}))]}/></Field></div>
-      </section>
-      <section>
+      </section></>:null}
+      {(!page||page==='negs-grain')?<><section>
         <h3>Зерно · RMS</h3>
         <ToggleRow
           label="Зерно"
@@ -66,8 +66,8 @@ export function NegsControls() {
           onChange={(v) => setParam("grainActive", v)}
         />
         <EmulsionControls mode="grain" />
-      </section>
-      <section>
+      </section></>:null}
+      {(!page||page==='negs-dir')?<><section>
         <h3>Взаимодействие слоёв · DIR</h3>
         <ToggleRow
           label="DIR-каплеры"
@@ -75,7 +75,7 @@ export function NegsControls() {
           onChange={(v) => setParam("couplersActive", v)}
         />
         <EmulsionControls mode="dir" />
-      </section>
+      </section></>:null}
     </div>
   );
 }

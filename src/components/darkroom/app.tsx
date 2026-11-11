@@ -1,3 +1,6 @@
+import {ZalupaWorkspace} from "./zalupa-workspace";
+import {pageForTool,zPage,resetZPage,type ZPage} from "./zalupa-navigation";
+import {FlatControlSections} from "./workflow-ui";
 import {ControlDirectory} from "./control-directory";
 import { TestPrint } from "@/components/darkroom/test-print";
 import { printTrialParams, type PrintTrialImage } from "@/lib/film/test-print";
@@ -5,7 +8,7 @@ import { nativeTestPrint, jpegB64ToObjectUrl } from "@/lib/film/native-raw";
 import { frameImageData, edgeLabel } from "@/lib/film/photo-frame";
 import { toolChangeCount } from "@/lib/film/tool-state";
 import { Histogram } from "@/components/darkroom/histogram";
-import { Panel, TOOLS, dockTools } from "@/components/darkroom/panel";
+import { Panel, TOOLS } from "@/components/darkroom/panel";
 import { GalleryPane } from "@/components/darkroom/gallery";
 import { StockPane } from "@/components/darkroom/stock";
 import { Viewer } from "@/components/darkroom/viewer";
@@ -65,67 +68,20 @@ import {
 import { useDarkroom, type ToolId } from "@/lib/film/store";
 import { isFilmBypass, isPaperBypass, type DarkroomParams } from "@/lib/film/types";
 import { estimateAutoWb, sampleGrayPatch } from "@/lib/film/wb-auto";
-import {
-  Aperture,
-  Bookmark,
-  Camera,
-  Check,
-  Crop,
-  Eye,
-  FolderOpen,
-  ChevronRight,
-  Monitor,
-  Redo2,
-  Film,
-  FlaskConical,
-  ImageDown,
-  Images,
-  Library,
-  ListPlus,
-  Printer,
-  RotateCcw,
-  ScanLine,
-  ScrollText,
-  Settings,
-  SlidersHorizontal,
-  Undo2,
-  Upload,
-  type LucideIcon,
-} from "lucide-react";
+import {FolderOpen} from "lucide-react";
 import {
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
 } from "react";
 
-type SheetId = "peek" | "half" | "full";
 type LookMode = "draft" | "full" | null;
 type Status = { label: string; pct: number; busy?: boolean } | null;
 
 const ACCEPT =
   "image/jpeg,image/jpg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp,.heic,.dng,.cr2,.cr3,.nef,.arw,.raf,.rw2,.orf,.pef";
-
-const TOOL_ICONS: Record<ToolId, LucideIcon> = {
-  fotufilm:Aperture,negs:FlaskConical,edit:SlidersHorizontal,emulsion:Aperture,prep:SlidersHorizontal,texture:Aperture,negative:Film,outputs:Printer,frame:Crop,
-  film: Film,
-  development: FlaskConical,
-  tone: SlidersHorizontal,
-  presets: Bookmark,
-  camera: Camera,
-  print: Printer,
-  scan: ScanLine,
-  crop: Crop,
-  stock: Library,
-  gallery: Images,
-  lab: FlaskConical,
-  export: ImageDown,
-  log: ScrollText,
-  settings: Settings,
-};
 
 function previewEdge(maxSize: number, draft: boolean): number {
   const n = Math.min(4096, Math.max(256, maxSize || 960));
@@ -265,52 +221,6 @@ function revoke(url: string | null | undefined): void {
   if (url && url.startsWith("blob:")) URL.revokeObjectURL(url);
 }
 
-function sheetMetrics() {
-  const land =
-    typeof window !== "undefined" && window.matchMedia("(orientation: landscape)").matches;
-  const h = typeof window !== "undefined" ? window.innerHeight : 800;
-  const w = typeof window !== "undefined" ? window.innerWidth : 1280;
-  return land
-    ? { land: true, peek: 22, half: Math.min(300, w * 0.36), full: Math.min(380, w * 0.44) }
-    : { land: false, peek: 22, half: h * 0.32, full: Math.min(h * 0.58, h - 148) };
-}
-
-function snapPx(id: SheetId, m = sheetMetrics()): number {
-  return id === "peek" ? m.peek : id === "full" ? m.full : m.half;
-}
-
-function snapFromVelocity(px: number, vel: number, m = sheetMetrics()): SheetId {
-  const stops: { id: SheetId; v: number }[] = [
-    { id: "peek", v: m.peek },
-    { id: "half", v: m.half },
-    { id: "full", v: m.full },
-  ];
-  if (vel > 900) {
-    const next = stops.find((s) => s.v > px + 8);
-    if (next) return next.id;
-  } else if (vel < -900) {
-    const prev = [...stops].reverse().find((s) => s.v < px - 8);
-    if (prev) return prev.id;
-  }
-  const target = px + vel * 0.16;
-  let best = stops[0];
-  let dist = Infinity;
-  for (const s of stops) {
-    const d = Math.abs(s.v - target);
-    if (d < dist) {
-      dist = d;
-      best = s;
-    }
-  }
-  return best.id;
-}
-
-function snapForTool(tool: string): SheetId {
-  if (tool === "gallery" || tool === "stock") return "peek";
-  if (tool === "presets" || tool === "settings" || tool === "log" || tool === "lab" || tool === "development" || tool === "fotufilm" || tool === "negs" || tool === "emulsion" || tool === "negative" || tool === "prep" || tool === "texture") return "full";
-  return "half";
-}
-
 function simErrorMessage(e: unknown): string | null {
   const t = e instanceof Error ? e.message : String(e ?? "");
   if (!t || t === "cancelled" || /cancel/i.test(t) || t === "stale") return null;
@@ -324,39 +234,15 @@ function simErrorMessage(e: unknown): string | null {
   return t;
 }
 
-function IconBtn({
-  label,
-  onClick,
-  disabled,
-  active,
-  children,
-}: {
-  label: string;
-  onClick?: () => void;
-  disabled?: boolean;
-  active?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn("lab-iconbtn", active && "is-on")}
-    >
-      {children}
-    </button>
-  );
-}
-
 function asNativeParams(p: DarkroomParams): Record<string, unknown> {
   return { ...p, frameStockLabel: edgeLabel(p) } as unknown as Record<string, unknown>;
 }
 
 export function DarkroomApp() {
   const [directoryOpen,setDirectoryOpen]=useState(false);
+  const [workspacePage,setWorkspacePage]=useState<ZPage>(()=>pageForTool(useDarkroom.getState().tool));
+  const [workspaceOpen,setWorkspaceOpen]=useState(false);
+  const [histogramOpen,setHistogramOpen]=useState(false);
   const params = useDarkroom((s) => s.params);
   const setSource = useDarkroom((s) => s.setSource);
   const canRedo = useDarkroom((state) => state.redoStack.length > 0);
@@ -371,7 +257,6 @@ export function DarkroomApp() {
   const setChromeHidden = useDarkroom((s) => s.setChromeHidden);
   const undo = useDarkroom((s) => s.undo);
   const undoStack = useDarkroom((s) => s.undoStack);
-  const resetTool = useDarkroom((s) => s.resetTool);
   const newFrame = useDarkroom((s) => s.newFrame);
   const setFrame = useDarkroom((s) => s.setFrame);
   const applyParams = useDarkroom((s) => s.applyParams);
@@ -403,7 +288,6 @@ export function DarkroomApp() {
   const [stockItems, setStockItems] = useState<StockItem[]>(() => loadStock());
   const [batching, setBatching] = useState(false);
   const [draggingFile, setDraggingFile] = useState(false);
-  const [sheet, setSheet] = useState<SheetId>("half");
 
   const prevShowOrig = useRef(false);
   const pickingWbRef = useRef(false);
@@ -419,107 +303,16 @@ export function DarkroomApp() {
   const abortRef = useRef(false);
   const noteTick = useRef(0);
   const statusTick = useRef(0);
-  const sheetDrag = useRef<{ y: number; x: number; start: SheetId; startPx: number } | null>(null);
-  const sheetMoved = useRef(false);
   const appRef = useRef<HTMLDivElement>(null);
   const rollRef = useRef<{ uri: string; name: string; thumb: string }[]>([]);
   const rollAt = useRef(-1);
   const rollMore = useRef(false);
   const rollLoading = useRef(false);
   const openGen = useRef(0);
-  const sheetPxRef = useRef(snapPx("half"));
-  const sheetVel = useRef(0);
-  const sheetRaf = useRef(0);
-  const sheetTs = useRef(0);
-  const [sheetLive, setSheetLive] = useState(false);
-  const beforeAfterMoved = useRef(false);
-  const beforeAfterStart = useRef<{ x: number; y: number } | null>(null);
-  const [resetAllArmed, setResetAllArmed] = useState(false);
 
   const nativeEngine = isNativeEngineAvailable();
   const previewSig = useMemo(() => previewSignature(params), [params]);
   pickingWbRef.current = pickingWb;
-
-  const applySheetPx = (px: number) => {
-    const m = sheetMetrics();
-    const n = Math.min(m.full, Math.max(m.peek, px));
-    sheetPxRef.current = n;
-    const el = appRef.current;
-    if (el) {
-      if (m.land) el.style.setProperty("--insp", `${Math.round(n)}px`);
-      else el.style.setProperty("--dock-h", `${Math.round(n)}px`);
-    }
-  };
-
-  const stopSheet = () => {
-    if (sheetRaf.current) cancelAnimationFrame(sheetRaf.current);
-    sheetRaf.current = 0;
-  };
-
-  const animateSheet = (id: SheetId) => {
-    stopSheet();
-    const target = snapPx(id);
-    if (
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      applySheetPx(target);
-      sheetVel.current = 0;
-      setSheet(id);
-      setSheetLive(false);
-      return;
-    }
-    sheetTs.current = performance.now();
-    setSheetLive(true);
-    const step = (now: number) => {
-      const dt = Math.min(0.032, (now - sheetTs.current) / 1000);
-      sheetTs.current = now;
-      const cur = sheetPxRef.current;
-      const vel = sheetVel.current + (-1600 * (cur - target) - 80 * sheetVel.current) * dt;
-      const next = cur + vel * dt;
-      sheetVel.current = vel;
-      applySheetPx(next);
-      if (Math.abs(next - target) < 0.7 && Math.abs(vel) < 14) {
-        applySheetPx(target);
-        sheetVel.current = 0;
-        sheetRaf.current = 0;
-        setSheet(id);
-        setSheetLive(false);
-        return;
-      }
-      sheetRaf.current = requestAnimationFrame(step);
-    };
-    sheetRaf.current = requestAnimationFrame(step);
-  };
-
-  useEffect(() => {
-    const id = snapForTool(tool);
-    setSheet(id);
-    stopSheet();
-    applySheetPx(snapPx(id));
-    setSheetLive(false);
-  }, [tool]);
-
-  useEffect(() => {
-    const onResize = () => applySheetPx(snapPx(sheet));
-    window.addEventListener("resize", onResize);
-    window.addEventListener("orientationchange", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("orientationchange", onResize);
-      stopSheet();
-    };
-  }, [sheet]);
-
-  useEffect(() => {
-    if (!resetAllArmed) return;
-    const onDown = (e: Event) => {
-      const t = e.target as HTMLElement | null;
-      if (!t?.closest?.(".lab-dock-resetall")) setResetAllArmed(false);
-    };
-    window.addEventListener("pointerdown", onDown, true);
-    return () => window.removeEventListener("pointerdown", onDown, true);
-  }, [resetAllArmed]);
 
   useEffect(() => {
     const vp = window.visualViewport;
@@ -601,6 +394,15 @@ export function DarkroomApp() {
     },
     [stopWbPick, clearToasts, setTool],
   );
+
+  const openWorkspace = useCallback((next:ZPage)=>{
+    setWorkspacePage(next);selectTool(next.tool);setWorkspaceOpen(!['gallery','stock'].includes(next.id));setChromeHidden(false);
+  },[selectTool,setChromeHidden]);
+  useEffect(()=>{
+    if(workspacePage.tool===tool)return;
+    const next=pageForTool(tool,undefined,workspacePage.id);setWorkspacePage(next);setWorkspaceOpen(!['gallery','stock'].includes(next.id));
+    if(next.tool!==tool)selectTool(next.tool);
+  },[tool,workspacePage.tool,workspacePage.id,selectTool]);
 
   const rememberShot = useCallback(async (name: string, w: number, h: number, uri?: string) => {
     try {
@@ -1786,7 +1588,6 @@ export function DarkroomApp() {
     flashNote("Отменено");
   }, [flashNote]);
 
-  const toolLabel = TOOLS.find((t) => t.id === tool)?.label ?? "";
   const canUndo = undoStack.length > 0;
   const canSave = !!(procUrl || full || preview) && !exporting && !batching && !testPrinting;
   const canStock = !!(fileName || origUrl || full || preview);
@@ -1821,318 +1622,45 @@ export function DarkroomApp() {
     return () => window.removeEventListener("keydown", onCommand);
   }, [openNativeOrPicker, saveFrame, canSave, busy, exporting, batching, setShowOriginal]);
 
-  const onSheetDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    sheetMoved.current = false;
-    stopSheet();
-    setSheetLive(true);
-    sheetDrag.current = { y: e.clientY, x: e.clientX, start: sheet, startPx: sheetPxRef.current };
-    sheetVel.current = 0;
-    sheetTs.current = performance.now();
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-  };
+  return <div ref={appRef} className={'zalupa-app'+(chromeHidden?' is-chrome-hidden':'')}
+    onDragOver={event=>{if(event.dataTransfer.types.includes('Files')){event.preventDefault();setDraggingFile(true);}}}
+    onDragLeave={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node|null))setDraggingFile(false);}}
+    onDrop={event=>{event.preventDefault();setDraggingFile(false);if(busy||exporting||batching)return;const file=event.dataTransfer.files[0];if(file)void onPickedFile(file);}}>
+    <input ref={fileRef} type="file" accept={ACCEPT} className="hidden" onChange={e=>{const file=e.target.files?.[0];e.target.value='';void onPickedFile(file);}}/>
+          {enlargerOpen && prefs.experimentalEnlarger ? <TestPrint params={params} sourceKey={fileName+(origUrl||"")} hasImage={!!(fileName||origUrl)} blocked={busy||exporting||batching} render={renderPrintTrials} onBusy={setTestPrinting} cancelNative={()=>{if(nativeEngine&&engineOn)void cancelNative();}} apply={exposure=>{patch({printExposure:exposure});flashNote("Применена выдержка пробной печати");}} close={()=>setEnlargerOpen(false)} /> : null}
 
-  const onSheetMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    const drag = sheetDrag.current;
-    if (!drag) return;
-    const land = window.matchMedia("(orientation: landscape)").matches;
-    const along = land ? e.clientX - drag.x : e.clientY - drag.y;
-    const delta = land ? drag.x - e.clientX : drag.y - e.clientY;
-    if (Math.abs(along) < 10 && !sheetMoved.current) return;
-    sheetMoved.current = true;
-    const now = performance.now();
-    const dt = Math.max(8, now - sheetTs.current);
-    const px = drag.startPx + delta;
-    sheetVel.current = Math.max(-4200, Math.min(4200, ((px - sheetPxRef.current) / dt) * 1000));
-    sheetTs.current = now;
-    applySheetPx(px);
-  };
-
-  const onSheetUp = () => {
-    const drag = sheetDrag.current;
-    sheetDrag.current = null;
-    if (!drag) return;
-    if (!sheetMoved.current) {
-      setSheetLive(false);
-      return;
-    }
-    haptic("select");
-    animateSheet(snapFromVelocity(sheetPxRef.current, sheetVel.current));
-  };
-
-  const onSheetClick = () => {
-    if (sheetMoved.current) return;
-    haptic("select");
-    animateSheet(sheet === "full" || sheet === "peek" ? "half" : "full");
-  };
-
-  return (
-    <div
-      ref={appRef}
-      onDragOver={(event) => {
-        if (!event.dataTransfer.types.includes("Files")) return;
-        event.preventDefault();
-        event.dataTransfer.dropEffect = busy || exporting || batching ? "none" : "copy";
-        setDraggingFile(true);
-      }}
-      onDragLeave={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null))
-          setDraggingFile(false);
-      }}
-      onDrop={(event) => {
-        event.preventDefault();
-        setDraggingFile(false);
-        if (busy || exporting || batching) return;
-        const file = event.dataTransfer.files[0];
-        if (file) void onPickedFile(file);
-      }}
-      className={[
-        "lab-app text-fg",
-        scrubbing && "is-scrubbing",
-        chromeHidden && "is-chrome-hidden",
-        sheetLive && "is-sheet-live",
-        `is-sheet-${sheet}`,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      <input
-        ref={fileRef}
-        type="file"
-        accept={ACCEPT}
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          e.target.value = "";
-          void onPickedFile(file);
-        }}
-      />
-      {draggingFile ? (
-        <div className="workbench-drop" role="status">
-          <FolderOpen size={40} />
-          <strong>Откройте кадр в лаборатории</strong>
-          <span>Перетащите RAW, JPEG или PNG</span>
-        </div>
-      ) : null}
-      {enlargerOpen && prefs.experimentalEnlarger ? <TestPrint params={params} sourceKey={fileName+(origUrl||"")} hasImage={!!(fileName||origUrl)} blocked={busy||exporting||batching} render={renderPrintTrials} onBusy={setTestPrinting} cancelNative={()=>{if(nativeEngine&&engineOn)void cancelNative();}} apply={exposure=>{patch({printExposure:exposure});flashNote("Применена выдержка пробной печати");}} close={()=>setEnlargerOpen(false)} /> : null}
-      <header className="lab-top">
-        <div className="workbench-brand">
-          <Aperture size={24} />
-          <div>
-            <strong>SPEKTRAFILM</strong>
-            <span>PHOTO LABORATORY</span>
-          </div>
-        </div>
-        <div className="lab-top-left">
-          <IconBtn
-            label="Открыть"
-            disabled={busy || exporting || batching || testPrinting}
-            onClick={() => void openNativeOrPicker()}
-          >
-            <Upload className="size-5" />
-          </IconBtn>
-          {canUndo ? (
-            <IconBtn label="Отменить" onClick={() => undo()}>
-              <Undo2 className="size-5" />
-            </IconBtn>
-          ) : null}
-        </div>
-        <div className="workbench-title">
-          <span>{fileName || "Новый сеанс"}</span>
-          <small>{fileName ? "Локальный файл" : "Откройте фотографию для обработки"}</small>
-        </div>
-        <div className="lab-top-right">
-          {prefs.experimentalEnlarger ? <button type="button" className="workbench-command test-print-launch" aria-label="Пробная печать" title="Экспериментальная пробная печать" onClick={()=>setEnlargerOpen(true)}><FlaskConical size={16}/></button> : null}
-          <button
-            className="workbench-command"
-            type="button"
-            disabled={!canRedo}
-            onClick={() => useDarkroom.getState().redo()}
-            aria-label="Повторить"
-          >
-            <Redo2 size={16} />
-          </button>
-          {fileName || origUrl ? (
-            <button
-              type="button"
-              className={showOriginal ? "lab-iconbtn is-on" : "lab-iconbtn"}
-              aria-label="До / после"
-              title="Удерживайте для просмотра оригинала"
-              onKeyDown={(event) => {
-                if (event.key === " " || event.key === "Enter") {
-                  event.preventDefault();
-                  setShowOriginal(true);
-                }
-              }}
-              onKeyUp={(event) => {
-                if (event.key === " " || event.key === "Enter") setShowOriginal(false);
-              }}
-              onBlur={() => setShowOriginal(false)}
-              onPointerDown={(e) => {
-                e.preventDefault();
-                beforeAfterMoved.current = false;
-                beforeAfterStart.current = { x: e.clientX, y: e.clientY };
-                try {
-                  e.currentTarget.setPointerCapture(e.pointerId);
-                } catch {
-                  /* ignore */
-                }
-                setShowOriginal(true);
-              }}
-              onPointerMove={(e) => {
-                const start = beforeAfterStart.current;
-                if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 16) {
-                  beforeAfterMoved.current = true;
-                }
-              }}
-              onPointerUp={() => {
-                beforeAfterStart.current = null;
-                setShowOriginal(false);
-              }}
-              onPointerCancel={() => {
-                beforeAfterStart.current = null;
-                beforeAfterMoved.current = true;
-                setShowOriginal(false);
-              }}
-              onClick={(e) => {
-                if (beforeAfterMoved.current) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }
-              }}
-            >
-              <Eye className="size-5" strokeWidth={1.7} />
-            </button>
-          ) : null}
-          {canStock ? (
-            <IconBtn label="В сток" onClick={() => void addToStock()}>
-              <ListPlus className="size-5" strokeWidth={1.7} />
-            </IconBtn>
-          ) : null}
-        </div>
-        <button
-          type="button"
-          className="workbench-export"
-          aria-label="Экспортировать кадр"
-          disabled={!canSave}
-          onClick={() => void saveFrame()}
-        >
-          <ImageDown size={16} />
-          <span>{exporting ? "Экспорт…" : "Экспорт"}</span>
-        </button>
-      </header>
-      <aside className="workbench-library" aria-label="Библиотека и рабочий процесс">
-        <div className="workbench-section-label">
-          РАБОЧАЯ ОБЛАСТЬ <span>01</span>
-        </div>
-        <button
-          type="button"
-          className={`workbench-library-link ${tool !== "gallery" && tool !== "presets" ? "is-active" : ""}`}
-          onClick={() => selectTool(params.rawEngine === "spektrafilm" ? "film" : "tone")}
-        >
-          <SlidersHorizontal size={16} />
-          Проявочная
-          <ChevronRight size={13} />
-        </button>
-        <button
-          type="button"
-          className={`workbench-library-link ${tool === "gallery" ? "is-active" : ""}`}
-          onClick={() => selectTool("gallery")}
-        >
-          <Images size={16} />
-          Галерея
-        </button>
-        <button
-          type="button"
-          className={`workbench-library-link ${tool === "presets" ? "is-active" : ""}`}
-          onClick={() => selectTool("presets")}
-        >
-          <Bookmark size={16} />
-          Мои пресеты
-        </button>
-        <div className="workbench-section-label">ТЕКУЩИЙ КАДР</div>
-        {origUrl ? (
-          <div className="workbench-source">
-            <img src={origUrl} alt="Исходный кадр" />
-            <strong>{fileName}</strong>
-            <span>
-              {full?.width || preview?.width} × {full?.height || preview?.height} px
-            </span>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className="workbench-source is-empty"
-            disabled={busy || exporting || batching || testPrinting}
-            onClick={() => void openNativeOrPicker()}
-          >
-            <FolderOpen size={26} />
-            <strong>Добавить фотографию</strong>
-            <span>RAW · JPEG · PNG</span>
-          </button>
-        )}
-        <div className="workbench-section-label">
-          ПРИМЕРЫ <span>02</span>
-        </div>
-        <div className="workbench-samples">
-          {[
-            { name: "Лес", file: "forest.jpg" },
-            { name: "Натюрморт", file: "still-life.jpg" },
-          ].map((sample) => (
-            <button
-              key={sample.file}
-              type="button"
-              disabled={busy || exporting || batching || testPrinting}
-              onClick={() => void openSample(`/samples/${sample.file}`, sample.file)}
-            >
-              <img src={`/samples/${sample.file}`} alt="" />
-              <span>{sample.name}</span>
-            </button>
-          ))}
-        </div>
-        <div className="workbench-pipeline">
-          <div className="workbench-section-label">ПРОЦЕСС</div>
-          {[
-            { id: "camera" as const, name: "Источник и свет" },
-            {
-              id: params.rawEngine === "spektrafilm" ? ("film" as const) : ("tone" as const),
-              name: "Цвет и проявка",
-            },
-            { id: "export" as const, name: "Готовый отпечаток" },
-          ].map((step, i) => (
-            <button key={step.id} type="button" onClick={() => selectTool(step.id)}>
-              <span>0{i + 1}</span>
-              {step.name}
-              <ChevronRight size={12} />
-            </button>
-          ))}
-        </div>
-        <div className="workbench-local">
-          <Monitor size={14} />
-          <span>
-            Обработка на устройстве
-            <br />
-            <small>Ваши фото остаются у вас</small>
-          </span>
-        </div>
-      </aside>
-      {tool === "gallery" || tool === "stock" ? (
-        <div className="lab-stage is-gallery">
-          {tool === "stock" ? (
-            <StockPane
+    <ZalupaWorkspace page={workspacePage} open={workspaceOpen} onOpen={setWorkspaceOpen} onPage={openWorkspace}
+      fileName={fileName} hasImage={!!(fileName||origUrl)} working={busy||exporting||batching||testPrinting}
+      canSave={canSave} canUndo={canUndo} canRedo={canRedo} onImport={()=>void openNativeOrPicker()}
+      onSave={()=>void saveFrame()} onUndo={undo} onRedo={()=>useDarkroom.getState().redo()}
+      onGallery={()=>openWorkspace(zPage(tool==='gallery'||tool==='stock'?'films':'gallery'))}
+      onSearch={()=>setDirectoryOpen(true)} onReset={()=>{applyParams(resetZPage(params,workspacePage));flashNote('Страница сброшена · можно отменить');}}
+      onResetAll={()=>{const state=useDarkroom.getState();state.reset();state.resetPrefs();state.setAdvanced(false);flashNote("Обработка и настройки сброшены");}}
+      onCompare={()=>setShowOriginal(!showOriginal)} showOriginal={showOriginal}
+      hidden={chromeHidden} onShowChrome={()=>setChromeHidden(false)}
+      extraActions={[...(canStock?[{label:'Добавить кадр в очередь',run:()=>void addToStock(),disabled:busy||exporting||batching}]:[]),...(prefs.experimentalEnlarger?[{label:'Пробная печать',run:()=>setEnlargerOpen(true),disabled:busy||exporting||batching}]:[])]}
+      panel={<FlatControlSections><Panel
+              catalog={catalog} workspacePage={workspacePage.id} originalUrl={origUrl}
+              onSave={() => void saveFrame()}
+              saving={exporting}
+              canSave={canSave}
+              onNotice={flashNote}
+              onOpenEnlarger={()=>setEnlargerOpen(true)}
+              onAutoWb={() => void runAutoWb()}
+              onPickWb={togglePickWb}
+              pickingWb={pickingWb}
+              autoWbBusy={autoWbBusy}
+              hasImage={!!(fileName || origUrl || fullLinear)}
+              previewUrl={procUrl || origUrl}
+            /></FlatControlSections>}
+      viewer={tool==='gallery'||tool==='stock'?<div className="z-library">{tool==='stock'?<StockPane
               items={stockItems}
               busy={batching}
               onExportAll={() => void exportStockAll()}
               onOpen={(item) => void openStock(item)}
               onDelete={(id) => void deleteStock(id)}
               onClearDone={() => void clearDone()}
-            />
-          ) : (
-            <GalleryPane
+            />:<GalleryPane
               tick={galleryTick}
               onOpenFile={() => void openFromFiles()}
               onOpenPhone={(uri, name, roll, more) => {
@@ -2143,59 +1671,8 @@ export function DarkroomApp() {
                 const shot = roll[rollAt.current];
                 void openFromPhone(uri, name, { thumb: shot?.thumb });
               }}
-            />
-          )}
-          {toast ? (
-            <p
-              className={error ? "lab-toast text-warn" : "lab-toast text-muted"}
-              role="status"
-              onClick={clearToasts}
-            >
-              {toast}
-            </p>
-          ) : null}
-          {status ? (
-            <div className="lab-status" role="status" aria-live="polite">
-              <span className="shrink-0">{status.label}</span>
-              <div className="lab-status-track">
-                <div
-                  className={status.busy ? "lab-status-fill is-busy" : "lab-status-fill"}
-                  style={{ width: `${Math.max(6, status.pct)}%` }}
-                />
-              </div>
-              <span className="tabular-nums">{status.pct}%</span>
-              {status.busy || exporting || batching ? (
-                <button type="button" className="lab-status-cancel" onClick={cancelWork}>
-                  Отмена
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-      ) : (
-        <div className="lab-stage">
-          <div className="lab-lcd">
-            <div className="workbench-document">
-              <span>
-                <span className="workbench-live-dot" />
-                {showOriginal ? "Оригинал" : "Предпросмотр"}
-              </span>
-              <span>{fileName || "Нет открытого кадра"}</span>
-              <button
-                type="button"
-                aria-pressed={showClip}
-                onClick={() => setShowClip(!showClip)}
-                title="Показать пересветы (без рамки)"
-                disabled={params.frameStyle !== "none"}
-              >
-                <ScanLine size={14} />
-                Пересветы
-              </button>
-            </div>
-            <div className="lab-hist-float">
-              <Histogram url={showOriginal ? origUrl : procUrl || origUrl} />
-            </div>
-            <Viewer
+            />}</div>:<div className="lab-lcd z-canvas">
+        <Viewer
               originalUrl={origUrl}
               processedUrl={procUrl}
               showOriginal={showOriginal}
@@ -2223,17 +1700,14 @@ export function DarkroomApp() {
               onPickGray={(nx, ny) => void pickGray(nx, ny)}
               onBrowse={browseRoll}
             />
-            {toast ? (
-              <p
-                className={error ? "lab-toast text-warn" : "lab-toast text-muted"}
-                role="status"
-                onClick={clearToasts}
-              >
-                {toast}
-              </p>
-            ) : null}
-            {confirmExport ? (
-              <div className="lab-confirm" role="dialog" aria-label="Подтверждение сохранения">
+        {origUrl?<div className="z-viewer-actions"><button type="button" aria-label="Гистограмма" aria-pressed={histogramOpen} onClick={()=>setHistogramOpen(!histogramOpen)}>Гистограмма</button><button type="button" aria-label="До / после" aria-pressed={showOriginal} onClick={()=>setShowOriginal(!showOriginal)}>{showOriginal?'Оригинал':'До / после'}</button></div>:null}
+        {histogramOpen&&origUrl?<div className="z-histogram"><Histogram url={showOriginal?origUrl:procUrl||origUrl}/></div>:null}
+        {fileName?<div className="z-viewer-caption"><span>{fileName}</span><span>{renderMs!=null?Math.round(renderMs)+' мс':''}</span></div>:null}
+      </div>}>
+      {toast?<p className={'z-notice'+(error?' is-error':'')} role={error?'alert':'status'} onClick={clearToasts}>{toast}</p>:null}
+      {status?<div className="z-progress" role="status" aria-live="polite"><span>{status.label}</span><progress value={status.pct} max={100}/><span>{status.pct}%</span>{status.busy||exporting||batching?<button type="button" onClick={cancelWork}>Отмена</button>:null}</div>:null}
+    </ZalupaWorkspace>
+    {confirmExport?<div className="lab-confirm" role="dialog" aria-label="Подтверждение сохранения">
                 <p>Сохранить полный кадр в галерею?</p>
                 <div className="lab-confirm-row">
                   <button
@@ -2254,173 +1728,8 @@ export function DarkroomApp() {
                     Сохранить
                   </button>
                 </div>
-              </div>
-            ) : null}
-            {status ? (
-              <div className="lab-status" role="status" aria-live="polite">
-                <span className="shrink-0">{status.label}</span>
-                <div className="lab-status-track">
-                  <div
-                    className={status.busy ? "lab-status-fill is-busy" : "lab-status-fill"}
-                    style={{ width: `${Math.max(6, status.pct)}%` }}
-                  />
-                </div>
-                <span className="tabular-nums">{status.pct}%</span>
-                {status.busy || exporting ? (
-                  <button type="button" className="lab-status-cancel" onClick={cancelWork}>
-                    Отмена
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      )}
-      <aside
-        className={[
-          "lab-dock",
-          `is-${sheet}`,
-          tool === "gallery" && "is-tools-only",
-          tool === "stock" && "is-tools-only",
-          tool === "presets" && "is-presets",
-          tool === "log" && "is-log",
-          tool === "settings" && "is-settings",
-          tool === "tone" && "is-tone",
-          tool === "film" && "is-film",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-      >
-        <button
-          type="button"
-          className="lab-sheet-handle"
-          aria-label="Размер панели"
-          onPointerDown={onSheetDown}
-          onPointerMove={onSheetMove}
-          onPointerUp={onSheetUp}
-          onPointerCancel={onSheetUp}
-          onClick={onSheetClick}
-        />
-        <div className="lab-dock-head">
-          <span className="lab-dock-title">
-            {tool === "settings" ? "Опции" : toolLabel || "Develop"}
-          </span>
-          {tool === "settings" ? (
-            <button
-              type="button"
-              className={resetAllArmed ? "lab-dock-resetall is-warn" : "lab-dock-resetall"}
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={() => {
-                if (!resetAllArmed) {
-                  setResetAllArmed(true);
-                  return;
-                }
-                setResetAllArmed(false);
-                const s = useDarkroom.getState();
-                s.reset();
-                s.resetPrefs();
-                s.setAdvanced(false);
-                haptic("menu");
-                flashNote("Все настройки сброшены");
-              }}
-            >
-              {resetAllArmed ? "Точно сбросить?" : "Сбросить всё"}
-            </button>
-          ) : tool !== "gallery" && tool !== "stock" && tool !== "presets" && tool !== "log" ? (
-            <IconBtn label="Сбросить вкладку" onClick={() => resetTool()}>
-              <RotateCcw className="size-4" />
-            </IconBtn>
-          ) : null}
-        </div>
-        {tool !== "gallery" && tool !== "stock" ? (
-          <div className="lab-sliders" key={`${params.rawEngine}-${tool}`}>
-            <Panel
-              catalog={catalog}
-              onSave={() => void saveFrame()}
-              saving={exporting}
-              canSave={canSave}
-              onNotice={flashNote}
-              onOpenEnlarger={()=>setEnlargerOpen(true)}
-              onAutoWb={() => void runAutoWb()}
-              onPickWb={togglePickWb}
-              pickingWb={pickingWb}
-              autoWbBusy={autoWbBusy}
-              hasImage={!!(fileName || origUrl || fullLinear)}
-              previewUrl={procUrl || origUrl}
-            />
-          </div>
-        ) : null}
-      </aside>
-      <footer className="workbench-status">
-        <span>
-          <span className={busy ? "workbench-live-dot is-busy" : "workbench-live-dot"} />
-          {busy ? "Обработка кадра" : "Готово"}
-        </span>
-        <span>
-          {nativeEngine ? "Нативный движок" : "Веб-движок"}
-          {renderMs != null ? ` · ${Math.round(renderMs)} мс` : ""}
-        </span>
-        <span>
-          {pendingStock} в очереди · {params.exportColorSpace.toUpperCase()}
-        </span>
-        <span className="workbench-shortcut">
-          Ctrl O — открыть · Ctrl S — экспорт · Ctrl Z — отменить
-        </span>
-      </footer>
-      {directoryOpen?<ControlDirectory close={()=>setDirectoryOpen(false)} select={selectTool} notice={flashNote}/>:null}
-      <nav
-        className={prefs.showToolLabels ? "lab-rail has-labels" : "lab-rail"}
-        aria-label="Инструменты"
-      >
-        <button type="button" className="lab-tool ux-directory-launch" aria-label="Найти инструмент или параметр" onClick={()=>setDirectoryOpen(true)}><SlidersHorizontal className="size-5"/><span className="lab-tool-label">Поиск</span></button>
-        {dockTools(params.rawEngine, params.filmStock, prefs.showLabTabs, tool).map((item) => {
-          const Icon = TOOL_ICONS[item.id];
-          const on = tool === item.id;
-          const changes = toolChangeCount(params, item.id);
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className={on ? "lab-tool is-on" : "lab-tool"}
-              aria-pressed={on}
-              aria-label={item.label}
-              title={changes ? `${item.label}: изменено параметров — ${changes}` : item.label}
-              aria-description={changes ? `Изменено параметров: ${changes}` : "Без изменений"}
-              onClick={() => {
-                if (on && sheet === "peek") {
-                  animateSheet("half");
-                  return;
-                }
-                selectTool(item.id);
-              }}
-            >
-              <Icon className="size-5" strokeWidth={1.6} />
-              {changes > 0 ? <span className="lab-edited-dot" aria-hidden="true" /> : null}
-              {item.id === "stock" && pendingStock > 0 ? (
-                <span className="lab-tool-badge">{pendingStock > 9 ? "9+" : pendingStock}</span>
-              ) : null}
-              {prefs.showToolLabels ? <span className="lab-tool-label">{item.label}</span> : null}
-            </button>
-          );
-        })}
-        <button
-          type="button"
-          className={tool === "settings" ? "lab-tool is-on" : "lab-tool"}
-          aria-pressed={tool === "settings"}
-          aria-label="Опции"
-          title="Опции"
-          onClick={() => {
-            if (tool === "settings") {
-              selectTool(params.rawEngine === "spektrafilm" ? "film" : "tone");
-              return;
-            }
-            selectTool("settings");
-          }}
-        >
-          <Settings className="size-5" strokeWidth={1.6} />
-          {prefs.showToolLabels ? <span className="lab-tool-label">Опции</span> : null}
-        </button>
-      </nav>
-    </div>
-  );
+              </div>:null}
+    {directoryOpen?<ControlDirectory close={()=>setDirectoryOpen(false)} select={(tool,label)=>openWorkspace(pageForTool(tool,label,workspacePage.id))} notice={flashNote}/>:null}
+    {draggingFile?<div className="z-drop" role="status"><FolderOpen size={38}/><strong>Откройте RAW, JPEG или PNG</strong><span>Отпустите файл здесь</span></div>:null}
+  </div>;
 }

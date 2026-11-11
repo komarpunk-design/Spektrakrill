@@ -25,7 +25,7 @@ function ControlHint({ label, id }: { label: string; id?: string }) {
     show = useDarkroom((s) => s.prefs.showControlHelp),
     text = controlHelp(label, tool);
   if (!text) return null;
-  return show !== false || tool === "fotufilm" || tool === "negs" ? (
+  return show !== false ? (
     <span id={id} className="control-help">
       {text}
     </span>

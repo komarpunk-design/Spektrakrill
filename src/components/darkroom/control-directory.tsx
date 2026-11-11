@@ -4,14 +4,14 @@ import { TOOL_GUIDE } from "@/lib/film/workflow-guide";
 import { toolChangeCount } from "@/lib/film/tool-state";
 import index from "@/lib/film/control-index.json";
 import { controlHelp } from "@/lib/film/control-guide";
-const hidden = ["edit", "frame", "outputs", "texture"];
+const hidden = ["edit", "frame", "outputs"];
 export function ControlDirectory({
   close,
   select,
   notice,
 }: {
   close: () => void;
-  select: (id: ToolId) => void;
+  select: (id: ToolId, label?: string) => void;
   notice: (text: string) => void;
 }) {
   const [query, setQuery] = useState(""),
@@ -43,15 +43,19 @@ export function ControlDirectory({
       (id) => !hidden.includes(id) && (!changed || toolChangeCount(params, id) > 0),
     );
   const open = (tool: ToolId, label?: string) => {
-    select(tool);
+    select(tool, label);
     close();
     if (label)
       window.setTimeout(() => {
         if (useDarkroom.getState().tool !== tool) return;
         const labels = [
-            ...document.querySelectorAll<HTMLElement>(".lab-sliders [data-control-label]"),
+            ...document.querySelectorAll<HTMLElement>(
+              ".lab-sliders [data-control-label], .lab-sliders input[aria-label], .lab-sliders textarea[aria-label]",
+            ),
           ],
-          el = labels.find((el) => el.dataset.controlLabel === label);
+          el = labels.find(
+            (el) => (el.dataset.controlLabel ?? el.getAttribute("aria-label")) === label,
+          );
         if (!el) {
           const reason =
             tool === "fotufilm" && params.filmStock === "none"
@@ -107,8 +111,11 @@ export function ControlDirectory({
         row.classList.add("ux-found");
         window.setTimeout(() => row.classList.remove("ux-found"), 2400);
         (
-          row.querySelector<HTMLElement>('[role="slider"],[role="switch"],select,input') ??
-          row.querySelector<HTMLElement>("button")
+          (row.matches("input,textarea,select")
+            ? row
+            : row.querySelector<HTMLElement>(
+                '[role="slider"],[role="switch"],select,input,textarea',
+              )) ?? row.querySelector<HTMLElement>("button")
         )?.focus({ preventScroll: true });
       }, 300);
   };
