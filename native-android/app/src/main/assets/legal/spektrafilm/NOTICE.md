@@ -1,0 +1,201 @@
+# Attribution & Third-Party Notices
+
+Spektrafilm for Android is licensed under the **GNU General Public License v3.0** (see `LICENSE`).
+
+> **Dedicated to the [pixls.us](https://pixls.us) community** — for keeping open photography and
+> open color science alive. Thank you. 💛
+
+Authored and directed by **Akshay** —
+[Instagram @akshay.pool](https://www.instagram.com/akshay.pool/) ·
+[YouTube @Akshayishere](https://www.youtube.com/@Akshayishere/videos).
+
+## Required attribution (GPLv3 section 7(b) additional term)
+
+This project is distributed under the GNU General Public License v3.0. As permitted by
+**GPLv3 section 7(b)** — *"requiring preservation of specified reasonable legal notices or
+author attributions in that material or in the Appropriate Legal Notices displayed by works
+containing it"* — the following attribution is a required notice.
+
+**If you convey this software, or any work based on it, you must preserve this attribution and
+display it in your Appropriate Legal Notices** (an about screen, a credits screen, a licences
+screen, a store listing's description, or the documentation — somewhere a user can actually
+find it):
+
+> **Spektrafilm for Android** by **Akshay Sharma** —
+> https://github.com/thetechgeekko/Spektrafilm-android
+>
+> Film modeling powered by **spektrafilm** (Andrea Volpato) —
+> https://github.com/andreavolpato/spektrafilm
+
+Where the medium allows a hyperlink, both URLs must be clickable. Where it does not, the URLs
+must appear as text. This applies to every form of conveyance, including a Google Play or other
+app-store listing of a derivative work.
+
+**Both lines are required, and the second is not optional courtesy**: the film-simulation engine
+here is a port of Andrea Volpato's spektrafilm, whose own attribution request this project has
+always honoured. Crediting the Android port while dropping the upstream engine would misrepresent
+the work — and removing either notice removes your licence to convey the software at all
+(GPLv3 section 8).
+
+This term adds **no restriction beyond attribution**. It does not limit commercial use,
+modification, or redistribution, and it is deliberately confined to what section 7(b) permits so
+that this project stays GPL-compatible and can still be combined with other GPLv3 software. If
+you receive this work with this term attached and prefer not to carry it, section 7 lets you
+remove *additional* terms from material you convey — but the GPLv3 obligations themselves, and
+the upstream spektrafilm attribution required by the engine's own licence, remain.
+
+## Film modeling powered by spektrafilm
+
+The film-simulation engine in this project is a port of **spektrafilm** by Andrea Volpato.
+
+- Upstream: https://github.com/andreavolpato/spektrafilm
+- License: GPLv3
+- Citation: see `CITATION.cff` upstream / the project's Zenodo DOI.
+
+Per the upstream request: *film modeling powered by `spektrafilm`*. Any academic use should
+cite the upstream repository.
+
+## Vulkan orchestration reference: spektrafilm OFX
+
+Selected Vulkan host and resource-lifetime orchestration is adapted from
+**spektrafilm OFX** by Aedan Oskar Otto Diez.
+
+- Upstream: https://github.com/chaert-s/spektrafilm-ofx
+- Pinned source: `86476afc5b077de77e2278e3658d1ba9309892a1`
+- License: GPL-3.0-only
+- Adaptation record: `docs/research/spektrafilm-ofx-port.md`
+- Shader code adapted (modified copy, GPL-3.0-only, both copyright lines kept):
+  `shaders/vulkan/SpektraHalation.comp` -> `engine/spektra-core/src/main/cpp/gpu/halation_scatter.comp`
+
+This Android project is independent and is not endorsed by the upstream author. No official
+binary-only resources or spektrafilm OFX-exported LUTs are included.
+
+## Color science: colour-science
+
+Color-matching functions, illuminants, chromatic adaptation, and color-space transforms follow
+**colour-science** — the reference used by spektrafilm and the ground truth for this port.
+
+- Upstream: https://www.colour-science.org / https://github.com/colour-science/colour
+- License: BSD-3-Clause
+
+## RAW decoding: LibRaw
+
+<!-- libraw-license-route: LGPL-2.1-only -->
+
+LibRaw Android distribution route: LGPL-2.1-only.
+
+Full-resolution RAW/DNG decoding uses **LibRaw**.
+
+- Upstream: https://www.libraw.org / https://github.com/LibRaw/LibRaw
+- License: LibRaw is offered under a choice of LGPL-2.1-only or CDDL-1.0. This
+  application's static integration is distributed under **LGPL-2.1-only**; both
+  upstream license texts remain included for provenance. CDDL-1.0 is not
+  generally treated as GPL-compatible and was declined. The reproducible
+  source/relink package described in `docs/LICENSING.md` ships with each release.
+  The route marker cannot be changed alone: the canonical decision record also
+  identifies the human approval and confirms rights to license the local patch
+  contributions under the elected route.
+
+## Lossy-JPEG DNG decoding: libjpeg-turbo
+
+Lossy-JPEG DNG files (for example Samsung and Pixel "Expert RAW") are decoded by
+LibRaw through **libjpeg-turbo** 3.1.4, statically linked into the RAW library and
+built unmodified from its official release archive (a byte-identical copy is
+kept at `lib/libraw/third_party/`; SHA-256 pinned in
+`lib/libraw/cmake/LibJpegTurboVendor.cmake`).
+
+This software is based in part on the work of the Independent JPEG Group.
+
+- Upstream: https://libjpeg-turbo.org / https://github.com/libjpeg-turbo/libjpeg-turbo
+- License: the IJG License (libjpeg API library), the Modified (3-clause) BSD
+  License (build system), and the zlib License (SIMD extensions); see the
+  upstream `LICENSE.md` and `README.ijg`. Only the libjpeg API is linked; the
+  TurboJPEG API is not built.
+
+## On-device skin finder: LiteRT and the Selfie Multiclass model
+
+AI skin masks run Google's **LiteRT** runtime (`com.google.ai.edge.litert:litert`), linked
+unmodified from its published Android package, on the CPU.
+
+- Upstream: https://github.com/google-ai-edge/LiteRT
+- License: Apache License 2.0
+
+The segmentation model, Google's MediaPipe **Selfie Multiclass (256x256)**, is not part of the
+app. It is downloaded unmodified from Google's model storage the first time a skin mask is used,
+and kept only if it matches a pinned SHA-256. It runs on the device; no photo leaves it.
+
+- Model card and terms: https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter
+- License: Apache License 2.0
+
+## Icons: Material Symbols
+
+The app's icons are Google's **Material Symbols** (Outlined, weight 400, 24 px), built into
+`app/src/main/java/com/spectrafilm/app/MaterialSymbols.kt` as vector paths from the upstream
+SVGs, unmodified.
+
+- Upstream: https://github.com/google/material-design-icons
+- License: Apache License 2.0
+
+## Translations
+
+- **Simplified Chinese (zh-CN):** translated by
+  [q8987308-design](https://github.com/q8987308-design/Spektrafilm-android) (GPLv3), imported
+  into `app/src/main/res/values-zh-rCN/strings*.xml`. Strings added after that translation are
+  in `strings_zh_draft.xml`, drafted by Claude and awaiting native-speaker review.
+- **Japanese (ja):** machine-drafted by Claude (2026-11) in `app/src/main/res/values-ja/`;
+  awaiting native-speaker review. Corrections are welcome as issues or pull requests.
+- **Korean (ko), Spanish (es), Brazilian Portuguese (pt-BR), German (de), French (fr):**
+  machine-drafted by Claude (2026-11) in `app/src/main/res/values-{ko,es,pt-rBR,de,fr}/`;
+  awaiting native-speaker review. Corrections are welcome as issues or pull requests.
+- The idea of shipping the app in Chinese also came from
+  [hwx959](https://github.com/hwx959/Spektrafilm-android); none of that fork's files are used.
+
+## Film & paper profiles
+
+The 28 film/paper JSON profiles and the spectral-upsampling LUT binaries originate from
+the spektrafilm project and are redistributed under GPLv3. See `docs/ASSETS.md`.
+
+CineStill 800T (`cinestill_800t.json`) is derived from spektrafilm's Kodak Vision3 500T profile
+with only its descriptive tags changed (`tools/upstream/derive_profiles.py`).
+
+The black-and-white profiles (Kodak Tri-X 400, Kodak T-Max 100, Ilford HP5 Plus 400,
+Fujifilm Neopan Acros 100 II and the Ilford Multigrade IV RC paper) and the Multigrade
+paper-grade table are by **Hanze Qiu** (https://github.com/JamesQiu2005), GPLv3, built from the
+manufacturers' published datasheets. They are redistributed unmodified under GPLv3; what each
+one takes from its sheet and what it assumes is recorded in the profile's `metadata`. Kodak,
+Tri-X, T-Max, Fujifilm, Neopan, Acros, Ilford, HP5 and Multigrade are trademarks of their
+respective owners and name only the published data each profile was built from.
+
+## ICC color profiles
+
+The bundled ICC profiles under `engine/spektra-core/src/main/assets/spektra/icc/` are
+redistributed from two upstream sets (carried over from spektrafilm's asset bundle) so the
+export writers can embed a correct color interpretation. They are kept under their original
+upstream filenames for traceability. See `engine/spektra-core/src/main/assets/spektra/icc/README.md`.
+
+- **`icc/ellelstone/` — Elle Stone's well-behaved ICC profiles.** Copyright 2016, Elle Stone
+  (http://ninedegreesbelow.com/). Licensed under **Creative Commons Attribution-ShareAlike 3.0
+  Unported (CC BY-SA 3.0)**; attribution required. Upstream:
+  https://github.com/ellelstone/elles_icc_profiles — license text:
+  `icc/ellelstone/LICENSE-CC-BY-SA-3.0`. The profiles remain under their own
+  license; no GPL compatibility or relicensing claim is made here.
+- **`icc/saucecontrol/` — Compact ICC Profiles** by Clinton Ingram. Licensed under the **MIT
+  License**. Upstream: https://github.com/saucecontrol/Compact-ICC-Profiles — license text:
+  `icc/saucecontrol/LICENSE-MIT`.
+
+
+## Spektrafilm Lab derivative (9.57)
+
+This derivative imports Spektrafilm for Android v1.0.0, commit
+bb53c80ab81f6f1d885ff613f4218f83c6c87f65, from
+https://github.com/thetechgeekko/Spektrafilm-android. Its native UI, engine and
+original credits are retained. Fork source:
+https://github.com/komarpunk-design/Spektrakrill/tree/feature/upstream-native-app.
+
+Additional experimental models originate from Andrea Volpato's spektrafilm
+experimental branch (https://github.com/andreavolpato/spektrafilm). Negs models
+and materials originate from https://github.com/noahhaasis/negs. Fotufilm output
+and Layered Transport integrations retain their licences and provenance in the
+source repository under docs/upstream/ and THIRD_PARTY_NOTICES.md.
+The original notices and complete additional licence texts are bundled in
+assets/legal/lab/ and distributed alongside the GPLv3 source.

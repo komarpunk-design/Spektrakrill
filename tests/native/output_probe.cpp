@@ -9,7 +9,7 @@ int main(int argc,char** argv)try{
  if(argc!=2)return 2;
  spk_engine* engine=nullptr;if(spk_engine_create(argv[1],&engine)!=SPK_OK)throw std::runtime_error("engine create");struct Owner{spk_engine* e;~Owner(){spk_engine_destroy(e);}} owner{engine};
  int w=48,h=32;std::vector<float> input(w*h*3);for(int i=0;i<w*h;i++)for(int c=0;c<3;c++)input[i*3+c]=.002+std::pow(double(i)/(w*h-1),2)*(c==0?.8:c==1?.6:.4);
- spk_image image{input.data(),w,h,SPK_CS_PROPHOTO};spk_params p;spk_default_params(&p);p.auto_exposure=0;p.grain_active=0;p.halation_active=0;p.dir_couplers_active=0;p.glare_active=0;p.scanner_unsharp[0]=0;p.scanner_unsharp[1]=0;p.scan_film=1;
+ spk_image image{input.data(),w,h,SPK_CS_PROPHOTO};spk_params p{};spk_default_params(&p);p.print_profile="kodak_portra_endura";p.auto_exposure=0;p.grain_active=0;p.halation_active=0;p.dir_couplers_active=0;p.glare_active=0;p.scanner_unsharp[0]=0;p.scanner_unsharp[1]=0;p.scan_film=1;
  auto render=[&](std::string json){p.experimental_json=json.c_str();spk_image out{};auto status=spk_simulate(engine,&image,&p,&out);if(status!=SPK_OK)throw std::runtime_error(std::string(p.film_profile)+" status="+std::to_string(status)+" "+json+" "+spk_last_error_message());std::vector<float> result(out.data,out.data+out.width*out.height*3);spk_image_free(&out);for(auto v:result)if(!std::isfinite(v)||v<0||v>1)throw std::runtime_error("invalid output");return result;};
  int renders=0;for(auto stock:{"kodak_portra_400","negs_cinestill_800t","negs_ilford_hp5_plus_6p5min","fujifilm_velvia_100"}){
  p.film_profile=stock;auto baseline=render("{}");if(render(R"({"outputModel":{"mode":"paper"}})")!=baseline)throw std::runtime_error("default model changed old pixels");

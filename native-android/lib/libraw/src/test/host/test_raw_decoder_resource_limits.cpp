@@ -1,0 +1,692 @@
+/*
+ * Spektrafilm Android -- production RAW decoder resource-limit regressions.
+ * Copyright (C) 2026 Spektrafilm Android contributors. GPLv3.
+ */
+#include "public_api_test_support.h"
+#include "raw_decode_budget.h"
+#include "raw_decoder.h"
+
+#include <libraw/libraw.h>
+
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <cstdio>
+#include <cstdint>
+#include <cstring>
+#include <dirent.h>
+#include <fcntl.h>
+#include <fstream>
+#include <iostream>
+#include <mutex>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <vector>
+
+namespace sfraw::test {
+using LibRawProgressObserver = void (*)(void*);
+void setLibRawProgressObserverForTest(LibRawProgressObserver observer,
+                                      void* context) noexcept;
+}  // namespace sfraw::test
+
+namespace {
+
+int failures = 0;
+
+void check(bool condition, const std::string& label,
+           const std::string& detail = {}) {
+  std::cout << (condition ? "ok   " : "FAIL ") << label;
+  if (!detail.empty()) std::cout << " (" << detail << ')';
+  std::cout << '\n';
+  if (!condition) ++failures;
+}
+
+std::string describe(const spectrafilm::DecodeResult& result) {
+  return "status=" + std::to_string(result.status) +
+         " libraw=" + std::to_string(result.librawCode) +
+         " error=" + result.error;
+}
+
+int openFdCount() {
+  DIR* directory = ::opendir("/proc/self/fd");
+  if (!directory) return -1;
+  int count = 0;
+  while (::readdir(directory)) ++count;
+  ::closedir(directory);
+  return count;
+}
+
+int mappingsForInode(ino_t inode) {
+  std::ifstream maps("/proc/self/maps");
+  if (!maps) return -1;
+  int count = 0;
+  std::string line;
+  while (std::getline(maps, line)) {
+    std::istringstream fields(line);
+    std::string address, permissions, offset, device;
+    unsigned long long mappedInode = 0;
+    if (fields >> address >> permissions >> offset >> device >> mappedInode) {
+      if (mappedInode == static_cast<unsigned long long>(inode)) ++count;
+    }
+  }
+  return count;
+}
+
+}  // namespace
+
+int main() {
+  constexpr std::uint64_t kMiB = 1024ULL * 1024ULL;
+  constexpr std::uint64_t kGiB = 1024ULL * kMiB;
+  check(spectrafilm::decodePixelLimitForMemory(false, 16 * kGiB,
+                                                12 * kGiB) == 8 * kMiB,
+        "32-bit decoder keeps the 8 MiPixel ceiling");
+  check(spectrafilm::decodePixelLimitForMemory(true, 8 * kGiB,
+                                                3 * kGiB) == 32 * kMiB &&
+            spectrafilm::decodePixelLimitForMemory(true, 8 * kGiB - 1,
+                                                     3 * kGiB) == 24 * kMiB &&
+            spectrafilm::decodePixelLimitForMemory(true, 8 * kGiB,
+                                                     3 * kGiB - 1) == 24 * kMiB,
+        "32 MiPixel tier requires both memory thresholds");
+  check(spectrafilm::decodePixelLimitForMemory(true, 10 * kGiB,
+                                                5 * kGiB / 2) == 64 * kMiB &&
+            spectrafilm::decodePixelLimitForMemory(true, 10 * kGiB - 1,
+                                                     4 * kGiB) == 32 * kMiB &&
+            spectrafilm::decodePixelLimitForMemory(true, 10 * kGiB,
+                                                     5 * kGiB / 2 - 1) == 24 * kMiB &&
+            // The SM-S948W at export time: 11.35 GB total, 2.93 GB available.
+            spectrafilm::decodePixelLimitForMemory(true, 11623403520ULL,
+                                                     2930000000ULL) == 64 * kMiB,
+        "64 MiPixel tier (50 MP phone DNGs) requires both memory thresholds");
+  check(spectrafilm::largeBayerHalfOutputLimit(64 * kMiB) == 32 * kMiB &&
+            spectrafilm::largeBayerHalfOutputLimit(24 * kMiB) == 24 * kMiB,
+        "the large-Bayer half path keeps its 32 MiPixel bounds on the 64 tier");
+  check(spectrafilm::linearRawStoreMiB(64 * kMiB) == 576U &&
+            spectrafilm::linearRawStoreMiB(32 * kMiB) == 320U &&
+            spectrafilm::linearRawStoreMiB(12 * kMiB) == 160U,
+        "LinearRaw store holds four 16-bit planes of the tier plus margin");
+  check(spectrafilm::decodePixelLimitForMemory(true, 6 * kGiB,
+                                                2 * kGiB) == 24 * kMiB &&
+            spectrafilm::decodePixelLimitForMemory(true, 6 * kGiB - 1,
+                                                     2 * kGiB) == 12 * kMiB &&
+            spectrafilm::decodePixelLimitForMemory(true, 6 * kGiB,
+                                                     2 * kGiB - 1) == 12 * kMiB,
+        "24 MiPixel tier requires both memory thresholds");
+  check(spectrafilm::decodePixelLimitForMemory(true, 0, 0) == 12 * kMiB &&
+            spectrafilm::decodePixelLimitForMemory(true, 0,
+                                                     3 * kGiB) == 12 * kMiB &&
+            spectrafilm::decodePixelLimitForMemory(true, 8 * kGiB,
+                                                     0) == 12 * kMiB &&
+            spectrafilm::decodePixelLimitForMemory(true, 6 * kGiB,
+                                                     6 * kGiB + 1) == 12 * kMiB,
+        "missing or inconsistent memory telemetry retains the baseline");
+  check(spectrafilm::decodePixelLimitForMemory(true, 8 * kGiB,
+                                                2 * kGiB - 1) == 12 * kMiB &&
+            spectrafilm::decodePixelLimitForMemory(true, 16 * kGiB,
+                                                     5 * kGiB / 2 - 1) == 24 * kMiB,
+        "extra total RAM cannot replace the available-RAM thresholds");
+
+  using spectrafilm::DecodeGeometry;
+  const DecodeGeometry gfx100{11648, 8736, 11648, 8736, 0, 0, 1.0};
+  const auto allowed = [](const DecodeGeometry& geometry,
+                          std::uint64_t cap, bool half, unsigned filters,
+                          unsigned colors, unsigned fuji, bool rawPlane) {
+    return spectrafilm::qualifiedLargeBayerHalfGeometry(
+        geometry, cap, half, filters, colors, fuji, rawPlane);
+  };
+  check(allowed(gfx100, 32 * kMiB, true, 0x94949494U, 3, 0, true),
+        "102 MP Bayer admits a bounded half-size decode");
+  check(!allowed(gfx100, 32 * kMiB, false, 0x94949494U, 3, 0, true) &&
+            !allowed(gfx100, 24 * kMiB, true, 0x94949494U, 3, 0, true) &&
+            !allowed(gfx100, 8 * kMiB, true, 0x94949494U, 3, 0, true),
+        "full-size, 32-bit, and sources over 4x a lower tier's ceiling are refused");
+  // #268: a 16 MP NEF (4948 x 3280) on a 3.6 GB phone's 12 MiPixel tier.
+  const DecodeGeometry nef16{4992, 3280, 4948, 3280, 0, 0, 1.0};
+  check(allowed(nef16, 12 * kMiB, true, 0x94949494U, 3, 0, true) &&
+            allowed(nef16, 24 * kMiB, true, 0x94949494U, 3, 0, true) &&
+            !allowed(nef16, 12 * kMiB, false, 0x94949494U, 3, 0, true) &&
+            !allowed(nef16, 8 * kMiB, true, 0x94949494U, 3, 0, true),
+        "16 MP Bayer half-sizes on the 12 and 24 MiPixel tiers, never full-size or 32-bit");
+  // 4 x 12 MiPixels bounds the 12 tier's source, and the padded half-size
+  // image must still fit 12 MiPixels: 8180 x 6140 passes both; 8192 x 6145 is
+  // over the source bound.
+  check(allowed({8180, 6140, 8180, 6140, 0, 0, 1.0}, 12 * kMiB, true,
+                0x94949494U, 3, 0, true) &&
+            !allowed({8192, 6145, 8192, 6145, 0, 0, 1.0}, 12 * kMiB, true,
+                     0x94949494U, 3, 0, true),
+        "the 12 MiPixel tier admits at most a 48 MiPixel half-size source");
+  check(spectrafilm::largeBayerRawStoreMiB(32 * kMiB) == 320U &&
+            spectrafilm::largeBayerRawStoreMiB(24 * kMiB) == 256U &&
+            spectrafilm::largeBayerRawStoreMiB(12 * kMiB) == 160U,
+        "raw-store ceiling scales with the tier's source bound");
+  check(!allowed(gfx100, 32 * kMiB, true, 9, 3, 0, true) &&
+            !allowed(gfx100, 32 * kMiB, true, 0, 3, 0, true) &&
+            !allowed(gfx100, 32 * kMiB, true, UINT32_MAX, 3, 0, true) &&
+            !allowed(gfx100, 32 * kMiB, true, 0x94949494U, 4, 0, true) &&
+            !allowed(gfx100, 32 * kMiB, true, 0x94949494U, 3, 1, true) &&
+            !allowed(gfx100, 32 * kMiB, true, 0x94949494U, 3, 0, false),
+        "X-Trans, linear, unknown, rotated and multi-plane RAW reject expansion");
+  check(!allowed({13000, 11000, 13000, 11000, 0, 0, 1.0},
+                 32 * kMiB, true, 0x94949494U, 3, 0, true) &&
+            !allowed({12000, 10000, 12000, 10000, 0, 0, 0.5},
+                     32 * kMiB, true, 0x94949494U, 3, 0, true) &&
+            !allowed({12000, 10000, 12000, 10000, UINT64_MAX, 0, 1.0},
+                     32 * kMiB, true, 0x94949494U, 3, 0, true),
+        "source area, aspect expansion and margin overflow remain bounded");
+
+  spectrafilm::DecodeOptions options;
+
+  std::atomic<bool> preCancelled{true};
+  options.cancelFlag = &preCancelled;
+  const std::uint8_t cancelledSentinel = 0U;
+  const spectrafilm::DecodeResult cancelled = spectrafilm::decodeFromBuffer(
+      &cancelledSentinel, 1U, options);
+  check(!cancelled.ok &&
+            cancelled.status == spectrafilm::SFRAW_ERR_CANCELLED,
+        "pre-cancelled decode returns the stable cancellation status",
+        describe(cancelled));
+  options.cancelFlag = nullptr;
+
+  const std::vector<std::uint8_t> cancellableInput =
+      sfraw::hosttest::makeValidUncompressedDng(2048U, 2048U);
+  std::atomic<bool> cancelDuringDecode{false};
+  struct ProgressBarrier {
+    std::mutex mutex;
+    std::condition_variable enteredCondition;
+    std::condition_variable releaseCondition;
+    bool entered = false;
+    bool release = false;
+  } progressBarrier;
+  auto blockAtLibRawProgress = [](void* opaque) {
+    auto* barrier = static_cast<ProgressBarrier*>(opaque);
+    std::unique_lock<std::mutex> lock(barrier->mutex);
+    barrier->entered = true;
+    barrier->enteredCondition.notify_one();
+    barrier->releaseCondition.wait(lock, [&] { return barrier->release; });
+  };
+  sfraw::test::setLibRawProgressObserverForTest(blockAtLibRawProgress,
+                                                &progressBarrier);
+  spectrafilm::DecodeResult cancelledDuringDecode;
+  options.cancelFlag = &cancelDuringDecode;
+  std::thread decodeWorker([&] {
+    cancelledDuringDecode = spectrafilm::decodeFromBuffer(
+        cancellableInput.data(), cancellableInput.size(), options);
+  });
+  bool enteredProgress = false;
+  {
+    std::unique_lock<std::mutex> lock(progressBarrier.mutex);
+    enteredProgress = progressBarrier.enteredCondition.wait_for(
+        lock, std::chrono::seconds(5), [&] { return progressBarrier.entered; });
+  }
+  cancelDuringDecode.store(true, std::memory_order_release);
+  {
+    std::lock_guard<std::mutex> lock(progressBarrier.mutex);
+    progressBarrier.release = true;
+  }
+  progressBarrier.releaseCondition.notify_one();
+  decodeWorker.join();
+  sfraw::test::setLibRawProgressObserverForTest(nullptr, nullptr);
+  check(enteredProgress && !cancelledDuringDecode.ok &&
+            cancelledDuringDecode.status == spectrafilm::SFRAW_ERR_CANCELLED &&
+            cancelledDuringDecode.librawCode == LIBRAW_CANCELLED_BY_CALLBACK,
+        "barrier-proven in-flight decode is interrupted through LibRaw's progress callback",
+        describe(cancelledDuringDecode));
+  options.cancelFlag = nullptr;
+
+  constexpr std::size_t kEncodedInputLimit = 64U * 1024U * 1024U;
+  const std::uint8_t sentinel = 0U;
+  const spectrafilm::DecodeResult oversizedBufferResult =
+      spectrafilm::decodeFromBuffer(&sentinel, kEncodedInputLimit + 1U,
+                                    options);
+  check(!oversizedBufferResult.ok &&
+            oversizedBufferResult.status == spectrafilm::SFRAW_ERR_INPUT,
+        "buffer input above 64 MiB is rejected before dereference",
+        describe(oversizedBufferResult));
+
+  FILE* oversizedFile = std::tmpfile();
+  check(oversizedFile != nullptr,
+        "temporary fd fixture for encoded-input ceiling is created");
+  if (oversizedFile != nullptr) {
+    const int oversizedFd = ::fileno(oversizedFile);
+    const int truncateStatus =
+        ::ftruncate(oversizedFd, static_cast<off_t>(kEncodedInputLimit + 1U));
+    check(truncateStatus == 0,
+          "sparse fd fixture is sized one byte above 64 MiB");
+    if (truncateStatus == 0) {
+      const spectrafilm::DecodeResult oversizedFdResult =
+          spectrafilm::decodeFromFd(oversizedFd, options);
+      check(!oversizedFdResult.ok &&
+                oversizedFdResult.status == spectrafilm::SFRAW_ERR_INPUT,
+            "fd input above 64 MiB is rejected without closing caller fd",
+            describe(oversizedFdResult));
+      check(::ftruncate(oversizedFd, 1) == 0,
+            "decodeFromFd retains caller ownership after limit rejection");
+    }
+    std::fclose(oversizedFile);
+  }
+
+  // Relocate a valid DNG's actual sensor strip beyond 64 MiB: success requires
+  // reading past the old boundary, not merely accepting irrelevant padding.
+  {
+    const auto smallDng = sfraw::hosttest::makeValidUncompressedDng(32U, 32U);
+    const auto expected = spectrafilm::decodeFromBuffer(
+        smallDng.data(), smallDng.size(), options);
+    FILE* source = std::tmpfile();
+    FILE* scratch = std::tmpfile();
+    check(source != nullptr && scratch != nullptr && expected.ok,
+          "valid padded-DNG fixtures and baseline are available",
+          describe(expected));
+    if (source && scratch && expected.ok) {
+      const int sourceFd = ::fileno(source);
+      const int scratchFd = ::fileno(scratch);
+      auto relocated = smallDng;
+      size_t stripField = 0;
+      const unsigned entryCount = smallDng[8] | (unsigned(smallDng[9]) << 8);
+      for (unsigned i = 0; i < entryCount; ++i) {
+        const size_t entry = 10U + i * 12U;
+        if (smallDng[entry] == 0x11 && smallDng[entry + 1] == 0x01) stripField = entry + 8;
+      }
+      check(stripField != 0, "fixture has one inline StripOffsets entry");
+      uint32_t originalStrip = 0;
+      const uint32_t relocatedStrip = static_cast<uint32_t>(kEncodedInputLimit + 4096U);
+      for (unsigned byte = 0; byte < 4; ++byte) {
+        originalStrip |= uint32_t(smallDng[stripField + byte]) << (8 * byte);
+        relocated[stripField + byte] = static_cast<uint8_t>(relocatedStrip >> (8 * byte));
+      }
+      const size_t stripBytes = smallDng.size() - originalStrip;
+      const size_t paddedSize = relocatedStrip + stripBytes;
+      const bool prepared = std::fwrite(relocated.data(), 1, relocated.size(),
+                                        source) == relocated.size() &&
+          std::fflush(source) == 0 &&
+          ::ftruncate(sourceFd, static_cast<off_t>(paddedSize)) == 0 &&
+          ::pwrite(sourceFd, smallDng.data() + originalStrip, stripBytes,
+                   static_cast<off_t>(relocatedStrip)) == static_cast<ssize_t>(stripBytes) &&
+          ::lseek(sourceFd, 0, SEEK_SET) == 0;
+      check(prepared, "sparse valid DNG exceeds buffered input limit");
+      if (prepared) {
+        options.inputScratchFd = scratchFd;
+        const auto actual = spectrafilm::decodeFromFd(sourceFd, options);
+        const bool samePixels = actual.ok &&
+            actual.rgb.size() == expected.rgb.size() &&
+            std::memcmp(actual.rgb.data(), expected.rgb.data(),
+                        expected.rgb.size() * sizeof(float)) == 0;
+        check(sizeof(void*) >= 8
+                  ? samePixels && actual.width == expected.width && actual.height == expected.height
+                  : !actual.ok && actual.status == spectrafilm::SFRAW_ERR_INPUT,
+              "sensor strip beyond 64 MiB matches buffer decode exactly (or 32-bit cap)",
+              describe(actual));
+        struct stat sourceStat{}, scratchStat{};
+        check(::fstat(sourceFd, &sourceStat) == 0 &&
+                  ::fstat(scratchFd, &scratchStat) == 0 &&
+                  static_cast<size_t>(sourceStat.st_size) == paddedSize &&
+                  static_cast<size_t>(scratchStat.st_size) == (sizeof(void*) >= 8 ? paddedSize : 0U),
+              "decode retains caller descriptors and source contents");
+        options.inputScratchFd = -1;
+      }
+    }
+    if (source) std::fclose(source);
+    if (scratch) std::fclose(scratch);
+  }
+
+  {
+    FILE* source = std::tmpfile();
+    FILE* scratch = std::tmpfile();
+    check(source != nullptr && scratch != nullptr,
+          "scratch limit fixtures are available");
+    if (source && scratch) {
+      const int sourceFd = ::fileno(source);
+      const int scratchFd = ::fileno(scratch);
+      constexpr size_t kScratchLimit = sizeof(void*) >= 8
+          ? 512U * 1024U * 1024U : 64U * 1024U * 1024U;
+      const bool prepared = ::ftruncate(
+          sourceFd, static_cast<off_t>(kScratchLimit + 1U)) == 0;
+      check(prepared, "sparse source above scratch cap is available");
+      if (prepared) {
+        options.inputScratchFd = scratchFd;
+        const auto capped = spectrafilm::decodeFromFd(sourceFd, options);
+        struct stat sourceStat{}, scratchStat{};
+        check(!capped.ok && capped.status == spectrafilm::SFRAW_ERR_INPUT &&
+                  ::fstat(sourceFd, &sourceStat) == 0 &&
+                  ::fstat(scratchFd, &scratchStat) == 0 &&
+                  static_cast<size_t>(sourceStat.st_size) == kScratchLimit + 1U &&
+                  scratchStat.st_size == 0,
+              "scratch cap rejects known large file before copying or truncating source",
+              describe(capped));
+        options.inputScratchFd = sourceFd;
+        const auto sameFile = spectrafilm::decodeFromFd(sourceFd, options);
+        check(!sameFile.ok && sameFile.status == spectrafilm::SFRAW_ERR_INPUT &&
+                  ::fstat(sourceFd, &sourceStat) == 0 &&
+                  static_cast<size_t>(sourceStat.st_size) == kScratchLimit + 1U,
+              "source passed as scratch is rejected without truncation",
+              describe(sameFile));
+        options.inputScratchFd = -1;
+      }
+    }
+    if (source) std::fclose(source);
+    if (scratch) std::fclose(scratch);
+  }
+
+  {
+    FILE* source = std::tmpfile();
+    FILE* scratch = std::tmpfile();
+    if (source && scratch) {
+      const auto dng = sfraw::hosttest::makeValidUncompressedDng(32U, 32U);
+      const bool prepared = std::fwrite(dng.data(), 1, 32U, source) == 32U &&
+                            std::fflush(source) == 0 &&
+                            ::lseek(::fileno(source), 0, SEEK_SET) == 0;
+      check(prepared, "truncated DNG fixture is available");
+      if (prepared) {
+        options.inputScratchFd = ::fileno(scratch);
+        struct stat scratchStat{};
+        const bool statOk = ::fstat(::fileno(scratch), &scratchStat) == 0;
+        const int beforeFds = openFdCount();
+        const int beforeMappings = statOk ? mappingsForInode(scratchStat.st_ino) : -1;
+        const auto truncated = spectrafilm::decodeFromFd(::fileno(source), options);
+        check(!truncated.ok && ::fcntl(::fileno(source), F_GETFD) >= 0 &&
+                  ::fcntl(::fileno(scratch), F_GETFD) >= 0 &&
+                  beforeFds >= 0 && openFdCount() == beforeFds &&
+                  beforeMappings >= 0 &&
+                  mappingsForInode(scratchStat.st_ino) == beforeMappings,
+              "truncated input releases duplicate fds and mapping",
+              describe(truncated));
+        std::atomic<bool> stop{true};
+        options.cancelFlag = &stop;
+        const auto cancelledFd = spectrafilm::decodeFromFd(::fileno(source), options);
+        check(!cancelledFd.ok &&
+                  cancelledFd.status == spectrafilm::SFRAW_ERR_CANCELLED,
+              "scratch-backed fd honors cancellation", describe(cancelledFd));
+        options.cancelFlag = nullptr;
+        options.inputScratchFd = -1;
+      }
+    }
+    if (source) std::fclose(source);
+    if (scratch) std::fclose(scratch);
+  }
+
+  // Cancellation after at least one chunk reached scratch, with a nonseekable
+  // input. Closing the writer releases a pending read (the same cooperative
+  // cancellation limitation as the legacy fd reader).
+  {
+    int pipeFds[2] = {-1, -1};
+    FILE* scratch = std::tmpfile();
+    const bool ready = ::pipe(pipeFds) == 0 && scratch != nullptr;
+    check(ready, "pipe snapshot cancellation fixture is available");
+    if (ready) {
+      std::atomic<bool> cancelCopy{false};
+      options.cancelFlag = &cancelCopy;
+      options.inputScratchFd = ::fileno(scratch);
+      spectrafilm::DecodeResult cancelledCopy;
+      std::thread reader([&] { cancelledCopy = spectrafilm::decodeFromFd(pipeFds[0], options); });
+      const std::array<uint8_t, 1024> firstChunk{};
+      const bool wrote = ::write(pipeFds[1], firstChunk.data(), firstChunk.size()) ==
+                         static_cast<ssize_t>(firstChunk.size());
+      bool observedCopy = false;
+      const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+      while (std::chrono::steady_clock::now() < deadline) {
+        struct stat status{};
+        if (::fstat(::fileno(scratch), &status) == 0 && status.st_size > 0) {
+          observedCopy = true;
+          break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      }
+      cancelCopy.store(true, std::memory_order_release);
+      ::close(pipeFds[1]); pipeFds[1] = -1;
+      reader.join();
+      check(wrote && observedCopy && !cancelledCopy.ok &&
+                cancelledCopy.status == spectrafilm::SFRAW_ERR_CANCELLED,
+            "in-flight nonseekable snapshot returns cancellation", describe(cancelledCopy));
+      options.cancelFlag = nullptr;
+      options.inputScratchFd = -1;
+    }
+    if (pipeFds[0] >= 0) ::close(pipeFds[0]);
+    if (pipeFds[1] >= 0) ::close(pipeFds[1]);
+    if (scratch) std::fclose(scratch);
+  }
+
+  const std::vector<std::uint8_t> adobeDeflate =
+      sfraw::hosttest::makeAdobeDeflateDng();
+  const spectrafilm::DecodeResult adobeDeflateResult =
+      spectrafilm::decodeFromBuffer(adobeDeflate.data(), adobeDeflate.size(),
+                                    options);
+  check(!adobeDeflateResult.ok &&
+            adobeDeflateResult.status == spectrafilm::SFRAW_ERR_DEFLATE_DNG,
+        "0x80B2 open failure maps to typed DEFLATE fallback",
+        describe(adobeDeflateResult));
+
+  options.maxLongEdge = 500;
+  const std::vector<std::uint8_t> oddLongEdge =
+      sfraw::hosttest::makeValidUncompressedDng(1001U, 22U);
+  const spectrafilm::DecodeResult oddLongEdgeResult =
+      spectrafilm::decodeFromBuffer(oddLongEdge.data(), oddLongEdge.size(),
+                                    options);
+  check(oddLongEdgeResult.ok && oddLongEdgeResult.width <= 500 &&
+            oddLongEdgeResult.height <= 500,
+        "odd decoded dimensions obey the exact maxLongEdge ceiling",
+        "width=" + std::to_string(oddLongEdgeResult.width) +
+            " height=" + std::to_string(oddLongEdgeResult.height) + " " +
+            describe(oddLongEdgeResult));
+  options.maxLongEdge = 0;
+
+  // 4096 x 3073 is one row above the 12 MiPixel 64-bit ceiling.
+  const std::vector<std::uint8_t> fullOversize =
+      sfraw::hosttest::makeDeclaredOversizeUncompressedDng(4096U, 3073U);
+  const spectrafilm::DecodeResult fullResult = spectrafilm::decodeFromBuffer(
+      fullOversize.data(), fullOversize.size(), options);
+  check(!fullResult.ok && fullResult.status == spectrafilm::SFRAW_ERR_NO_MEMORY,
+        "full-resolution metadata above 12 MiPixels fails before unpack",
+        describe(fullResult));
+
+  // #268: a half-size Bayer request above the 12 MiPixel ceiling is now
+  // admitted past the geometry guard (its source is under 4x the ceiling), so
+  // this truncated fixture fails later, on its missing data, not on geometry.
+  options.halfSize = true;
+  const std::vector<std::uint8_t> halfOversize =
+      sfraw::hosttest::makeDeclaredOversizeUncompressedDng(4096U, 3073U);
+  const spectrafilm::DecodeResult halfResult = spectrafilm::decodeFromBuffer(
+      halfOversize.data(), halfOversize.size(), options);
+  check(!halfResult.ok &&
+            halfResult.error.find("MiPixel in-memory safety limit") ==
+                std::string::npos,
+        "half-size Bayer metadata above 12 MiPixels passes the geometry guard",
+        describe(halfResult));
+  // ...but a half-size Bayer source above 4x the ceiling still fails before
+  // unpack, on geometry.
+  const std::vector<std::uint8_t> halfFarOversize =
+      sfraw::hosttest::makeDeclaredOversizeUncompressedDng(8192U, 6145U);
+  const spectrafilm::DecodeResult halfFarResult =
+      spectrafilm::decodeFromBuffer(halfFarOversize.data(),
+                                    halfFarOversize.size(), options);
+  check(!halfFarResult.ok &&
+            halfFarResult.status == spectrafilm::SFRAW_ERR_NO_MEMORY &&
+            halfFarResult.error.find("MiPixel in-memory safety limit") !=
+                std::string::npos,
+        "half-size metadata above 4x the 12 MiPixel ceiling fails before unpack",
+        describe(halfFarResult));
+
+  const std::vector<std::uint8_t> extremeAspect =
+      sfraw::hosttest::makeExtremeAspectDng();
+  options.halfSize = false;
+  const spectrafilm::DecodeResult extremeAspectResult =
+      spectrafilm::decodeFromBuffer(extremeAspect.data(), extremeAspect.size(),
+                                    options);
+  check(!extremeAspectResult.ok &&
+            extremeAspectResult.status == spectrafilm::SFRAW_ERR_NO_MEMORY,
+        "DefaultScale cannot expand a 12 MiPixel frame beyond the ceiling",
+        describe(extremeAspectResult));
+
+  for (const bool belowOne : {true, false}) {
+    const std::vector<std::uint8_t> boundaryAspect =
+        sfraw::hosttest::makeBoundaryAspectDng(belowOne);
+    const spectrafilm::DecodeResult boundaryAspectResult =
+        spectrafilm::decodeFromBuffer(boundaryAspect.data(),
+                                      boundaryAspect.size(), options);
+    check(!boundaryAspectResult.ok &&
+              boundaryAspectResult.status == spectrafilm::SFRAW_ERR_NO_MEMORY,
+          belowOne
+              ? "pixel aspect below 0.995 cannot cross the decode ceiling"
+              : "pixel aspect above 1.005 cannot cross the decode ceiling",
+          describe(boundaryAspectResult));
+  }
+
+  const std::vector<std::uint8_t> hostileActiveArea =
+      sfraw::hosttest::makeHostileActiveAreaDng();
+  const spectrafilm::DecodeResult hostileActiveAreaResult =
+      spectrafilm::decodeFromBuffer(hostileActiveArea.data(),
+                                    hostileActiveArea.size(), options);
+  check(!hostileActiveAreaResult.ok &&
+            hostileActiveAreaResult.status == spectrafilm::SFRAW_ERR_NO_MEMORY,
+        "ActiveArea margins cannot amplify pre-unpack raw-store geometry",
+        describe(hostileActiveAreaResult));
+
+  const std::vector<std::uint8_t> oversizedLjpeg =
+      sfraw::hosttest::makeOversizedLjpegGeometryTiff();
+  const spectrafilm::DecodeResult oversizedLjpegResult =
+      spectrafilm::decodeFromBuffer(oversizedLjpeg.data(),
+                                    oversizedLjpeg.size(), options);
+  check(!oversizedLjpegResult.ok &&
+            oversizedLjpegResult.status == spectrafilm::SFRAW_ERR_NO_MEMORY &&
+            oversizedLjpegResult.librawCode == LIBRAW_TOO_BIG,
+        "lossless-JPEG work-budget failure maps to stable NO_MEMORY status",
+        describe(oversizedLjpegResult));
+
+  const std::vector<std::uint8_t> oversizedLjpegDng =
+      sfraw::hosttest::makeOversizedLjpegGeometryDng();
+  const spectrafilm::DecodeResult oversizedLjpegDngResult =
+      spectrafilm::decodeFromBuffer(oversizedLjpegDng.data(),
+                                    oversizedLjpegDng.size(), options);
+  check(!oversizedLjpegDngResult.ok &&
+            oversizedLjpegDngResult.status == spectrafilm::SFRAW_ERR_NO_MEMORY &&
+            oversizedLjpegDngResult.librawCode == LIBRAW_TOO_BIG,
+        "lossless-DNG work-budget failure maps to stable NO_MEMORY status",
+        describe(oversizedLjpegDngResult));
+
+  const std::vector<std::uint8_t> excessiveTiles =
+      sfraw::hosttest::makeExcessiveTileCountLosslessJpegDng();
+  const spectrafilm::DecodeResult excessiveTilesResult =
+      spectrafilm::decodeFromBuffer(excessiveTiles.data(),
+                                    excessiveTiles.size(), options);
+  check(!excessiveTilesResult.ok &&
+            excessiveTilesResult.status == spectrafilm::SFRAW_ERR_NO_MEMORY &&
+            excessiveTilesResult.librawCode == LIBRAW_TOO_BIG,
+        "DNG tile-count budget maps to stable NO_MEMORY status",
+        describe(excessiveTilesResult));
+
+  const std::vector<std::uint8_t> excessivePackedTiles =
+      sfraw::hosttest::makeExcessiveTileCountUncompressedDng();
+  const spectrafilm::DecodeResult excessivePackedTilesResult =
+      spectrafilm::decodeFromBuffer(excessivePackedTiles.data(),
+                                    excessivePackedTiles.size(), options);
+  check(!excessivePackedTilesResult.ok &&
+            excessivePackedTilesResult.status == spectrafilm::SFRAW_ERR_NO_MEMORY &&
+            excessivePackedTilesResult.librawCode == LIBRAW_TOO_BIG,
+        "packed-DNG tile-count budget maps to stable NO_MEMORY status",
+        describe(excessivePackedTilesResult));
+
+  const std::vector<std::uint8_t> excessiveSonyTiles =
+      sfraw::hosttest::makeExcessiveSonyTileCountTiff();
+  const spectrafilm::DecodeResult excessiveSonyTilesResult =
+      spectrafilm::decodeFromBuffer(excessiveSonyTiles.data(),
+                                    excessiveSonyTiles.size(), options);
+  check(!excessiveSonyTilesResult.ok &&
+            excessiveSonyTilesResult.status == spectrafilm::SFRAW_ERR_NO_MEMORY &&
+            excessiveSonyTilesResult.librawCode == LIBRAW_TOO_BIG,
+        "Sony tile-count budget maps to stable NO_MEMORY status",
+        describe(excessiveSonyTilesResult));
+
+  // Prove that the native raw-store budget itself is causal, independent of
+  // the wrapper's earlier dimension guard. A 12 MiPixel CFA needs more than a
+  // deliberately tiny 16 MiB raw store, so LibRaw must reject before allocating.
+  {
+    LibRaw raw;
+    raw.imgdata.rawparams.max_raw_memory_mb = 16U;
+    const std::vector<std::uint8_t> rawStoreOverBudget =
+        sfraw::hosttest::makeDeclaredOversizeUncompressedDng(4096U, 3072U);
+    const int open = raw.open_buffer(rawStoreOverBudget.data(),
+                                     rawStoreOverBudget.size());
+    const int unpack = open == LIBRAW_SUCCESS ? raw.unpack() : open;
+    check(open == LIBRAW_SUCCESS && unpack == LIBRAW_TOO_BIG,
+          "LibRaw rejects a declared raw store above its configured budget",
+          "open=" + std::to_string(open) +
+              " unpack=" + std::to_string(unpack));
+  }
+  {
+    const std::vector<std::uint8_t> overBudget =
+        sfraw::hosttest::makeOverBudgetMetadataDng();
+    const spectrafilm::DecodeResult overBudgetResult =
+        spectrafilm::decodeFromBuffer(overBudget.data(), overBudget.size(),
+                                      options);
+    check(!overBudgetResult.ok &&
+              overBudgetResult.status == spectrafilm::SFRAW_ERR_NO_MEMORY &&
+              overBudgetResult.librawCode == LIBRAW_UNSUFFICIENT_MEMORY,
+          "identify-time metadata budget maps to stable NO_MEMORY status",
+          describe(overBudgetResult));
+  }
+
+  // The limit acts during LibRaw::open_buffer(), before the wrapper's metadata
+  // guard. A small profile proves the fixture is recognized; a payload exactly
+  // at the intended 16 MiB ceiling must not be allocated.
+  {
+    LibRaw raw;
+    const std::vector<std::uint8_t> smallProfile =
+        sfraw::hosttest::makeEmbeddedProfileDng(1024U);
+    const int open = raw.open_buffer(smallProfile.data(), smallProfile.size());
+    check(open == LIBRAW_SUCCESS && raw.imgdata.color.profile != nullptr,
+          "embedded profile control is recognized below the ceiling",
+          "open=" + std::to_string(open));
+  }
+  {
+    LibRaw raw;
+    const std::vector<std::uint8_t> validMultiStrip =
+        sfraw::hosttest::makeValidMultiStripDng();
+    const int open =
+        raw.open_buffer(validMultiStrip.data(), validMultiStrip.size());
+    check(open == LIBRAW_SUCCESS,
+          "one valid multi-strip table remains accepted",
+          "open=" + std::to_string(open));
+  }
+  {
+    LibRaw raw;
+    const std::vector<std::uint8_t> duplicateStripTables =
+        sfraw::hosttest::makeDuplicateStripTablesDng();
+    const int open = raw.open_buffer(duplicateStripTables.data(),
+                                     duplicateStripTables.size());
+    check(open != LIBRAW_SUCCESS,
+          "duplicate allocation-bearing strip tables are rejected",
+          "open=" + std::to_string(open));
+  }
+  {
+    LibRaw raw;
+    const std::vector<std::uint8_t> duplicateOpcode =
+        sfraw::hosttest::makeDuplicateOpcodeDng();
+    const int open =
+        raw.open_buffer(duplicateOpcode.data(), duplicateOpcode.size());
+    check(open != LIBRAW_SUCCESS,
+          "duplicate allocation-bearing OpcodeList tag is rejected",
+          "open=" + std::to_string(open));
+  }
+  {
+    LibRaw raw;
+    const std::vector<std::uint8_t> overBudget =
+        sfraw::hosttest::makeOverBudgetMetadataDng();
+    const int open = raw.open_buffer(overBudget.data(), overBudget.size());
+    check(open != LIBRAW_SUCCESS,
+          "aggregate TIFF metadata above 16 MiB is rejected",
+          "open=" + std::to_string(open));
+  }
+  {
+    LibRaw raw;
+    const std::vector<std::uint8_t> limitProfile =
+        sfraw::hosttest::makeEmbeddedProfileDng(16U * 1024U * 1024U);
+    const int open = raw.open_buffer(limitProfile.data(), limitProfile.size());
+    check(open == LIBRAW_SUCCESS && raw.imgdata.color.profile == nullptr,
+          "embedded profile at 16 MiB is not allocated during open",
+          "open=" + std::to_string(open));
+  }
+
+  std::cout << (failures == 0 ? "ALL TESTS PASSED" : "TESTS FAILED")
+            << " (" << failures << " failures)\n";
+  return failures == 0 ? 0 : 1;
+}

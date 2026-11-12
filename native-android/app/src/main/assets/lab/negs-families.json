@@ -1,0 +1,129 @@
+[
+  {
+    "stock": "fujifilm_acros_100_ii",
+    "name": "Fujifilm Neopan 100 Acros II",
+    "members": [
+      {
+        "id": "negs_fujifilm_acros_100_ii_4min",
+        "minutes": 4.0,
+        "estimated": false
+      },
+      {
+        "id": "negs_fujifilm_acros_100_ii_7min",
+        "minutes": 7.0,
+        "estimated": false
+      },
+      {
+        "id": "negs_fujifilm_acros_100_ii_10min",
+        "minutes": 10.0,
+        "estimated": false
+      }
+    ]
+  },
+  {
+    "stock": "ilford_delta_3200",
+    "name": "Ilford Delta 3200 Professional",
+    "members": [
+      {
+        "id": "negs_ilford_delta_3200_7min",
+        "minutes": 7.0,
+        "estimated": false
+      },
+      {
+        "id": "negs_ilford_delta_3200_9min",
+        "minutes": 9.0,
+        "estimated": false
+      },
+      {
+        "id": "negs_ilford_delta_3200_12min",
+        "minutes": 12.0,
+        "estimated": false
+      },
+      {
+        "id": "negs_ilford_delta_3200_16min",
+        "minutes": 16.0,
+        "estimated": false
+      }
+    ]
+  },
+  {
+    "stock": "ilford_fp4_plus",
+    "name": "Ilford FP4 Plus",
+    "members": [
+      {
+        "id": "negs_ilford_fp4_plus_6min",
+        "minutes": 6.0,
+        "estimated": true
+      },
+      {
+        "id": "negs_ilford_fp4_plus_8min",
+        "minutes": 8.0,
+        "estimated": false
+      },
+      {
+        "id": "negs_ilford_fp4_plus_9min",
+        "minutes": 9.0,
+        "estimated": true
+      }
+    ]
+  },
+  {
+    "stock": "ilford_hp5_plus",
+    "name": "Ilford HP5 Plus",
+    "members": [
+      {
+        "id": "negs_ilford_hp5_plus_6p5min",
+        "minutes": 6.5,
+        "estimated": false
+      },
+      {
+        "id": "negs_ilford_hp5_plus_9p5min",
+        "minutes": 9.5,
+        "estimated": true
+      },
+      {
+        "id": "negs_ilford_hp5_plus_14min",
+        "minutes": 14.0,
+        "estimated": true
+      }
+    ]
+  },
+  {
+    "stock": "ilford_mgrc_deluxe_grade2",
+    "name": "Ilford Multigrade RC Deluxe Grade 2 (experimental)",
+    "members": [
+      {
+        "id": "negs_ilford_mgrc_deluxe_grade2_1min",
+        "minutes": 1.0,
+        "estimated": false
+      }
+    ]
+  },
+  {
+    "stock": "kodak_tmax_100",
+    "name": "Kodak T-MAX 100",
+    "members": [
+      {
+        "id": "negs_kodak_tmax_100_6min",
+        "minutes": 6.0,
+        "estimated": false
+      },
+      {
+        "id": "negs_kodak_tmax_100_7p5min",
+        "minutes": 7.5,
+        "estimated": false
+      }
+    ]
+  },
+  {
+    "stock": "kodak_trix400_d76_8min",
+    "name": "Kodak Tri-X 400 (experimental)",
+    "members": [
+      {
+        "id": "negs_kodak_trix400_d76_8min_8min",
+        "minutes": 8.0,
+        "estimated": false
+      }
+    ]
+  }
+]

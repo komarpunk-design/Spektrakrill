@@ -1,0 +1,1160 @@
+# Spektrafilm for Android — full CI gate set (manual dispatch only)
+#
+# To save Actions minutes this workflow no longer runs on push or PR. Everyday
+# CI is build.yml (one rawr-style job on push to main, or on a PR labelled
+# `run-ci`). Run this full set by hand when a change needs it:
+#   Actions → CI → Run workflow → pick the branch
+#   (or: gh workflow run ci.yml --ref <branch>)
+# release.yml independently reruns the release-critical gates before signing.
+#
+# Nine jobs:
+#   • engine-native   — compiles C++ engine + JNI bridge into libspektra.so (host toolchain)
+#   • native-safety-writers — ordinary + ASan/UBSan + bounded fuzz gates for native
+#                        JSON/profile/neutral-filter hostile input; ASan/UBSan + TSan
+#                        for JNI safety helpers, fork/join exception containment,
+#                        bounded tc_lut-cache lifetime/concurrency, the engine C
+#                        cancellation ABI, and PNG/TIFF hostile-input/cancellation/
+#                        JNI-helper tests
+#   • engine-parity   — deterministic stage parity tests against committed goldens (bit-exact
+#                        gate: scan_portra, print_portra, print_ektar + spatial/crop/autoexp/
+#                        diffusion; runs on push/PR)
+#   • libraw-hostile  — pinned/patched LibRaw 0.22.2 public-seam ASan/UBSan/TSan
+#                        regressions, bit-exact CAT02 RAW-WB goldens, bounded
+#                        hostile RAW/TIFF libFuzzer smoke,
+#                        and deterministic route-neutral compliance-bundle audit
+#   • parity          — standalone .spkvec comparator (CMake + ctest self-test)
+#   • python-lint     — byte-compiles the Python parity harness
+#   • android         — JVM unit tests (:app + all four native-backed modules) + :app:lint
+#                        (abortOnError gate
+#                        for NewApi/correctness) + Gradle assemble of the full app + modules
+#                        (NDK-built .so for all ABIs)
+#   • android-emulator— runs actual engine JNI boundary instrumentation on a KVM
+#                        AVD, then smoke-tests MainActivity; required on every run
+#   • export-benchmark — #285: the #177 export harness on the R8 release candidate
+#                        (debug-key signed) on the API 35 AVD; uploads capture.json
+#                        with decode/simulate/grade/encode phases as a TREND artifact
+#                        (emulator numbers are not device numbers, never gated)
+#
+# Film modeling powered by spektrafilm (GPLv3).
+name: CI
+
+on:
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Native engine: the ported C++ (model/ + kernels/) plus the JNI bridge must
+  # compile and link into a shared library on a host toolchain. This is the
+  # build gate for engine:spektra-core ahead of the NDK build.
+  # ---------------------------------------------------------------------------
+  engine-native:
+    name: Engine (C++ host build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK (for jni.h)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Compile libspektra.so (engine + JNI bridge)
+        working-directory: engine/spektra-core/src/main/cpp
+        run: |
+          set -euo pipefail
+          echo "JAVA_HOME=$JAVA_HOME"
+          shopt -s nullglob
+          g++ -std=c++17 -O2 -Wall -Wextra -fPIC -shared -pthread \
+            -I. -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" \
+            spektra.cpp spektra_jni.cpp gpu/*.cpp \
+            kernels/*.cpp io/*.cpp model/*.cpp profiles/*.cpp \
+            runtime/*.cpp runtime/stages/*.cpp \
+            -o libspektra.so
+          ls -l libspektra.so
+          # Sanity: the engine's exported C symbols are present.
+          nm -D libspektra.so | grep -E "spk_simulate|spk_engine_create" || \
+            (echo "missing expected engine symbols" && exit 1)
+
+      # -----------------------------------------------------------------------
+      # GPU shader gate. gpu/scan_spectral.comp is an 81-band GLSL compute kernel
+      # and it is the seed of the "own shaders, vkdt as architecture guide" route
+      # (docs/research/vkdt-decision.md 11). Until now nothing executed it in CI,
+      # because the runners have no GPU -- so a wrong shader would have surfaced
+      # only as a wrong picture on a device.
+      #
+      # It does not need a GPU. mesa-vulkan-drivers ships LAVAPIPE, a software
+      # Vulkan implementation, and the runner installs it in seconds. That runs
+      # the real SPIR-V through the real Vulkan branch.
+      #
+      # WHAT THIS GATES AND WHAT IT DOES NOT. It gates the shader's MATH (against
+      # the CPU reference, ~3e-06 in practice) and its run-to-run determinism. It
+      # says NOTHING about performance (lavapipe is a CPU rasterizer) and NOTHING
+      # about an arm64 GPU's transcendental precision -- GLSL leaves pow/exp2 to a
+      # vendor-defined ULP bound, so that still has to be measured on a device.
+      # -----------------------------------------------------------------------
+      # TWO packages, and they are not interchangeable: mesa-vulkan-drivers ships
+      # the lavapipe ICD (the runtime driver) while libvulkan-dev ships
+      # vulkan/vulkan.h AND the libvulkan.so link target. Installing only the
+      # first compiles nothing -- it fails at `#include <vulkan/vulkan.h>`, which
+      # is exactly how this step first went red.
+      - name: Install software Vulkan (lavapipe + headers)
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq mesa-vulkan-drivers libvulkan-dev
+          # Fail here, with a readable message, rather than inside g++ if a future
+          # packaging change moves either piece.
+          test -f /usr/include/vulkan/vulkan.h \
+            || (echo "libvulkan-dev did not provide vulkan/vulkan.h" && exit 1)
+          test -f /usr/share/vulkan/icd.d/lvp_icd.json \
+            || (echo "mesa-vulkan-drivers did not provide the lavapipe ICD" && exit 1)
+
+      # Every GPU gate (shader math, pointwise chain, halation, grain, FFT
+      # diffusion, filming stages, contrast mask; both flag legs where the host
+      # side is f64) lives in one script, shared with gpu-gates.yml, which runs
+      # it automatically when native render code changes. Each gate must
+      # ENGAGE lavapipe, or the script fails: without a device every binary
+      # passes vacuously.
+      - name: GPU gates under lavapipe
+        env:
+          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.json
+        run: bash tools/gpu_gates/run_gpu_gates.sh "$RUNNER_TEMP/gpu-gates"
+
+  # ---------------------------------------------------------------------------
+  # Offline native safety gate. These are direct host builds of committed tests:
+  # no downloaded fixtures, generated sources, Android device, or network service
+  # is involved. ASan+UBSan cover bounds/overflow/exception paths; the separate
+  # TSan builds exercise fork/join containment, the allocation-registry, bounded
+  # tc_lut-cache lifetime/concurrency, and writer cancellation races. This is
+  # JNI safety helpers + engine C cancellation ABI + tc_lut-cache bounds plus
+  # fork/join exception containment coverage; the actual
+  # Android JNI bridge is executed by the required android-emulator job below.
+  # ---------------------------------------------------------------------------
+  native-safety-writers:
+    name: Native safety (engine + PNG/TIFF sanitizers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run ordinary JSON/profile hostile-input regression
+        run: |
+          set -euo pipefail
+          cmake -S engine/spektra-core/src/main/cpp/tests \
+            -B build/engine-native-input-tests -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/engine-native-input-tests --parallel \
+            --target spektra_json_profile_regression
+          ctest --test-dir build/engine-native-input-tests --output-on-failure \
+            --no-tests=error \
+            -R '^spektra\.json-profile\.hostile-inputs$'
+
+      - name: Run shared host-native sanitizer qualification
+        working-directory: ${{ github.workspace }}
+        env:
+          ASAN_OPTIONS: abort_on_error=1:detect_leaks=1:strict_string_checks=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+          TSAN_OPTIONS: halt_on_error=1:second_deadlock_stack=1:report_signal_unsafe=0
+        run: |
+          set -euo pipefail
+          bash tools/release/run_native_safety.sh
+
+      - name: Run bounded JSON/profile libFuzzer smoke
+        env:
+          ASAN_OPTIONS: abort_on_error=1:detect_leaks=1:strict_string_checks=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          set -euo pipefail
+          cmake -S engine/spektra-core/src/main/cpp/tests \
+            -B build/engine-json-profile-fuzz -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DSPK_JSON_PROFILE_FUZZER=ON
+          cmake --build build/engine-json-profile-fuzz --parallel \
+            --target spektra_json_profile_fuzzer
+          mkdir -p build/engine-json-profile-corpus
+          cp engine/spektra-core/src/main/assets/spektra/profiles/kodak_portra_400.json \
+            build/engine-json-profile-corpus/profile.json
+          cp engine/spektra-core/src/main/assets/spektra/filters/neutral_print_filters.json \
+            build/engine-json-profile-corpus/neutral.json
+          build/engine-json-profile-fuzz/spektra_json_profile_fuzzer \
+            -runs=1000 \
+            -max_total_time=30 \
+            -max_len=1048577 \
+            -rss_limit_mb=1024 \
+            -timeout=10 \
+            build/engine-json-profile-corpus
+
+  # ---------------------------------------------------------------------------
+  # LibRaw hostile-input gate. This builds the exact official 0.22.2 archive
+  # selected by the Android resolver, applies/verifies the hashed local patchset,
+  # and drives bytes through open_buffer -> unpack -> dcraw_process. The same
+  # project consumes every digest-locked RAW-WB fixture vector through production
+  # CAT02 math and exercises the production malloc-backed publication seam across
+  # pre/post-adopt cancellation, platform-publication failure/exception, successful
+  # ownership transfer, overflow rejection, and exact-once cleanup. Sanitizers
+  # instrument LibRaw itself. OpenMP is enabled
+  # here only to compile/exercise the patched branch; shipping Android builds are
+  # serial: repeated compressed-Fuji runs changed output bytes, so the current
+  # patched release has no OpenMP exactness qualification.
+  # ---------------------------------------------------------------------------
+  libraw-hostile:
+    name: LibRaw 0.22.2 (ASan + UBSan + TSan + fuzz)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install native test dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clang cmake ninja-build libomp-dev patch zlib1g-dev
+
+      - name: Qualify shipping-serial decoder
+        run: |
+          set -euo pipefail
+          cmake -S lib/libraw/src/test/host -B build/libraw-host-serial-ci -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DSFRAW_HOST_ENABLE_SANITIZERS=ON \
+            -DSFRAW_HOST_ENABLE_OPENMP=OFF \
+            -DSFRAW_HOST_BUILD_FUZZER=OFF
+          cmake --build build/libraw-host-serial-ci --parallel
+          ctest --test-dir build/libraw-host-serial-ci --output-on-failure
+
+      - name: Configure exact patched OpenMP and fuzz source
+        run: |
+          set -euo pipefail
+          cmake -S lib/libraw/src/test/host -B build/libraw-host-ci -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DSFRAW_HOST_ENABLE_SANITIZERS=ON \
+            -DSFRAW_HOST_ENABLE_OPENMP=ON \
+            -DSFRAW_HOST_REQUIRE_OPENMP=ON \
+            -DSFRAW_HOST_BUILD_FUZZER=ON
+
+      - name: Build and run OpenMP hostile-input regressions
+        run: |
+          set -euo pipefail
+          cmake --build build/libraw-host-ci --parallel
+          ctest --test-dir build/libraw-host-ci --output-on-failure
+
+      - name: Build and run thread-safety regression
+        env:
+          TSAN_OPTIONS: halt_on_error=1
+        run: |
+          set -euo pipefail
+          cmake -S lib/libraw/src/test/host -B build/libraw-host-tsan-ci -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DSFRAW_HOST_ENABLE_SANITIZERS=OFF \
+            -DSFRAW_HOST_ENABLE_TSAN=ON \
+            -DSFRAW_HOST_ENABLE_OPENMP=OFF
+          cmake --build build/libraw-host-tsan-ci --parallel \
+            --target sfraw_ljpeg_concurrency_test
+          ctest --test-dir build/libraw-host-tsan-ci --output-on-failure \
+            -R '^sfraw\.ljpeg\.concurrent-first-use$'
+
+      - name: Bounded libFuzzer smoke
+        env:
+          ASAN_OPTIONS: abort_on_error=1:detect_leaks=1:strict_string_checks=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          set -euo pipefail
+          mkdir -p build/libraw-fuzz-corpus
+          mkdir -p build/libraw-sniffer-fuzz-corpus
+          cp build/libraw-host-ci/fuzz-seeds/*.dng build/libraw-fuzz-corpus/
+          cp build/libraw-host-ci/fuzz-seeds/*.tiff build/libraw-fuzz-corpus/
+          cp build/libraw-host-ci/fuzz-seeds/*.x3f build/libraw-fuzz-corpus/
+          cp build/libraw-host-ci/fuzz-seeds/*.dng build/libraw-sniffer-fuzz-corpus/
+          cp build/libraw-host-ci/fuzz-seeds/*.tiff build/libraw-sniffer-fuzz-corpus/
+          cp build/libraw-host-ci/fuzz-seeds/*.x3f build/libraw-sniffer-fuzz-corpus/
+          build/libraw-host-ci/sfraw_libraw_fuzzer \
+            -runs=1000 \
+            -max_total_time=60 \
+            -max_len=16777216 \
+            -rss_limit_mb=1024 \
+            -timeout=10 \
+            build/libraw-fuzz-corpus
+          build/libraw-host-ci/sfraw_dng_sniffer_fuzzer \
+            -runs=1000 \
+            -max_total_time=60 \
+            -max_len=16777216 \
+            -rss_limit_mb=1024 \
+            -timeout=10 \
+            build/libraw-sniffer-fuzz-corpus
+          mkdir -p build/libraw-preview-fuzz-corpus
+          cp build/libraw-fuzz-corpus/* build/libraw-preview-fuzz-corpus/
+          build/libraw-host-ci/sfraw_raw_preview_fuzzer \
+            -runs=1000 \
+            -max_total_time=60 \
+            -max_len=16777216 \
+            -rss_limit_mb=1024 \
+            -timeout=10 \
+            build/libraw-preview-fuzz-corpus
+
+      - name: Build and verify route-neutral LibRaw compliance bundle
+        run: |
+          set -euo pipefail
+          OUT=build/libraw-compliance-ci
+          ARCHIVE="$OUT/LibRaw-0.22.2.tar.gz"
+          mkdir -p "$OUT"
+          curl --fail --location --retry 3 \
+            --output "$ARCHIVE" \
+            https://www.libraw.org/data/LibRaw-0.22.2.tar.gz
+          echo "de86b035655accff8d4010f1a221fdf50d353cb7b1422ba26f14a0db92612cfa  $ARCHIVE" \
+            | sha256sum -c -
+          python3 tools/compliance/libraw_bundle.py build \
+            --repo-root . \
+            --archive "$ARCHIVE" \
+            --output "$OUT/libraw-source-relink.zip" \
+            --sbom-output "$OUT/libraw.spdx.json"
+          python3 tools/compliance/libraw_bundle.py build \
+            --repo-root . \
+            --archive "$ARCHIVE" \
+            --output "$OUT/libraw-source-relink-second.zip" \
+            --sbom-output "$OUT/libraw-second.spdx.json"
+          cmp "$OUT/libraw-source-relink.zip" "$OUT/libraw-source-relink-second.zip"
+          cmp "$OUT/libraw.spdx.json" "$OUT/libraw-second.spdx.json"
+          python3 tools/compliance/libraw_bundle.py verify \
+            --repo-root . \
+            --bundle "$OUT/libraw-source-relink.zip"
+          unzip -p "$OUT/libraw-source-relink.zip" sbom.spdx.json \
+            | cmp - "$OUT/libraw.spdx.json"
+          (
+            cd "$OUT"
+            sha256sum libraw-source-relink.zip libraw.spdx.json > SHA256SUMS
+          )
+
+  # ---------------------------------------------------------------------------
+  # Engine parity: compile the deterministic stage tests and run them against the
+  # BUNDLED assets (profiles + spectral LUT) and the committed goldens. This is a
+  # real bit-exact gate on the ported pipeline (scan_film + print + spatial),
+  # independent of any Python/oracle. Grain tests are statistical and run locally.
+  # ---------------------------------------------------------------------------
+  engine-parity:
+    name: Engine parity (${{ matrix.label }})
+    runs-on: ubuntu-latest
+    # The engine SHIPS at -O3 -ffast-math -fno-finite-math-only (CMakeLists.txt
+    # CMAKE_CXX_FLAGS_RELEASE), but this gate only ever compiled at -O2, so the
+    # numerics of the binary users actually install were never checked against
+    # the oracle. That gap is not hypothetical: a Highway f64 tier's byte-equality
+    # "proof" was established at -O2 and did not survive the shipping flags,
+    # because -ffast-math reassociates the scalar reference itself. Both legs now
+    # run the same 46-case table. Keep the first label verbatim -- it is the
+    # check name any branch protection refers to.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: "deterministic goldens"
+            opt: "-O2"
+          - label: "shipping release flags"
+            opt: "-O3 -ffast-math -fno-finite-math-only"
+    env:
+      SPK_OPT: ${{ matrix.opt }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build + run stage parity tests
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          CPP="$GITHUB_WORKSPACE/engine/spektra-core/src/main/cpp"
+          ASSET="$GITHUB_WORKSPACE/engine/spektra-core/src/main/assets/spektra"
+          G="$GITHUB_WORKSPACE/tools/parity/goldens"
+          LUT="$ASSET/luts/spectral_upsampling/irradiance_xy_tc.npy"
+          cd "$CPP"
+          SRC="spektra.cpp gpu/*.cpp kernels/*.cpp io/*.cpp model/*.cpp profiles/*.cpp runtime/*.cpp runtime/stages/*.cpp"
+          DEF=-DSPK_TEST_DIR="\"$CPP/tests\""
+          fail=0
+          build_run() { # name, binary-args...
+            local name="$1"; shift
+            local test_def=""
+            if [ "$name" = "test_fft_convolve" ]; then
+              test_def="-DSPK_FFT_CONVOLVE_TEST_HOOKS=1"
+            fi
+            g++ -std=c++17 $SPK_OPT -pthread -I. -I"$GITHUB_WORKSPACE/tools/parity" $DEF $test_def \
+              "tests/$name.cpp" $SRC -o "/tmp/$name"
+            echo "::group::$name"
+            # Capture the TEST's exit code (PIPESTATUS[0], not tee's). The `if`
+            # condition exempts the pipeline from `set -e` so a non-zero exit is
+            # observed rather than aborting. A test signals a setup failure with a
+            # non-zero return (e.g. missing asset/golden, size mismatch) and a
+            # crash/segfault aborts before any "FAIL" print — neither necessarily
+            # contains the string "FAIL", so the exit code and an empty-output
+            # check must gate alongside the grep, or the parity gate false-greens.
+            local rc=0
+            if "/tmp/$name" "$@" 2>&1 | tee "/tmp/$name.out"; then rc=0; else rc=${PIPESTATUS[0]}; fi
+            if [ "$rc" -ne 0 ]; then
+              echo "$name: FAIL (exit $rc)"; fail=1
+            elif [ ! -s "/tmp/$name.out" ]; then
+              echo "$name: FAIL (no output)"; fail=1
+            elif grep -qiE "FAIL" "/tmp/$name.out"; then
+              echo "$name: FAIL"; fail=1
+            else
+              echo "$name: ok"
+            fi
+            echo "::endgroup::"
+          }
+          # Pass $G as argv[4] (goldens root) so the test also asserts print_portra and
+          # print_ektar from the committed goldens (not from a hardcoded /home/user path).
+          build_run test_simulate_e2e "$ASSET" "$G/scan_portra" tests/scan_portra_input_rgb.f64 "$G"
+          build_run test_filming "$ASSET/profiles/kodak_portra_400.json" "$G/scan_portra" "$LUT" tests/scan_portra_input_rgb.f64
+          build_run test_spatial "$ASSET/profiles/kodak_portra_400.json" "$G/scan_portra_spatial" "$LUT" tests/scan_portra_input_rgb.f64
+          build_run test_crop_resize "$ASSET" "$G/scan_portra_crop" tests/scan_portra_input_rgb.f64
+          # Downscale (upscale_factor < 1, MINIFICATION) anti-aliasing prefilter:
+          # skimage.transform.rescale defaults anti_aliasing=True for a shrinking
+          # output dimension (order>0), running scipy.ndimage.gaussian_filter
+          # (sigma = max(0,(in/out-1)/2) per spatial axis, mode='mirror') BEFORE the
+          # order=3 cubic zoom. Without it the full pipeline diverges ~1.8e-1 from
+          # the oracle; crop_resize.cpp now ports that prefilter (no-op for
+          # factor>=1, so the upscale goldens stay byte-identical). Golden
+          # (scan_portra_downscale, 64->32) pinned to oracle c1d0e44.
+          build_run test_downscale "$ASSET" "$G/scan_portra_downscale" tests/scan_portra_input_rgb.f64
+          build_run test_autoexposure "$ASSET" "$G/scan_portra_autoexp" tests/scan_portra_input_rgb.f64 "$G"
+          # small_preview (auto-exposure metering downscale) anti-aliasing prefilter:
+          # the >256px import path the 64px autoexposure golden cannot reach.
+          # skimage.transform.rescale(order=0) defaults anti_aliasing=True on a float
+          # downscale and gaussian-blurs (sigma=max(0,(in/out-1)/2), mode='mirror')
+          # BEFORE the nearest resample; without it the metered EV (a global gain on
+          # every pixel) diverges from the oracle. Stage-local skimage golden.
+          build_run test_small_preview_aa "$ASSET" "$G/small_preview_aa" tests/small_preview_aa_input_rgb.f64 "$G"
+          build_run test_diffusion "$G"
+          build_run test_diffusion_e2e "$ASSET" "$G/scan_diffusion" tests/scan_portra_input_rgb.f64 "$G"
+          # The diffusion PSF convolution has TWO implementations of one sum: the
+          # O(w*h*ks^2) direct loop and kernels/fft_convolve's O(n log n) transform
+          # (#160 — the direct loop is quadratic in pixel count because the kernel
+          # radius scales with image width). This gates the FFT path against the
+          # direct one on both the single-transform and the overlap-save tiling
+          # cases, and asserts 1-vs-8-worker byte-identity. Tolerance, not bytes,
+          # against the direct loop: reassociating a sum moves its last bits.
+          build_run test_fft_convolve
+          # Spectral-domain Gaussian blur of the reconstructed-spectra LUT
+          # (settings.spectral_gaussian_blur=5): blurs HANATOS2025_SPECTRA_LUT along
+          # its spectral axis inside compute_hanatos2025_tc_lut (scipy.ndimage.
+          # gaussian_filter sigma=(0,0,5), mode='reflect', truncate=4), changing the
+          # filming tc_lut and every downstream tap. Golden pinned to oracle c1d0e44.
+          build_run test_spectral_blur_e2e "$ASSET" "$G/scan_spectral_blur" tests/scan_portra_input_rgb.f64 "$G"
+          # Hanatos2025 sensitivity-adaptation window/surface toggles
+          # (settings.apply_hanatos2025_adaptation_window / _surface). The SURFACE
+          # branch multiplies the filming tc_lut per-cell by 2**surface, where
+          # surface = eval_poly4_log_exposure_surface(profile.surface_params,
+          # illuminant_xy=_illuminant_to_xy(film.reference_illuminant), model='poly4')
+          # inside compute_hanatos2025_tc_lut, changing the filming tc_lut and every
+          # downstream tap. Also checks the WINDOW-OFF case. Goldens pinned to oracle
+          # c1d0e44.
+          build_run test_hanatos_surface_e2e "$ASSET" "$G/scan_portra_surface" tests/scan_portra_input_rgb.f64 "$G"
+          # Camera UV/IR cut band-pass filter (camera.filter_uv / filter_ir): the
+          # band-pass = filter_uv*filter_ir (each 1-amp + amp*sigmoid_erf) multiplies
+          # the profile sensitivity with a per-channel white-balance normalisation
+          # against the film reference illuminant, BEFORE the spectra contraction in
+          # compute_hanatos2025_tc_lut (FilmingStage._rgb_to_film_raw), changing the
+          # filming tc_lut and every downstream tap. Golden pinned to oracle c1d0e44.
+          build_run test_camera_uvir_e2e "$ASSET" "$G/scan_portra_uvir" tests/scan_portra_input_rgb.f64 "$G"
+          # Enlarger PREFLASH (enlarger.preflash_exposure / preflash_y_filter_shift /
+          # preflash_m_filter_shift): a uniform pre-exposure flash of the print paper
+          # before the image exposure. printing.py::_compute_raw_preflash adds a constant
+          # per-print-channel raw_preflash 3-vector (= sum_l 10^-base_density[l] *
+          # preflash_illuminant[l] * sens[l,k]) * preflash_exposure to the print raw,
+          # AFTER the midgray factor and BEFORE the log10 inside
+          # _film_cmy_to_print_log_raw. The preflash illuminant is color_enlarger(enlarger
+          # source, CC=[c_neutral, m_neutral+preflash_m, y_neutral+preflash_y]) — its OWN
+          # filter shifts (filter_enlarger_source.preflash_filtered_illuminant). It is a
+          # PRINT-stage effect (scan_film=False), changing print_density_cmy + final_rgb
+          # but NOT the film taps. Golden pinned to oracle c1d0e44.
+          build_run test_preflash_e2e "$ASSET" "$G/print_portra_preflash" tests/scan_portra_input_rgb.f64 "$G"
+          # PRINT-route EXPOSURE-COMPENSATION midgray balance
+          # (camera.exposure_compensation_ev + enlarger.print_exposure_compensation /
+          # normalize_print_exposure). PrintingStage._compute_exposure_factor_midgray
+          # (printing.py c1d0e44 L104-118) selects the midgray factor by a 4-case
+          # branch over (print_exposure_compensation, normalize_print_exposure) using
+          # the UNcompensated midgray (rgb=0.184) and the COMPENSATED midgray
+          # (rgb=0.184*2^exposure_compensation_ev) from
+          # FilmingStage._compute_density_spectral_midgray_to_balance_print (filming.py
+          # c1d0e44 L125-134). The native engine previously hardcoded ev==0 and always
+          # returned the UNcompensated factor, mis-balancing the print whenever EV!=0.
+          # Two goldens (both EV=1.5): print_portra_evcomp (comp+normalize ON ->
+          # factor_midgray_comp) and print_portra_evcomp_nonorm (comp ON, normalize OFF
+          # -> factor_midgray_comp/factor_midgray) pin both EV-active branches. At EV=0
+          # the compensated gray equals the uncompensated gray, so every existing print
+          # golden stays byte-identical. Goldens pinned to oracle c1d0e44. The test also
+          # asserts EV on-vs-off and the norm/no-norm branch both produce a real delta.
+          build_run test_print_evcomp_e2e "$ASSET" "$G/print_portra_evcomp" tests/scan_portra_input_rgb.f64 "$G"
+          # OPT-IN s023 print density-curve morph (model/morph_curves.cpp): rebuilds
+          # the print density table from the paper's density_curves_model under a
+          # coupled-gamma + developer-exhaustion morph. Default-OFF (the engine
+          # interpolates the stored table, byte-identical to the print goldens); this
+          # gates the active path against an upstream morph_curves.py golden.
+          build_run test_print_curves_morph "$ASSET" "$G/print_curves_morph" "$G"
+          # Scanner BLACK/WHITE corrections (scanner.black/white_correction +
+          # black/white_level) -> runtime/services/color_reference.py
+          # (ColorReferenceService): a scan-time tone anchor that maps the measured
+          # CIE Y at the reference black/white densities to the (sRGB-decoded) target
+          # levels via clip(m*Y+q,0,1), back-applied as an exposure correction to the
+          # print (or filming) raw AND as a per-pixel XYZ rescale in scanning. Two
+          # routes: CASE A print (portra->endura, negative paper) fires the printing
+          # exposure + scanning XYZ corrections (film taps UNCHANGED); CASE B scan_film
+          # on a POSITIVE film (provia, DIR couplers off to isolate the un-gated
+          # positive coupler branch) fires the filming exposure + scanning XYZ
+          # corrections. Goldens pinned to oracle c1d0e44.
+          build_run test_scanner_bwcorr_e2e "$ASSET" "$G/print_portra_bwcorr" tests/scan_portra_input_rgb.f64 "$G"
+          # POSITIVE-film DIR-coupler develop path: scan_film route on a POSITIVE film
+          # (fujifilm_provia_100f) with the DIR couplers ON. Every other golden is
+          # negative film, so this is the only gate on the positive branch of
+          # model/couplers.py (density_silver = nanmax(density_curves) - density,
+          # interpolate the -density curve) AND on the provia stock-specific
+          # DIR-coupler gamma override in params_builder._apply_film_specifics
+          # (gamma_samelayer_rgb=(0.156,0.104,0.078)) applied after the generic
+          # positive default — without it the inhibitor matrix is wrong and
+          # film_density_cmy diverges ~0.32. Golden pinned to oracle c1d0e44.
+          build_run test_provia_couplers_e2e "$ASSET" "$G/scan_provia_couplers" tests/scan_portra_input_rgb.f64
+          # numpy.interp port for the DIR-coupler non-monotonic axis le0 = le - silver@M:
+          # model/couplers.cpp::np_interp_array reproduces numpy's order-dependent
+          # binary_search_with_guess (a plain ascending binary search picks a different
+          # bracket on a non-monotonic xp). Checked bit-exact vs np.interp over 82 cases.
+          build_run test_np_interp tests/np_interp_cases.bin
+          # OPT-IN output gamut compression — ACES RGC v1.3 (model/gamut_compression.cpp::
+          # compress_rgb_aces_rgc + the shared reinhard_knee). Per-channel knee on the
+          # achromatic distance d=(max(R,G,B)-c)/max(R,G,B), gated bit-exact vs the upstream
+          # gamut_compression.py golden. The scanning hook defaults to kLegacyClip (no
+          # compression), so every other golden stays byte-identical; this gates only the
+          # opt-in kAcesRgc math.
+          build_run test_gamut_out_aces tests/gamut_aces_cases.bin
+          build_run test_gamut_out_oklch tests/gamut_oklch_cases.bin
+          # OPT-IN output gamut compression — Oklrab (model/gamut_compression.cpp::
+          # compress_rgb_oklrab_chroma): the oklch chroma reduction with the C_max lookup
+          # indexed by Ottosson's rebased lightness Lr. Gated bit-exact vs the oracle
+          # golden; scanning defaults to kLegacyClip so every other golden is byte-identical.
+          build_run test_gamut_out_oklrab tests/gamut_oklrab_cases.bin
+          # OPT-IN output gamut compression — JzCzhz (Safdar 2017) and CAM16-UCS
+          # (Li 2017) perceptual chroma reductions (#201): the remaining upstream
+          # algorithms, ported default-OFF exactly like oklch/oklrab and gated
+          # bit-exact vs 3bb2c2d-oracle goldens; scanning defaults to kLegacyClip so
+          # every other golden is byte-identical.
+          build_run test_gamut_out_jzazbz tests/gamut_jzazbz_cases.bin
+          build_run test_gamut_out_cam16ucs tests/gamut_cam16ucs_cases.bin
+          # OPT-IN input gamut compression — radial xy compression toward the visible
+          # spectral locus (model/gamut_compression.cpp::spectral_locus_xy +
+          # compress_xy_radial, reusing the shared reinhard_knee) plus the tc_lut
+          # remap-resample bake (kernels/spectral_upsampling.cpp::
+          # remap_tc_lut_for_compression). Gated bit-exact vs the upstream
+          # gamut_compression.py golden (locus polygon + xy probes + synthetic-LUT
+          # bake). build_filming_tc_lut defaults to InputGamutCompress::kOff (no bake),
+          # so every other golden stays byte-identical; this gates only the opt-in path.
+          build_run test_gamut_in_xy tests/gamut_in_cases.bin
+          build_run test_lut_accel "$G"
+          build_run test_lut_cache_e2e "$ASSET" tests/scan_portra_input_rgb.f64
+          build_run test_scanner_lut_e2e "$ASSET" "$G/scan_portra" tests/scan_portra_input_rgb.f64
+          build_run test_enlarger_lut_e2e "$ASSET" "$G/print_portra" tests/scan_portra_input_rgb.f64
+          # Output color spaces: scan_portra final_rgb for all six output spaces
+          # (sRGB / Adobe RGB / ProPhoto / Rec.2020 / ACES2065-1 / linear sRGB) vs the
+          # committed per-space refs in tests/ (argv[3] = ref dir on the runner).
+          build_run test_output_spaces "$ASSET/profiles/kodak_portra_400.json" "$G/scan_portra" "$CPP/tests"
+          # Camera/scanner lens-blur spatial parity (film_density_cmy + final_rgb).
+          build_run test_lensblur "$ASSET/profiles/kodak_portra_400.json" "$G/scan_portra_lensblur" "$LUT" tests/scan_portra_input_rgb.f64
+          # Thread-count invariance: per-pixel stages are parallelized (kernels/parallel);
+          # the output must be byte-identical at 1 vs 8 workers (scan, print, and the
+          # grain+halation branch). Guards the bit-exact parity gate under threading.
+          build_run test_parallel "$ASSET" tests/scan_portra_input_rgb.f64
+          # Optional tone curve on the final display RGB: the default (inactive) and an
+          # identity active curve must reproduce the scan_portra golden bit-for-bit
+          # (new look control must not perturb existing goldens); a real S-curve must
+          # change the output and stay in [0,1].
+          build_run test_tonecurve "$ASSET/profiles/kodak_portra_400.json" "$G/scan_portra"
+          # fp16 (half-float) conversion: scalar IEEE-754 round-trip + bulk path agree
+          # (NEON vcvt on arm, scalar on the host runner). No assets needed.
+          build_run test_half
+          # #289 display pack: the native float RGB -> RGBA8 Bitmap pack must give the
+          # Kotlin packToArgb bytes for every float32 in [0, 1] (+ a stride over all
+          # bit patterns: NaN, Inf, negatives). No assets needed.
+          build_run test_pack_display
+          # Bake a 17^3 .cube 3D LUT for the default scan_film look from the
+          # BUNDLED assets (argv[1] = asset dir): validates the .cube header,
+          # the N^3 data-line count, value sanity, non-degeneracy (not identity/
+          # constant), and that two bakes are byte-identical (the stochastic
+          # toggles are forced off internally so the bake is deterministic).
+          build_run test_bake_lut "$ASSET"
+          # spk_params pass-through (live/dead probe, not a bit-exact gate):
+          # perturbing each newly-wired field one at a time MUST measurably change
+          # the output. Self-contained — runs against the BUNDLED assets (argv[1])
+          # and the committed input vector (argv[2]); loads no oracle golden.
+          build_run test_params_passthrough "$ASSET" tests/scan_portra_input_rgb.f64
+          # Highlight boost (film_render.halation.boost_ev / boost_range / protect_ev):
+          # the pre-clip highlight reconstruction (utils/numba_boost_hightlights.
+          # boost_highlights) that FilmingStage.expose applies to the float64 raw
+          # irradiance right after the exposure-comp scale and BEFORE the diffusion
+          # filter / lens blur / halation (filming.py:58-60), midgray=0.184. It lifts
+          # every raw value above raw_x0=clip(0.184*2^protect_ev,0,max(raw)) by
+          # k*max_raw*(exp(a*dx)-a*dx-1), a=28^(1-boost_range),
+          # k=(2^boost_ev-1)/(exp(a(1-x0))-a(1-x0)-1). Pointwise + NOT gated by
+          # deactivate_spatial_effects, so it changes the film taps + final_rgb with
+          # spatial/grain off. Golden (scan_portra_boost) pinned to oracle c1d0e44.
+          build_run test_highlight_boost_e2e "$ASSET" "$G/scan_portra_boost" tests/scan_portra_input_rgb.f64 "$G"
+          # SCENE LATITUDE (opt-in, Android-only, no oracle): inert when off (byte-identical
+          # to default + within tolerance of scan_portra), equals a per-pixel pre-film gain
+          # when on, busts the film memo per field on both routes, 1-vs-8 thread identity.
+          build_run test_scene_latitude_e2e "$ASSET" "$G/scan_portra" tests/scan_portra_input_rgb.f64
+          build_run test_date_stamp_e2e "$ASSET" "$G/scan_portra" tests/scan_portra_input_rgb.f64
+          build_run test_contrast_mask_e2e "$ASSET" "$G/scan_portra" tests/scan_portra_input_rgb.f64
+          # BLACK-AND-WHITE PRINT (no oracle: spektrafilm ships no bw profiles): the four
+          # silver films render on Multigrade without a Hanatos window, print neutral and
+          # rising, every Multigrade grade holds mid-grey with contrast rising 00 -> 5, grade 2
+          # by hand equals the database pack, grain-on 1-vs-8 thread identity.
+          build_run test_bw_print_e2e "$ASSET"
+          # SPATIAL-EFFECT DECOUPLING: every spatial effect gates on its OWN params
+          # (zero = inert), matching the oracle; halation_active gates ONLY the
+          # halation/scatter block. Golden = camera lens blur ON (1650 µm) with the
+          # halation triples zeroed (the composition the old master gate could not
+          # produce), pinned to oracle c1d0e44. Also asserts blur on-vs-off with
+          # halation off, discrimination vs the with-halation lensblur golden, and
+          # SPK_NUM_THREADS 1-vs-8 byte-identical output.
+          build_run test_spatial_decouple_e2e "$ASSET" "$G/scan_portra_lensblur_nohalation" tests/scan_portra_input_rgb.f64 "$G"
+          # PRINT-ROUTE SPATIAL BRANCH: the print route's filming step used to be
+          # hard-forced spatial-OFF; the oracle runs the SAME FilmingStage on both
+          # routes. Golden = print route with halation/scatter + DIR spatial
+          # diffusion ON (grain/glare off -> deterministic), pinned to oracle
+          # c1d0e44. Pre-fix the engine sat ~1.8e-2 from this golden. Also asserts
+          # spatial on-vs-off and SPK_NUM_THREADS 1-vs-8 byte-identical output.
+          build_run test_print_spatial_e2e "$ASSET" "$G/print_portra_spatial" tests/scan_portra_input_rgb.f64 "$G"
+          # BAND RENDERING: exports above 16 MiP render as overlapping horizontal
+          # bands so the working set follows the band, not the frame. Forces
+          # banding on a small frame and holds it to the parity tolerance against
+          # the whole-frame render on both routes (every spatial effect on, AE and
+          # a date stamp across band edges), 1-vs-8-thread identity, grain/glare
+          # reproducibility and statistics, and the frame-wide-effect fallback.
+          build_run test_band_render "$ASSET"
+          # Banded vs WHOLE-frame seam sweep across the reach space (halation, camera
+          # diffusion, highlight boost, DIR diffusion, lens blur, date-back, crop) at
+          # several band heights: a row-mean bar a seam cannot pass (#604, #614).
+          build_run test_band_seam_sweep "$ASSET"
+          # STATISTICAL GRAIN GATES (previously local-only — the one stage the
+          # byte-exact goldens structurally cannot cover, since its RNG stream
+          # differs from the oracle's). test_grain: non-sublayer grain — mean
+          # preservation + noise std vs the oracle reference. test_grain_sublayer:
+          # sublayer + micro-structure path, plus a distinct-noise-character
+          # assertion vs the non-sublayer path. References are committed
+          # (tests/grain*_ref_*.{spkvec,json}); regenerate with
+          # tests/gen_grain_ref.py / gen_grain_sublayer_ref.py.
+          build_run test_grain "$G/scan_portra/film_density_cmy.spkvec" tests/grain_ref_density.spkvec
+          build_run test_grain_sublayer "$G/scan_portra/film_density_cmy.spkvec" tests/grain_sublayer_ref_density.spkvec "$ASSET/profiles/kodak_portra_400.json"
+          # test_glare_sampler: the viewing-glare field is stochastic too, and the
+          # Fast GPU export route may draw it from a cheaper generator (#180).
+          # Each generator is checked against the lognormal MODEL rather than
+          # against the other, so two identically-wrong generators cannot agree
+          # their way through; it also asserts the fast path is a DIFFERENT
+          # realisation (a no-op flag would pass every moment check) and that it
+          # reproduces itself, which the Fast GPU determinism contract requires.
+          build_run test_glare_sampler
+          # test_normal_generator: gates StatsRng::normal() ITSELF. Every other
+          # stochastic gate checks a distribution built ON TOP of the normal
+          # (particle counts, a lognormal field), so when the Fast path's normal
+          # was swapped from a Marsaglia polar to a Marsaglia-Tsang ziggurat,
+          # nothing gated the thing that actually changed. That swap fails
+          # quietly: a ziggurat whose tables are normalised against the wrong
+          # power of two yields a clean symmetric bell curve with the WRONG
+          # standard deviation, and the mean, skew and every downstream mean
+          # check still pass. Mutation-tested against exactly that bug.
+          build_run test_normal_generator
+          # test_binomial_shortcircuit: fast_binomial_one returns n directly when
+          # pow(1-p,n) has underflowed to 0 instead of walking the loop to k=n+1.
+          # The two grain tests above are STATISTICAL and cannot see that, so this
+          # gates it element-wise against a verbatim transcription of the loop it
+          # replaces — variate AND surviving RNG stream, both legs.
+          build_run test_binomial_shortcircuit
+          exit $fail
+
+  # ---------------------------------------------------------------------------
+  # Parity harness: the standalone .spkvec comparator builds and its byte-format
+  # self-test passes. The stage gate is engine-parity above; this job only keeps
+  # spkvec_io.h byte-compatible with spkvec.py.
+  # ---------------------------------------------------------------------------
+  parity:
+    name: Parity comparator (CMake + ctest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure + build
+        working-directory: tools/parity
+        run: |
+          set -euo pipefail
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+
+      - name: Run self-test
+        working-directory: tools/parity
+        run: ctest --test-dir build --output-on-failure
+
+  # ---------------------------------------------------------------------------
+  # Python harness: parity, compliance, and fail-closed release tooling.
+  # (Generating real goldens needs a spektrafilm env; that runs out-of-CI for now
+  # — see tools/parity/README.md.)
+  # ---------------------------------------------------------------------------
+  python-lint:
+    name: Python tooling (compile + policy/consistency tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Byte-compile Python tooling
+        run: |
+          python -m py_compile \
+            tools/parity/gen_goldens.py \
+            tools/parity/raw_wb_cat_research.py \
+            tools/parity/spkvec.py \
+            tools/parity/rawpy_decode_digest.py \
+            tools/parity/gen_viewing_illuminant_visuals.py \
+            tools/parity/tests/test_oracle_provenance.py \
+            tools/docs/check_docs_consistency.py \
+            tools/docs/tests/test_check_docs_consistency.py \
+            tools/wayfinder/frontier.py \
+            tools/wayfinder/tests/test_frontier.py \
+            tools/baseline/bench_report.py \
+            tools/baseline/preview_report.py \
+            tools/baseline/corpus/make_source.py \
+            tools/baseline/tests/test_bench_report.py \
+            tools/baseline/tests/test_preview_report.py \
+            tools/upstream/gen_upstream_parity.py \
+            tools/upstream/derive_profiles.py \
+            tools/upstream/tests/test_upstream_parity.py \
+            tools/compliance/libraw_bundle.py \
+            tools/compliance/tests/test_libraw_bundle.py \
+            tools/release/app_spdx.py \
+            tools/release/gate_attestation.py \
+            tools/release/github_release.py \
+            tools/release/tests/test_app_spdx.py \
+            tools/release/tests/test_gate_attestation.py \
+            tools/release/tests/test_github_release.py \
+            tools/release/tests/test_release_workflow.py
+
+      - name: Test LibRaw compliance bundle tooling
+        run: python -m unittest discover -s tools/compliance/tests -p 'test_*.py'
+
+      - name: Test the golden-vector provenance gate (offline)
+        run: python -m unittest discover -s tools/parity/tests -p 'test_*.py'
+
+      - name: Lock and generate RAW white-balance CAT02 fixture
+        run: >-
+          python tools/parity/raw_wb_cat_research.py --check
+          --emit-cpp-header "${RUNNER_TEMP}/raw_wb_cat_fixture.h"
+
+      - name: Test fail-closed release tooling and workflow policy
+        run: python -m unittest discover -s tools/release/tests -p 'test_*.py'
+
+      - name: Validate the export benchmark corpus and reporter (device-free smoke)
+        run: |
+          python tools/baseline/corpus/make_source.py --check
+          python -m unittest discover -s tools/baseline/tests -p 'test_*.py'
+          python tools/baseline/bench_report.py \
+            tools/baseline/tests/fixtures/capture-gate.json --gate
+
+      - name: Verify the upstream parity manifest, pin and generated doc (offline)
+        run: |
+          python -m unittest discover -s tools/upstream/tests -p 'test_*.py'
+          python tools/upstream/gen_upstream_parity.py --check
+          python tools/upstream/derive_profiles.py --check
+
+      - name: Report newer upstream (read-only; never mutates the pin, never fails)
+        run: python tools/upstream/gen_upstream_parity.py --report-upstream
+
+      - name: Check current documentation against repository facts
+        run: python tools/docs/check_docs_consistency.py
+
+      - name: Test documentation and Wayfinder reconciliation tooling
+        run: |
+          python -m unittest discover -s tools/docs/tests -p 'test_*.py'
+          python -m unittest discover -s tools/wayfinder/tests -p 'test_*.py'
+
+  # ---------------------------------------------------------------------------
+  # Android build: assemble the debug APK (app + engine:spektra-core, with the
+  # NDK-built libspektra.so for all ABIs). Installs the SDK + NDK + CMake on the
+  # runner, then builds with the committed Gradle wrapper, and uploads the APK.
+  # ---------------------------------------------------------------------------
+  android:
+    name: Android (assemble debug APK)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          # The action's default package list is `tools platform-tools`; the
+          # legacy `tools` package vanished from Google's repository on
+          # 2026-09-14 (~20:25 UTC) and `sdkmanager tools` now exits 1.
+          packages: platform-tools
+
+      - name: Install NDK + CMake + build-tools
+        # NDK r28c: 16 KB-aligned native LOAD segments by default (Android 15 16 KB pages);
+        # build-tools 36 is the AGP 9 minimum (buildToolsVersion in app/build.gradle.kts) and
+        # also provides the zipalign `-P 16` used by the 16 KB gate below,
+        # which page-aligns the bundled .so to 16 KB offsets in the APK.
+        run: sdkmanager "ndk;28.2.13676358" "cmake;3.22.1" "build-tools;36.0.0" "platforms;android-37.0"
+
+      - name: Run JVM unit tests
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew \
+            :app:testDebugUnitTest \
+            :lib:libraw:testDebugUnitTest \
+            :engine:spektra-core:testDebugUnitTest \
+            :lib:pngwriter:testDebugUnitTest \
+            :lib:tiffwriter:testDebugUnitTest \
+            --stacktrace
+
+      - name: Lint (:app:lint)
+        # Android lint with abortOnError=true (no baseline since #298):
+        # fails the job on any lint error. This gates correctness/NewApi issues such
+        # as the unguarded API-28 getLongVersionCode call that previously slipped
+        # through because lint ran only locally, never in PR CI. No flags are passed
+        # that would downgrade errors to warnings.
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew :app:lint --stacktrace
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-lint-report
+          path: |
+            app/build/reports/lint-results-debug.html
+            app/build/reports/lint-results-debug.xml
+          if-no-files-found: warn
+
+      - name: Assemble debug APK
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew \
+            :app:assembleDebug \
+            :engine:spektra-core:assembleDebugAndroidTest \
+            --stacktrace
+          test -f engine/spektra-core/build/outputs/apk/androidTest/debug/spektra-core-debug-androidTest.apk
+
+      - name: Verify legal notices are packaged in the APK
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          verify_asset() {
+            local path="$1"
+            local expected="$2"
+            local actual
+            actual="$(unzip -p "$APK" "assets/$path" | sha256sum | cut -d' ' -f1)"
+            if [ "$actual" != "$expected" ]; then
+              echo "::error::Missing or altered legal asset: $path"
+              exit 1
+            fi
+          }
+          verify_asset third_party/libraw/COPYRIGHT 574c88f5dd59414cfc896293a63defbc2d525a418ed413d7ab7dcc43cf79c509
+          verify_asset third_party/libraw/LICENSE.LGPL eea173a556abac0370461e57e12aab266894ea6be3874c2be05fd87871f75449
+          verify_asset third_party/libraw/LICENSE.CDDL 0e3098d2d54a12434715f6679ea408d57da5e8d613c385c58ecc6fe5d30cc81f
+          verify_asset legal/spektrafilm/LICENSE.GPL-3.0 3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986
+          verify_asset legal/spektrafilm/NOTICE.md f7deb29de88feae2ea03c5e8dc02c327d0b1917ff6bf705b28e0d01c67a70ee3
+
+      - name: Smoke-test standalone LibRaw recipient relink (x86_64)
+        run: |
+          set -euo pipefail
+          OUT=build/libraw-recipient-relink-ci
+          ARCHIVE="$OUT/LibRaw-0.22.2.tar.gz"
+          BUNDLE="$OUT/libraw-source-relink.zip"
+          EXTRACTED="$OUT/extracted"
+          RELINK_BUILD="$OUT/build-x86_64"
+          CMAKE="$ANDROID_HOME/cmake/3.22.1/bin/cmake"
+          NDK="$ANDROID_HOME/ndk/28.2.13676358"
+          mkdir -p "$OUT" "$EXTRACTED"
+          curl --fail --location --retry 3 \
+            --output "$ARCHIVE" \
+            https://www.libraw.org/data/LibRaw-0.22.2.tar.gz
+          echo "de86b035655accff8d4010f1a221fdf50d353cb7b1422ba26f14a0db92612cfa  $ARCHIVE" \
+            | sha256sum -c -
+          python3 tools/compliance/libraw_bundle.py build \
+            --repo-root . \
+            --archive "$ARCHIVE" \
+            --output "$BUNDLE"
+          python3 tools/compliance/libraw_bundle.py verify \
+            --repo-root . \
+            --bundle "$BUNDLE"
+          unzip -q "$BUNDLE" -d "$EXTRACTED"
+          "$CMAKE" \
+            -S "$EXTRACTED/relink/lib/libraw/compliance/relink" \
+            -B "$RELINK_BUILD" \
+            -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+            -DCMAKE_MAKE_PROGRAM="$ANDROID_HOME/cmake/3.22.1/bin/ninja" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DANDROID_ABI=x86_64 \
+            -DANDROID_PLATFORM=android-24 \
+            -DANDROID_STL=c++_shared \
+            -DLIBRAW_SOURCE_DIR="$EXTRACTED/source/LibRaw-0.22.2"
+          "$CMAKE" --build "$RELINK_BUILD" --parallel
+          SO="$RELINK_BUILD/libsfraw.so"
+          test -f "$SO"
+          readelf -dW "$SO" | grep -E '\(SONAME\).*\[libsfraw\.so\]' >/dev/null
+          readelf -Ws "$SO" | grep 'sfraw_recipient_relink_marker' >/dev/null
+          readelf -Ws "$SO" | grep 'Java_com_spectrafilm_libraw_RawDecoder_' >/dev/null
+          strings "$SO" | grep 'UNOFFICIAL RECIPIENT RELINK' >/dev/null
+          mapfile -t LOAD_ALIGNMENTS < <(readelf -lW "$SO" | awk '$1 == "LOAD" {print $NF}')
+          if [ "${#LOAD_ALIGNMENTS[@]}" -eq 0 ]; then
+            echo "::error::Recipient libsfraw.so contains no PT_LOAD segments"
+            exit 1
+          fi
+          for alignment in "${LOAD_ALIGNMENTS[@]}"; do
+            if [ "$alignment" != "0x4000" ]; then
+              echo "::error::Recipient libsfraw.so has non-16-KiB PT_LOAD alignment: $alignment"
+              exit 1
+            fi
+          done
+
+      - name: Verify 16 KB page compatibility (Android 15)
+        # Guards against a regression of the 16 KB-page fix. Two requirements:
+        #   1. Every bundled .so sits at a 16 KB-aligned offset in the APK zip
+        #      (zipalign -P 16), so a 16 KB-page device can mmap it directly.
+        #   2. Every 64-bit (arm64-v8a / x86_64) .so has 16 KB-aligned PT_LOAD
+        #      segments. 32-bit ABIs always run on 4 KB pages, so they are exempt.
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          BT="$ANDROID_HOME/build-tools/36.0.0"
+          # zipalign -c exits 0 when every entry is aligned, non-zero otherwise.
+          # (Don't grep its stdout — the tool prints "succesful", misspelled.)
+          "$BT/zipalign" -c -v -P 16 4 "$APK"
+          rm -rf /tmp/apk16 && mkdir -p /tmp/apk16
+          unzip -oq "$APK" 'lib/arm64-v8a/*' 'lib/x86_64/*' -d /tmp/apk16
+          bad=0
+          for so in $(find /tmp/apk16/lib -name '*.so'); do
+            a=$(readelf -lW "$so" | awk '/LOAD/{print $NF; exit}')
+            if [ "$a" != "0x4000" ]; then echo "NOT 16KB-aligned: ${so#/tmp/apk16/} ($a)"; bad=1; fi
+          done
+          [ "$bad" = 0 ] && echo "All 64-bit native libs are 16 KB-aligned."
+          exit $bad
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Spektrafilm-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Upload engine boundary instrumentation APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Spektrafilm-engine-boundary-debug-androidTest
+          path: engine/spektra-core/build/outputs/apk/androidTest/debug/spektra-core-debug-androidTest.apk
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Android emulator gate: installs the debug APK and the standalone engine
+  # boundary instrumentation APK produced by `android`. It executes the actual
+  # JNI bridge before checking that MainActivity launches without a fatal crash.
+  #
+  # Why artifact-reuse instead of a second full build?
+  #   • Avoids duplicating the ~10-minute NDK/CMake/Gradle build on the same
+  #     runner tier.
+  #   • Makes the dependency explicit: the emulator job only runs when the build
+  #     job produced a good APK, which is the right semantics.
+  #   • Keeps the emulator job focused on on-device verification, not building.
+  #
+  # KVM note: `ubuntu-latest` GitHub-hosted runners expose /dev/kvm; the cloud
+  # dev sandbox (this container) does not — so this job is GitHub-only.
+  # ---------------------------------------------------------------------------
+  android-emulator:
+    name: Android JNI boundary + app smoke (API 35 / x86_64)
+    runs-on: ubuntu-latest
+    needs: android
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # adb / avdmanager / sdkmanager. The emulator binary and the
+      # system image are installed by reactivecircus/android-emulator-runner
+      # below (keyed off api-level/target/arch), so we do NOT pre-install the
+      # NDK/CMake/system-image here — this job only runs the prebuilt APK, and
+      # the large NDK download was an unnecessary failure/disk surface.
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          # The action's default package list is `tools platform-tools`; the
+          # legacy `tools` package vanished from Google's repository on
+          # 2026-09-14 (~20:25 UTC) and `sdkmanager tools` now exits 1.
+          packages: platform-tools
+
+      # Emulator 37.1.11.0 (2026-09) refuses the runner's preinstalled adb:
+      # "Unable to connect to adb daemon on port: 5037" followed by a "device
+      # offline" loop killed two otherwise-green runs. Match platform-tools to
+      # the emulator the action is about to install, and warm the daemon so the
+      # emulator never races adb server startup.
+      - name: Update platform-tools and warm the adb server
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platform-tools" > /dev/null
+          "$ANDROID_HOME/platform-tools/adb" start-server
+          "$ANDROID_HOME/platform-tools/adb" version
+
+      # Grant the runner's user access to /dev/kvm (standard udev rule from the
+      # reactivecircus/android-emulator-runner action README).
+      - name: Enable KVM group permissions
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Download the APK produced by the `android` job — no rebuild needed.
+      - name: Download debug APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Spektrafilm-debug-apk
+          path: apk/
+
+      - name: Download engine boundary instrumentation APK
+        uses: actions/download-artifact@v4
+        with:
+          name: Spektrafilm-engine-boundary-debug-androidTest
+          path: engine-boundary/
+
+      # One pinned emulator action owns image installation, boot, and teardown.
+      # This is the same qualified API/target/profile route as release.yml.
+      - name: Run engine JNI boundary and app smoke
+        uses: reactivecircus/android-emulator-runner@4c44018e59b437e86cdfc41da381398f93ed8808 # v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          # `-gpu swangle`, the same renderer as release.yml. The action's
+          # default `swiftshader_indirect` (deprecated since emulator 36.4.9)
+          # segfaults its host RenderThreads when two activities render at
+          # once (release run 34913971651, host dmesg). This job only ever drew
+          # one activity, so it stayed green while the release smoke died;
+          # emulator_smoke.sh now forces a recreate to close that gap.
+          emulator-options: -no-window -gpu swangle -noaudio -no-boot-anim -no-snapshot -camera-back none
+          # One line on purpose: the action runs each script line in its own
+          # `sh -c`, so the body lives in a file (see the script header).
+          script: bash tools/ci/emulator_smoke.sh
+
+      # Always upload screenshot + logcat so failures are debuggable.
+      - name: Upload emulator artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-smoke-artifacts
+          path: emulator-artifacts/
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # Export benchmark trace (#285). Runs the #177 harness (tools/baseline) through
+  # the shipping export path of the R8 release candidate and uploads its
+  # capture.json (phases_ms decode/simulate/grade/encode per format, plus the
+  # engine's stage-timing log) so a perf regression shows as a trend across runs.
+  # TREND ONLY: an x86_64 emulator is not a phone and a 1-run capture is a smoke
+  # capture, which bench_report.py never gates. build-type.txt in the artifact
+  # says so next to the numbers. The candidate is signed with the committed public
+  # debug key, exactly as r8-smoke.yml does; it is a test artifact, never a release.
+  # ---------------------------------------------------------------------------
+  export-benchmark:
+    name: Export benchmark trace (release candidate on API 35 AVD)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install NDK + CMake + build-tools
+        run: sdkmanager "ndk;28.2.13676358" "cmake;3.22.1" "build-tools;36.0.0" "platforms;android-37.0"
+
+      - name: Assemble release candidate + its instrumentation APK
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew :app:assembleRelease :app:assembleReleaseAndroidTest --stacktrace
+          test -f app/build/outputs/apk/release/app-release-unsigned.apk
+          test -f app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
+
+      - name: Align and debug-sign both APKs
+        run: |
+          set -euo pipefail
+          BT="$ANDROID_HOME/build-tools/36.0.0"
+          echo "6e54a211d3fc65cc07d2609a58f0e4af8beadac90b89a99b9f9f0572eb1fb519  debug.keystore" \
+            | sha256sum -c -
+          mkdir -p bench
+          sign() {
+            local in="$1" out="$2" aligned="$RUNNER_TEMP/$(basename "$2").aligned"
+            "$BT/zipalign" -f -P 16 4 "$in" "$aligned"
+            "$BT/apksigner" sign --ks debug.keystore --ks-key-alias androiddebugkey \
+              --ks-pass pass:android --key-pass pass:android --out "$out" "$aligned"
+            rm -f "$aligned"
+            "$BT/apksigner" verify "$out"
+          }
+          sign app/build/outputs/apk/release/app-release-unsigned.apk bench/app-release-bench.apk
+          sign app/build/outputs/apk/androidTest/release/app-release-androidTest.apk \
+            bench/app-release-androidTest-bench.apk
+
+      - name: Enable KVM group permissions
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Same adb warm-up as android-emulator: the emulator refuses the runner's
+      # preinstalled adb otherwise.
+      - name: Update platform-tools and warm the adb server
+        run: |
+          sdkmanager "platform-tools"
+          "$ANDROID_HOME/platform-tools/adb" start-server
+          "$ANDROID_HOME/platform-tools/adb" version
+
+      - name: Run the export benchmark
+        uses: reactivecircus/android-emulator-runner@4c44018e59b437e86cdfc41da381398f93ed8808 # v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swangle -noaudio -no-boot-anim -no-snapshot -camera-back none
+          script: bash tools/ci/emulator_bench.sh
+
+      - name: Upload benchmark capture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: export-benchmark-capture
+          path: build/ticket177-bench/
+          if-no-files-found: warn

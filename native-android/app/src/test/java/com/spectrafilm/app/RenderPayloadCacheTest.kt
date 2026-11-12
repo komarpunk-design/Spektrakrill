@@ -1,0 +1,176 @@
+/*
+ * Spektrafilm for Android — idle pre-render payload store tests (issue #179). GPLv3.
+ *
+ * The defect to guard against is a HIT that returns the wrong pixels: a payload from another
+ * edit, another app build, or a half-written file. Every one of those must read as a miss,
+ * because a miss only costs a re-render while a wrong hit exports someone else's image.
+ */
+package com.spectrafilm.app
+
+import com.spectrafilm.engine.ColorSpace
+import com.spectrafilm.engine.SimResult
+import com.spectrafilm.engine.SpektraParams
+import java.io.File
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class RenderPayloadCacheTest {
+
+    private val root = File(System.getProperty("java.io.tmpdir"), "spk-prerender-${System.nanoTime()}")
+
+    @After
+    fun cleanup() {
+        root.listFiles()?.forEach { it.delete() }
+        root.delete()
+    }
+
+    private var allocations = 0
+    private var releases = 0
+
+    private fun cache(contract: String = "app11/0.9.0/engine-2026-09-02") =
+        RenderPayloadCache(root, contract, log = { _, _ -> }, allocate = { bytes ->
+            allocations++
+            val buffer = ByteBuffer.allocateDirect(bytes.toInt()).order(ByteOrder.nativeOrder())
+            OwnedPayload(buffer) { releases++ }
+        })
+
+    private fun result(width: Int, height: Int, fill: (Int) -> Float): SimResult {
+        val buffer = ByteBuffer
+            .allocateDirect(width * height * 3 * 4)
+            .order(ByteOrder.nativeOrder())
+        val floats = buffer.asFloatBuffer()
+        for (i in 0 until width * height * 3) floats.put(i, fill(i))
+        return SimResult.fromExternalBuffer(buffer, width, height, ColorSpace.SRGB) { }
+    }
+
+    @Test
+    fun `a stored render comes back with the same pixels and geometry`() {
+        val store = cache()
+        result(4, 3) { it * 0.25f }.use { assertTrue(store.put("k", it)) }
+
+        val restored = store.get("k")
+        assertNotNull("the payload must be readable", restored)
+        restored!!.use {
+            assertEquals(4, it.width)
+            assertEquals(3, it.height)
+            assertEquals(ColorSpace.SRGB, it.colorSpace)
+            it.acquireDataLease().use { lease ->
+                val floats = lease.data.duplicate().order(ByteOrder.nativeOrder()).asFloatBuffer()
+                for (i in 0 until 4 * 3 * 3) assertEquals(i * 0.25f, floats.get(i), 0f)
+            }
+        }
+    }
+
+    @Test
+    fun `a restored payload gives its buffer back exactly once, when the result closes`() {
+        val cache = cache()
+        result(3, 2) { it.toFloat() }.use { cache.put("k", it) }
+
+        val restored = requireNotNull(cache.get("k"))
+        assertEquals(1, allocations)
+        assertEquals(0, releases)
+        restored.close()
+        assertEquals(1, releases)
+        restored.close()
+        assertEquals(1, releases)
+    }
+
+    @Test
+    fun `a different edit is a miss, not another edit's pixels`() {
+        val store = cache()
+        result(2, 2) { 1f }.use { store.put("first", it) }
+        assertNull(store.get("second"))
+    }
+
+    @Test
+    fun `a payload from another app build is a miss`() {
+        result(2, 2) { 1f }.use { cache("app11/0.9.0/engine-A").put("k", it) }
+        assertNull(cache("app12/0.9.1/engine-B").get("k"))
+    }
+
+    @Test
+    fun `a truncated payload is a miss`() {
+        val store = cache()
+        result(2, 2) { 1f }.use { store.put("k", it) }
+        val payload = File(root, "payload.bin")
+        payload.writeBytes(payload.readBytes().copyOf(8))
+        assertNull(store.get("k"))
+        assertTrue("a payload that failed its length check must not linger", !payload.exists())
+    }
+
+    @Test
+    fun `a payload whose metadata never landed is a miss`() {
+        val store = cache()
+        result(2, 2) { 1f }.use { store.put("k", it) }
+        File(root, "payload.json").delete()
+        assertNull(store.get("k"))
+    }
+
+    @Test
+    fun `unreadable metadata is a miss rather than a crash`() {
+        val store = cache()
+        result(2, 2) { 1f }.use { store.put("k", it) }
+        File(root, "payload.json").writeText("{ not json")
+        assertNull(store.get("k"))
+    }
+
+    @Test
+    fun `an empty store is a miss`() {
+        assertNull(cache().get("k"))
+        assertEquals(0L, cache().sizeBytes())
+    }
+
+    @Test
+    fun `the key ignores container choices and tracks the engine inputs`() {
+        val source = ExportCacheKey.Source("abc", 10L, 4096, "kind=IMAGE")
+        val params = SpektraParams(
+            filmProfile = "kodak_portra_400",
+            printProfile = "kodak_portra_endura",
+        )
+        val base = RenderPayloads.key(source, params, ColorSpace.SRGB, "c1")
+        assertEquals(base, RenderPayloads.key(source, params, ColorSpace.SRGB, "c1"))
+        assertTrue(base != RenderPayloads.key(source, params, ColorSpace.PROPHOTO, "c1"))
+        assertTrue(base != RenderPayloads.key(source, params, ColorSpace.SRGB, "c2"))
+        assertTrue(
+            base != RenderPayloads.key(
+                ExportCacheKey.Source("abd", 10L, 4096, "kind=IMAGE"), params, ColorSpace.SRGB, "c1",
+            ),
+        )
+    }
+
+    @Test
+    fun `the Ultra HDR scene tap is stored and restored with its payload`() {
+        val store = cache()
+        val tap = SceneLuma(3, 2, floatArrayOf(0.1f, 2f, 9.5f, 0f, 1f, 64f))
+        result(4, 3) { 0.5f }.use { assertTrue(store.put("k", it, tap)) }
+        val back = requireNotNull(store.getScene("k"))
+        assertEquals(3, back.width)
+        assertEquals(2, back.height)
+        for (i in tap.y.indices) assertEquals(tap.y[i], back.y[i], 0f)
+        assertNull("another edit's key must not see this tap", store.getScene("other"))
+    }
+
+    @Test
+    fun `a payload stored without a tap has none, and a new put drops the old tap`() {
+        val store = cache()
+        result(2, 2) { 0f }.use { store.put("a", it, SceneLuma(1, 1, floatArrayOf(5f))) }
+        result(2, 2) { 0f }.use { store.put("b", it) }
+        assertNull(store.getScene("b"))
+        assertNull(store.getScene("a"))
+    }
+
+    @Test
+    fun `a truncated tap reads as a miss`() {
+        val store = cache()
+        result(2, 2) { 0f }.use { store.put("k", it, SceneLuma(2, 2, FloatArray(4) { 1f })) }
+        File(root, "scene.bin").writeBytes(ByteArray(6))
+        assertNull(store.getScene("k"))
+        assertNotNull("the payload itself stays valid", store.get("k")?.also { it.close() })
+    }
+}

@@ -25,7 +25,7 @@ int main(int argc,char** argv){try{
   spk_engine* engine=nullptr;if(spk_engine_create(argv[2],&engine)!=SPK_OK)throw std::runtime_error("engine create failed");
   struct Owner{spk_engine* engine;~Owner(){spk_engine_destroy(engine);}} owner{engine};
   const int w=32,h=24;std::vector<float> input(w*h*3);for(int i=0;i<w*h;i++)for(int c=0;c<3;c++)input[i*3+c]=.01+.45*(i%37)/36.+.015*c;
-  spk_image image{input.data(),w,h,SPK_CS_PROPHOTO};spk_params params;spk_default_params(&params);params.grain_active=0;params.halation_active=0;params.glare_active=0;params.dir_couplers_active=0;params.auto_exposure=0;params.scanner_unsharp[0]=0;params.scanner_unsharp[1]=0;
+  spk_image image{input.data(),w,h,SPK_CS_PROPHOTO};spk_params params{};spk_default_params(&params);params.grain_active=0;params.halation_active=0;params.glare_active=0;params.dir_couplers_active=0;params.auto_exposure=0;params.scanner_unsharp[0]=0;params.scanner_unsharp[1]=0;
   auto render=[&](const char* tap=nullptr){spk_image out{};auto code=tap?spk_simulate_tap(engine,&image,&params,tap,&out):spk_simulate(engine,&image,&params,&out);if(code!=SPK_OK)throw std::runtime_error(std::string(spk_status_str(code))+": "+spk_last_error_message());std::vector<float> result(out.data,out.data+out.width*out.height*3);spk_image_free(&out);for(float v:result)if(!std::isfinite(v))throw std::runtime_error("nonfinite render");return result;};
   int count=0;
   for(const char* stock:{"kodak_portra_400","exp_kodak_portra_400","exp_kodak_doublex_6p5min","exp_kodak_trix_1min"}){

@@ -92,3 +92,16 @@ Spektrafilm processing, profiles, import and export remain unchanged.
 No donor engine, separately licensed glyph artwork or font binaries were copied.
 Source manifest, licence and notice: `docs/upstream/zalupa-ui/`.
 The APK includes `zalupa-ui-notice.txt` with the licence and adaptation notice.
+
+
+## Native application base (version 9.57)
+
+The complete Spektrafilm for Android v1.0.0 code is imported under `native-android/`,
+commit `bb53c80ab81f6f1d885ff613f4218f83c6c87f65`, with its original GPLv3
+licence, notices and credits. This version uses the author's native UI and engine,
+with Lab extensions. Historical statements above about the former React UI and
+unchanged engine describe versions 9.41–9.56, not the new native base.
+
+The original repository's publicly distributed debug keystore is retained solely
+for reproducible debug builds. Release signing uses an external, uncommitted key.
+See docs/NATIVE_UPSTREAM_MIGRATION.md and docs/upstream/native-v1/source-manifest.json.

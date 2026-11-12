@@ -1,0 +1,482 @@
+/*
+ * Spektrafilm for Android — in-app "How to use this app" guide. GPLv3.
+ * Film modeling powered by spektrafilm.
+ *
+ * A self-contained, scrollable full-screen composable that walks a photographer
+ * through every part of the app: what Spektrafilm is, loading a photo, the editing
+ * layout, choosing a look, key tools, RAW white balance, non-destructive editing,
+ * exporting, tips, and credits. Edge-to-edge safe via windowInsetsPadding(systemBars).
+ *
+ * Shown from two places:
+ *   1. AboutScreen — via local `showHowTo` state inside that composable.
+ *   2. WelcomeFlow — via local `showHowTo` state on the last onboarding page.
+ * Neither caller needs a parameter change — no MainActivity dependency.
+ */
+package com.spectrafilm.app
+
+import androidx.annotation.StringRes
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.remember
+
+/**
+ * Full-screen "How to use this app" guide.
+ *
+ * Self-contained: no NavController, no MainActivity internals. The back affordance is
+ * provided by the [onBack] lambda; callers (AboutScreen, WelcomeFlow) manage
+ * show/hide via a local [androidx.compose.runtime.mutableStateOf] boolean.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HowToUseScreen(onBack: (() -> Unit)?) {
+    val ctx = LocalContext.current
+
+    // System back dismisses the guide (mirrors the top-bar Back button) instead of
+    // falling through to the host — which could pop the whole app from onboarding.
+    // With no onBack the host owns navigation, so the host owns Back too.
+    if (onBack != null) BackHandler { onBack() }
+
+    Surface(
+        color = MaterialTheme.colorScheme.background,
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.systemBars),
+        ) {
+            // Only when this screen is its own host. Rendered inside a NavScaffold it would
+            // be the SECOND "Back + title" bar on screen, with the outer one still naming the
+            // screen you came from.
+            if (onBack != null) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            stringResource(R.string.screen_howto_title),
+                            modifier = Modifier.semantics { heading() },
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(SpectraIcons.Back, contentDescription = stringResource(R.string.screen_back))
+                        }
+                    },
+                )
+            }
+            Column(
+                Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                HowToContent(ctx)
+                Spacer(Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Main guide content (extracted so it can be tested in isolation if needed)
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun HowToContent(ctx: android.content.Context) {
+    // Counted from the shipped assets rather than written into the prose. The guide used to
+    // claim "20 built-in" presets; there were 28 at the time, and 27 now. A number a human
+    // has to remember to update is a number that is wrong.
+    val presetCount = remember(ctx) { runCatching { BuiltInPresets.load(ctx).size }.getOrDefault(0) }
+    val stockCount = remember(ctx) { runCatching { StockCatalog.stocks(ctx).size }.getOrDefault(0) }
+
+
+    // --- 1. What Spektrafilm is ---
+    GuideSection(
+        icon = SpectraIcons.Simulation,
+        title = stringResource(R.string.screen_howto_s1_title),
+    ) {
+        GuideBody(stringResource(R.string.screen_howto_s1_p1))
+        GuideBody(stringResource(R.string.screen_howto_s1_p2))
+        // Verbatim GPL attribution line (see the resource).
+        AttributionNote(stringResource(R.string.screen_howto_attribution))
+    }
+
+    // --- 2. Getting a photo in ---
+    GuideSection(
+        icon = SpectraIcons.Input,
+        title = stringResource(R.string.screen_howto_s2_title),
+    ) {
+        GuideStep(1, stringResource(R.string.screen_howto_s2_step1))
+        GuideStep(2, stringResource(R.string.screen_howto_s2_step2))
+        GuideStep(3, stringResource(R.string.screen_howto_s2_step3))
+        GuideStep(4, stringResource(R.string.screen_howto_s2_step4))
+        GuideBody(stringResource(R.string.screen_howto_s2_p1))
+    }
+
+    // --- 3. Editing screen layout ---
+    GuideSection(
+        icon = SpectraIcons.SourceImage,
+        title = stringResource(R.string.screen_howto_s3_title),
+    ) {
+        GuideBody(stringResource(R.string.screen_howto_s3_p1))
+        GuideStep(1, stringResource(R.string.screen_howto_s3_step0))
+        GuideBody(stringResource(R.string.screen_howto_s3_step0b))
+        GuideStep(2, stringResource(R.string.screen_howto_s3_step1))
+        GuideStep(3, stringResource(R.string.screen_howto_s3_step2))
+        GuideStep(4, stringResource(R.string.screen_howto_s3_step3))
+        // The press-and-hold before/after and the pill's own gestures have no affordance on
+        // screen; this guide is the only place they are written down.
+        GuideStep(5, stringResource(R.string.screen_howto_s3_step4))
+        GuideBody(stringResource(R.string.screen_howto_s3_p2))
+        CategoryList()
+        GuideBody(stringResource(R.string.screen_howto_s3_p3))
+    }
+
+    // --- 4. Choosing a look ---
+    GuideSection(
+        icon = SpectraIcons.Presets,
+        title = stringResource(R.string.screen_howto_s4_title),
+    ) {
+        GuideBody(stringResource(R.string.screen_howto_s4_p1))
+        GuideStep(1, stringResource(R.string.screen_howto_s4_step1, stockCount))
+        GuideStep(2, stringResource(R.string.screen_howto_s4_step2))
+        GuideStep(3, stringResource(R.string.screen_howto_s4_step3))
+        GuideStep(4, stringResource(R.string.screen_howto_s4_step4, presetCount))
+    }
+
+    // --- 5. Key tools ---
+    GuideSection(
+        icon = SpectraIcons.Rotate,
+        title = stringResource(R.string.screen_howto_s5_title),
+    ) {
+        GuideBody(stringResource(R.string.screen_howto_s5_p1))
+        GuideStep(1, stringResource(R.string.screen_howto_s5_step1))
+        GuideStep(2, stringResource(R.string.screen_howto_s5_step2))
+        GuideStep(3, stringResource(R.string.screen_howto_s5_step3))
+        GuideStep(4, stringResource(R.string.screen_howto_s5_step4))
+        GuideStep(5, stringResource(R.string.screen_howto_s5_step5))
+    }
+
+    // --- 6. RAW white balance ---
+    GuideSection(
+        icon = SpectraIcons.ImportRaw,
+        title = stringResource(R.string.screen_howto_s6_title),
+    ) {
+        GuideBody(stringResource(R.string.screen_howto_s6_p1))
+        GuideStep(1, stringResource(R.string.screen_howto_s6_step1))
+        GuideStep(2, stringResource(R.string.screen_howto_s6_step2))
+        GuideStep(3, stringResource(R.string.screen_howto_s6_step3))
+        GuideBody(stringResource(R.string.screen_howto_s6_p2))
+    }
+
+    // --- 7. Non-destructive editing ---
+    GuideSection(
+        icon = SpectraIcons.Settings,
+        title = stringResource(R.string.screen_howto_s7_title),
+    ) {
+        GuideBody(stringResource(R.string.screen_howto_s7_p1))
+        GuideStep(1, stringResource(R.string.screen_howto_s7_step1))
+        GuideStep(2, stringResource(R.string.screen_howto_s7_step2))
+        GuideStep(3, stringResource(R.string.screen_howto_s7_step3))
+        GuideStep(4, stringResource(R.string.screen_howto_s7_step4))
+    }
+
+    // --- 8. Exporting ---
+    GuideSection(
+        icon = SpectraIcons.Display,
+        title = stringResource(R.string.screen_howto_s8_title),
+    ) {
+        GuideBody(stringResource(R.string.screen_howto_s8_p1))
+        GuideBody(stringResource(R.string.screen_howto_s8_p2))
+        GuideStep(1, stringResource(R.string.screen_howto_s8_step1))
+        GuideStep(2, stringResource(R.string.screen_howto_s8_step2))
+        GuideStep(3, stringResource(R.string.screen_howto_s8_step3))
+        GuideBody(stringResource(R.string.screen_howto_s8_p3))
+    }
+
+    // --- 9. Tips ---
+    GuideSection(
+        icon = SpectraIcons.Halation,
+        title = stringResource(R.string.screen_howto_s9_title),
+    ) {
+        GuideStep(1, stringResource(R.string.screen_howto_s9_step1))
+        GuideStep(2, stringResource(R.string.screen_howto_s9_step2))
+        GuideStep(3, stringResource(R.string.screen_howto_s9_step3))
+        GuideStep(4, stringResource(R.string.screen_howto_s9_step4))
+        GuideStep(5, stringResource(R.string.screen_howto_s9_step5))
+    }
+
+    // --- 10. Credits / links ---
+    GuideSection(
+        icon = SpectraIcons.Glare,
+        title = stringResource(R.string.screen_howto_s10_title),
+    ) {
+        // Carries the verbatim GPL line "Film modeling powered by spektrafilm".
+        GuideBody(stringResource(R.string.screen_howto_s10_p1))
+        GuideBody(stringResource(R.string.screen_dedication_pixls))
+        GuideBody(stringResource(R.string.screen_howto_s10_p2))
+        val opensInBrowser = stringResource(R.string.screen_opens_in_browser)
+        // Label only: each button keeps its own click action (null action merges).
+        val linkSemantics = Modifier.semantics { onClick(label = opensInBrowser, action = null) }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = { Links.open(ctx, Links.SPEKTRAFILM) }, modifier = linkSemantics) {
+                Text(stringResource(R.string.screen_link_spektrafilm))
+            }
+            TextButton(onClick = { Links.open(ctx, Links.PIXLS) }, modifier = linkSemantics) {
+                Text(stringResource(R.string.screen_link_pixls))
+            }
+            TextButton(onClick = { Links.open(ctx, Links.SOURCE) }, modifier = linkSemantics) {
+                Text(stringResource(R.string.screen_link_source_code))
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Category list helper (inline in section 3)
+// ---------------------------------------------------------------------------
+
+/**
+ * One-line description per [Category], for the stage-grouped list in section 3.
+ *
+ * This used to be a hand-maintained list of 13 (name, description) pairs "in category-bar
+ * order". It had drifted: it omitted Tone Curve and Masks entirely, so two of the app's
+ * fourteen groups were undocumented, and it carried a Settings row that is not a category
+ * at all -- which is where the screen's claim of "13 categories" came from.
+ *
+ * An exhaustive `when` over the enum means a new category cannot be added without the
+ * compiler demanding a description here.
+ */
+@StringRes
+private fun categoryHowtoName(c: Category): Int = when (c) {
+    Category.SOURCE -> R.string.screen_howto_cat_source
+    Category.PRESETS -> R.string.screen_howto_cat_presets
+    Category.SIMULATION -> R.string.editor_category_film_stock
+    Category.INPUT -> R.string.screen_howto_cat_input
+    Category.RAW_WB -> R.string.screen_howto_cat_raw_wb
+    Category.GRAIN -> R.string.screen_howto_cat_grain
+    Category.HALATION -> R.string.screen_howto_cat_halation
+    Category.GLARE -> R.string.screen_howto_cat_glare
+    Category.PAPER -> R.string.editor_category_paper
+    Category.SCANNER -> R.string.editor_category_scanner
+    Category.EXPOSURE -> R.string.editor_category_exposure
+    Category.SCENE_LATITUDE -> R.string.editor_category_scene_latitude
+    Category.SAT_VIB -> R.string.editor_category_sat_vib
+    Category.PRINT_COLOR -> R.string.editor_category_print_color
+    Category.FILM_FORMAT -> R.string.editor_category_film_format
+    Category.CAMERA_DIFFUSION -> R.string.editor_category_camera_diffusion
+    Category.PRINT_EXPOSURE -> R.string.editor_category_print_exposure
+    Category.ENLARGER -> R.string.editor_category_enlarger
+    Category.LENS_BLUR -> R.string.editor_category_lens_blur
+    Category.DATE_STAMP -> R.string.editor_category_date_stamp
+    Category.RAW_CLEANUP -> R.string.editor_category_raw_cleanup
+    Category.FRAME -> R.string.editor_category_frame
+    Category.OUTPUT -> R.string.editor_sim_tab_output
+    Category.COUPLERS -> R.string.screen_howto_cat_couplers
+    Category.PREFLASH -> R.string.screen_howto_cat_preflash
+    Category.CONTRAST_MASK -> R.string.screen_howto_cat_contrast_mask
+    Category.EXPERIMENTAL -> R.string.screen_howto_cat_experimental
+    Category.TONE_CURVE -> R.string.screen_howto_cat_tone_curve
+    Category.MASKS -> R.string.screen_howto_cat_masks
+    Category.DISPLAY -> R.string.screen_howto_cat_display
+}
+
+@StringRes
+private fun categoryHowtoDesc(c: Category): Int = when (c) {
+    Category.SOURCE -> R.string.screen_howto_cat_source_desc
+    Category.PRESETS -> R.string.screen_howto_cat_presets_desc
+    Category.SIMULATION -> R.string.editor_hint_film_stock
+    Category.INPUT -> R.string.screen_howto_cat_input_desc
+    Category.RAW_WB -> R.string.screen_howto_cat_raw_wb_desc
+    Category.GRAIN -> R.string.screen_howto_cat_grain_desc
+    Category.HALATION -> R.string.screen_howto_cat_halation_desc
+    Category.GLARE -> R.string.screen_howto_cat_glare_desc
+    Category.PAPER -> R.string.editor_hint_paper
+    Category.SCANNER -> R.string.editor_hint_scanner
+    Category.OUTPUT -> R.string.editor_hint_output
+    Category.EXPOSURE -> R.string.editor_hint_exposure
+    Category.SCENE_LATITUDE -> R.string.editor_hint_scene_latitude
+    Category.SAT_VIB -> R.string.editor_hint_sat_vib
+    Category.PRINT_COLOR -> R.string.editor_hint_print_color
+    Category.FILM_FORMAT -> R.string.editor_hint_film_format
+    Category.CAMERA_DIFFUSION -> R.string.editor_hint_camera_diffusion
+    Category.PRINT_EXPOSURE -> R.string.editor_hint_print_exposure
+    Category.ENLARGER -> R.string.editor_hint_enlarger
+    Category.LENS_BLUR -> R.string.editor_hint_lens_blur
+    Category.DATE_STAMP -> R.string.editor_hint_date_stamp
+    Category.RAW_CLEANUP -> R.string.editor_hint_raw_cleanup
+    Category.FRAME -> R.string.editor_hint_frame
+    Category.COUPLERS -> R.string.screen_howto_cat_couplers_desc
+    Category.PREFLASH -> R.string.screen_howto_cat_preflash_desc
+    Category.CONTRAST_MASK -> R.string.screen_howto_cat_contrast_mask_desc
+    Category.EXPERIMENTAL -> R.string.screen_howto_cat_experimental_desc
+    Category.TONE_CURVE -> R.string.screen_howto_cat_tone_curve_desc
+    Category.MASKS -> R.string.screen_howto_cat_masks_desc
+    Category.DISPLAY -> R.string.screen_howto_cat_display_desc
+}
+@Composable
+private fun CategoryList() {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Stage.entries.forEach { stage ->
+        Text(
+            stringResource(stage.labelRes),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(top = 8.dp).semantics { heading() },
+        )
+        categoriesOf(stage).map { categoryHowtoName(it) to categoryHowtoDesc(it) }
+            .forEach { (nameRes, descriptionRes) ->
+            Row(
+                // Badge + description read as one item.
+                modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+                verticalAlignment = Alignment.Top,
+            ) {
+                Surface(
+                    shape = MaterialTheme.shapes.extraSmall,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.padding(top = 2.dp),
+                ) {
+                    Text(
+                        stringResource(nameRes),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                    )
+                }
+                Text(
+                    stringResource(R.string.screen_howto_category_line, stringResource(descriptionRes)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp),
+                )
+            }
+        }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Layout primitives
+// ---------------------------------------------------------------------------
+
+/** A guide section: a card with an icon + heading and a [content] column. */
+@Composable
+private fun GuideSection(
+    icon: ImageVector,
+    title: String,
+    content: @Composable () -> Unit,
+) {
+    ContentCard {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp),
+            )
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
+        }
+        content()
+    }
+}
+
+/** A numbered step inside a section. */
+@Composable
+private fun GuideStep(number: Int, text: String) {
+    // The badge shows a bare digit; TalkBack hears "Step n" then the text, as one item.
+    val stepLabel = stringResource(R.string.screen_howto_step_number, number)
+    Row(
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        // A numbered circle on primaryContainer: the role pairing for a highlighted marker.
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(24.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    number.toString(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.semantics { contentDescription = stepLabel },
+                )
+            }
+        }
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+/** A paragraph of body text. */
+@Composable
+private fun GuideBody(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
+}
+
+/** A small attribution / note chip. */
+@Composable
+private fun AttributionNote(text: String) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onTertiaryContainer,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        )
+    }
+}

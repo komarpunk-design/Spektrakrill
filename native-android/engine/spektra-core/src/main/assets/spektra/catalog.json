@@ -1,0 +1,1615 @@
+{
+  "version": 1,
+  "groups": [
+    {
+      "id": "color_negative",
+      "title": "Color Negative (Still)",
+      "order": 1
+    },
+    {
+      "id": "color_reversal",
+      "title": "Color Reversal / Slide",
+      "order": 2
+    },
+    {
+      "id": "black_and_white",
+      "title": "Black & White Negative",
+      "order": 3
+    },
+    {
+      "id": "motion_picture_negative",
+      "title": "Motion-Picture Negative",
+      "order": 4
+    },
+    {
+      "id": "print_film",
+      "title": "Motion-Picture Print Film",
+      "order": 5
+    },
+    {
+      "id": "print_paper",
+      "title": "RGB Print Paper",
+      "order": 6
+    },
+    {
+      "id": "silver_paper",
+      "title": "Black & White Paper",
+      "order": 7
+    },
+    {
+      "id": "bw",
+      "title": "Black and White",
+      "order": 6
+    }
+  ],
+  "stocks": {
+    "kodak_portra_160": {
+      "name": "Kodak Portra 160",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "iso": 160,
+      "balance": "daylight",
+      "year": "2010",
+      "order": 10,
+      "summary": "Fine-grained, low-contrast portrait negative with soft, natural skin tones and gentle color."
+    },
+    "kodak_portra_400": {
+      "name": "Kodak Portra 400",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "iso": 400,
+      "balance": "daylight",
+      "year": "2010",
+      "order": 11,
+      "summary": "Warm, forgiving, and gentle on skin; the classic all-round wedding and portrait negative."
+    },
+    "kodak_portra_800": {
+      "name": "Kodak Portra 800",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "iso": 800,
+      "balance": "daylight",
+      "year": "2010",
+      "order": 12,
+      "summary": "One of the last fast color negatives, holding Portra's natural palette into low light."
+    },
+    "kodak_portra_800_push1": {
+      "name": "Kodak Portra 800 (Push +1)",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "iso": 1600,
+      "balance": "daylight",
+      "year": "2010",
+      "order": 13,
+      "summary": "Portra 800 rated at EI 1600 and pushed one stop for added speed, contrast, and grain."
+    },
+    "kodak_portra_800_push2": {
+      "name": "Kodak Portra 800 (Push +2)",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "iso": 3200,
+      "balance": "daylight",
+      "year": "2010",
+      "order": 14,
+      "summary": "Portra 800 rated at EI 3200 and pushed two stops for available-light work, with bold grain and contrast."
+    },
+    "kodak_ektar_100": {
+      "name": "Kodak Ektar 100",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "iso": 100,
+      "balance": "daylight",
+      "year": "2008",
+      "order": 15,
+      "summary": "The world's finest-grain color negative, prized for vivid, saturated landscape color."
+    },
+    "kodak_gold_200": {
+      "name": "Kodak Gold 200",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "iso": 200,
+      "balance": "daylight",
+      "year": "1988",
+      "order": 16,
+      "summary": "A nostalgic consumer film with warm yellows and golds made for sunny, golden-hour snapshots."
+    },
+    "kodak_ultramax_400": {
+      "name": "Kodak UltraMax 400",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "iso": 400,
+      "balance": "daylight",
+      "year": "2007",
+      "order": 17,
+      "summary": "A punchy, versatile consumer 400 with vibrant color and a pleasing, gritty grain."
+    },
+    "fujifilm_pro_400h": {
+      "name": "Fujifilm Pro 400H",
+      "manufacturer": "Fujifilm",
+      "group": "color_negative",
+      "kind": "film",
+      "iso": 400,
+      "balance": "daylight",
+      "year": "2004",
+      "order": 18,
+      "summary": "A discontinued professional film famed for airy pastels, cool greens, and soft skin via its fourth color layer."
+    },
+    "fujifilm_c200": {
+      "name": "Fujifilm C200",
+      "manufacturer": "Fujifilm",
+      "group": "color_negative",
+      "kind": "film",
+      "iso": 200,
+      "balance": "daylight",
+      "year": "1990",
+      "order": 19,
+      "summary": "An economical everyday negative with crisp, slightly cool color and accurate skin tones."
+    },
+    "fujifilm_xtra_400": {
+      "name": "Fujifilm Superia X-TRA 400",
+      "manufacturer": "Fujifilm",
+      "group": "color_negative",
+      "kind": "film",
+      "iso": 400,
+      "balance": "daylight",
+      "year": "1998",
+      "order": 20,
+      "summary": "A versatile consumer 400 with a fourth color layer for cleaner tones under mixed light."
+    },
+    "cinestill_800t": {
+      "name": "CineStill 800T",
+      "manufacturer": "CineStill",
+      "group": "color_negative",
+      "kind": "film",
+      "iso": 800,
+      "balance": "tungsten",
+      "order": 21,
+      "summary": "Kodak Vision3 500T with its rem-jet backing removed for still cameras, so bright lights bloom into the red halos night photos are known for."
+    },
+    "kodak_tri_x_400": {
+      "name": "Kodak Tri-X 400",
+      "manufacturer": "Kodak",
+      "group": "black_and_white",
+      "kind": "film",
+      "iso": 400,
+      "monochrome": true,
+      "order": 10,
+      "summary": "The classic high-speed black-and-white negative: gritty, punchy grain and deep blacks, modeled from Kodak's datasheet in D-76."
+    },
+    "ilford_hp5_plus_400": {
+      "name": "Ilford HP5 Plus 400",
+      "manufacturer": "Ilford",
+      "group": "black_and_white",
+      "kind": "film",
+      "iso": 400,
+      "monochrome": true,
+      "order": 11,
+      "summary": "A forgiving 400-speed black-and-white film with wide exposure latitude, modeled from Ilford's datasheet."
+    },
+    "kodak_tmax_100": {
+      "name": "Kodak T-Max 100",
+      "manufacturer": "Kodak",
+      "group": "black_and_white",
+      "kind": "film",
+      "iso": 100,
+      "monochrome": true,
+      "order": 12,
+      "summary": "A fine-grain tabular black-and-white film with crisp detail and smooth midtones, modeled from Kodak's datasheet in D-76."
+    },
+    "fujifilm_neopan_acros_100_ii": {
+      "name": "Fujifilm Neopan Acros 100 II",
+      "manufacturer": "Fujifilm",
+      "group": "black_and_white",
+      "kind": "film",
+      "iso": 100,
+      "monochrome": true,
+      "order": 13,
+      "summary": "Fuji's very fine-grained black-and-white film with clean, bright highlights, modeled from Fujifilm's datasheet."
+    },
+    "kodak_ektachrome_100": {
+      "name": "Kodak Ektachrome E100",
+      "manufacturer": "Kodak",
+      "group": "color_reversal",
+      "kind": "film",
+      "iso": 100,
+      "balance": "daylight",
+      "year": "2018",
+      "order": 10,
+      "summary": "A revived E-6 slide with clean neutrals, fine grain, and a wide tonal range for a reversal film."
+    },
+    "fujifilm_provia_100f": {
+      "name": "Fujifilm Provia 100F",
+      "manufacturer": "Fujifilm",
+      "group": "color_reversal",
+      "kind": "film",
+      "iso": 100,
+      "balance": "daylight",
+      "year": "2000",
+      "order": 11,
+      "summary": "The reference E-6 transparency: natural, accurate color with modest contrast and fine grain."
+    },
+    "fujifilm_velvia_100": {
+      "name": "Fujifilm Velvia 100",
+      "manufacturer": "Fujifilm",
+      "group": "color_reversal",
+      "kind": "film",
+      "iso": 100,
+      "balance": "daylight",
+      "year": "2005",
+      "order": 12,
+      "summary": "High-contrast, ultra-saturated slide film beloved by landscape shooters for its punchy color."
+    },
+    "kodak_kodachrome_64": {
+      "name": "Kodak Kodachrome 64",
+      "manufacturer": "Kodak",
+      "group": "color_reversal",
+      "kind": "film",
+      "iso": 64,
+      "balance": "daylight",
+      "year": "1974",
+      "order": 13,
+      "summary": "The legendary K-14 slide (discontinued 2009) with rich, archival color and a distinctive warm signature."
+    },
+    "kodak_vision3_50d": {
+      "name": "Kodak Vision3 50D (5203/7203)",
+      "manufacturer": "Kodak",
+      "group": "motion_picture_negative",
+      "kind": "film",
+      "iso": 50,
+      "balance": "daylight",
+      "year": "2010",
+      "order": 10,
+      "summary": "The sharpest, finest-grained Vision3 stock, daylight-balanced for crisp bright-light cinematography."
+    },
+    "kodak_vision3_250d": {
+      "name": "Kodak Vision3 250D (5207/7207)",
+      "manufacturer": "Kodak",
+      "group": "motion_picture_negative",
+      "kind": "film",
+      "iso": 250,
+      "balance": "daylight",
+      "year": "2009",
+      "order": 11,
+      "summary": "A medium-speed daylight cine negative balancing fine grain with broad exposure latitude."
+    },
+    "kodak_vision3_200t": {
+      "name": "Kodak Vision3 200T (5213/7213)",
+      "manufacturer": "Kodak",
+      "group": "motion_picture_negative",
+      "kind": "film",
+      "iso": 200,
+      "balance": "tungsten",
+      "year": "2010",
+      "order": 12,
+      "summary": "A tungsten-balanced cine negative offering low grain and rich color under artificial light."
+    },
+    "kodak_vision3_500t": {
+      "name": "Kodak Vision3 500T (5219/7219)",
+      "manufacturer": "Kodak",
+      "group": "motion_picture_negative",
+      "kind": "film",
+      "iso": 500,
+      "balance": "tungsten",
+      "year": "2007",
+      "order": 13,
+      "summary": "The fast, tungsten-balanced workhorse of digital-era film, strong in low light with wide dynamic range."
+    },
+    "kodak_verita_200d": {
+      "name": "Kodak Verita 200D (5206/7206)",
+      "manufacturer": "Kodak",
+      "group": "motion_picture_negative",
+      "kind": "film",
+      "iso": 200,
+      "balance": "daylight",
+      "year": "2026",
+      "order": 14,
+      "summary": "A new daylight cine negative with bold saturation, warm skin, and a shorter, classically cinematic range."
+    },
+    "kodak_2383": {
+      "name": "Kodak Vision Color Print Film 2383",
+      "manufacturer": "Kodak",
+      "group": "print_film",
+      "kind": "print_film",
+      "balance": "tungsten",
+      "year": "2000",
+      "order": 10,
+      "summary": "The standard theatrical release print stock, giving rich blacks and neutral highlights on screen."
+    },
+    "kodak_2393": {
+      "name": "Kodak Vision Premier Color Print Film 2393",
+      "manufacturer": "Kodak",
+      "group": "print_film",
+      "kind": "print_film",
+      "balance": "tungsten",
+      "year": "1998",
+      "order": 11,
+      "summary": "A premium print stock with deeper blacks, brighter highlights, and greater color saturation than 2383."
+    },
+    "kodak_portra_endura": {
+      "name": "Kodak Professional Portra Endura",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "year": "2005",
+      "order": 10,
+      "summary": "A low-contrast RA-4 paper delivering natural flesh tones and moderate, restrained color saturation."
+    },
+    "kodak_supra_endura": {
+      "name": "Kodak Professional Supra Endura",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "year": "2003",
+      "order": 11,
+      "summary": "A moderate-contrast RA-4 paper with accurate skin and livelier saturation for vivid general prints."
+    },
+    "kodak_ultra_endura": {
+      "name": "Kodak Professional Ultra Endura",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "year": "2003",
+      "order": 12,
+      "summary": "A high-contrast RA-4 paper with blacker blacks and bold saturation for high-impact display prints."
+    },
+    "kodak_endura_premier": {
+      "name": "Kodak Professional Endura Premier",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "year": "2010",
+      "order": 13,
+      "summary": "Kodak's last surviving RA-4 paper, with tunable contrast and exceptional 100+ year image stability."
+    },
+    "kodak_ektacolor_edge": {
+      "name": "Kodak Ektacolor Edge",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "year": "1997",
+      "order": 14,
+      "summary": "A consumer/minilab RA-4 paper tuned for natural skin tones and rich, compelling everyday color."
+    },
+    "fujifilm_crystal_archive_typeii": {
+      "name": "Fujifilm Crystal Archive Type II",
+      "manufacturer": "Fujifilm",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "year": "2005",
+      "order": 15,
+      "summary": "Fuji's benchmark RA-4 paper with rich gradation, vivid color, and outstanding color stability."
+    },
+    "ilford_multigrade_iv_rc": {
+      "name": "Ilford Multigrade IV RC",
+      "manufacturer": "Ilford",
+      "group": "silver_paper",
+      "kind": "print_paper",
+      "monochrome": true,
+      "order": 10,
+      "summary": "A variable-contrast silver paper: the enlarger's filter sets the grade, from soft 00 to hard 5. Fitted to Ilford's datasheet curves."
+    },
+    "kodak_doublex": {
+      "name": "Kodak Double-X Negative 5222",
+      "manufacturer": "Kodak",
+      "group": "bw",
+      "kind": "film",
+      "iso": 250,
+      "balance": "daylight",
+      "year": "1959",
+      "order": 2,
+      "summary": "Black-and-white cine negative. The bundled curve is the middle development time (6.5 min).",
+      "monochrome": true
+    },
+    "kodak_2302": {
+      "name": "Kodak Black-and-White Print Film 2302",
+      "manufacturer": "Kodak",
+      "group": "print_film",
+      "kind": "print_film",
+      "balance": "daylight",
+      "year": "2000",
+      "order": 12,
+      "summary": "Black-and-white release print film. The bundled curve is the middle development time (5 min).",
+      "monochrome": true
+    },
+    "kodak_trix": {
+      "name": "Kodak Tri-X Reversal 7266",
+      "manufacturer": "Kodak",
+      "group": "bw",
+      "kind": "film",
+      "iso": 200,
+      "balance": "daylight",
+      "year": "2003",
+      "order": 1,
+      "summary": "Black-and-white reversal cine film. Neutral under a normal camera white balance.",
+      "monochrome": true
+    },
+    "exp_fujifilm_c200": {
+      "name": "Fujifilm C200",
+      "manufacturer": "Fujifilm",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 101,
+      "summary": "Источник: Experimental",
+      "iso": 200
+    },
+    "exp_fujifilm_crystal_archive_typeii": {
+      "name": "Fujifilm Crystal Archive Type II",
+      "manufacturer": "Fujifilm",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 102,
+      "summary": "Источник: Experimental"
+    },
+    "exp_fujifilm_pro_400h": {
+      "name": "Fujifilm Pro 400H",
+      "manufacturer": "Fujifilm",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 103,
+      "summary": "Источник: Experimental",
+      "iso": 400
+    },
+    "exp_fujifilm_provia_100f": {
+      "name": "Fujifilm Provia 100F",
+      "manufacturer": "Fujifilm",
+      "group": "color_reversal",
+      "kind": "film",
+      "order": 104,
+      "summary": "Источник: Experimental",
+      "iso": 100
+    },
+    "exp_fujifilm_velvia_100": {
+      "name": "Fujifilm Velvia 100",
+      "manufacturer": "Fujifilm",
+      "group": "color_reversal",
+      "kind": "film",
+      "order": 105,
+      "summary": "Источник: Experimental",
+      "iso": 100
+    },
+    "exp_fujifilm_xtra_400": {
+      "name": "Fujifilm X-Tra 400",
+      "manufacturer": "Fujifilm",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 106,
+      "summary": "Источник: Experimental",
+      "iso": 400
+    },
+    "exp_kodak_2302_2min": {
+      "name": "Kodak Print Film 2302 · 2 мин",
+      "manufacturer": "Kodak",
+      "group": "silver_paper",
+      "kind": "print_film",
+      "order": 107,
+      "summary": "Источник: Experimental",
+      "monochrome": true
+    },
+    "exp_kodak_2302_3p5min": {
+      "name": "Kodak Print Film 2302 · 3.5 мин",
+      "manufacturer": "Kodak",
+      "group": "silver_paper",
+      "kind": "print_film",
+      "order": 108,
+      "summary": "Источник: Experimental",
+      "monochrome": true
+    },
+    "exp_kodak_2302_5min": {
+      "name": "Kodak Print Film 2302 · 5 мин",
+      "manufacturer": "Kodak",
+      "group": "silver_paper",
+      "kind": "print_film",
+      "order": 109,
+      "summary": "Источник: Experimental",
+      "monochrome": true
+    },
+    "exp_kodak_2302_7min": {
+      "name": "Kodak Print Film 2302 · 7 мин",
+      "manufacturer": "Kodak",
+      "group": "silver_paper",
+      "kind": "print_film",
+      "order": 110,
+      "summary": "Источник: Experimental",
+      "monochrome": true
+    },
+    "exp_kodak_2302_9min": {
+      "name": "Kodak Print Film 2302 · 9 мин",
+      "manufacturer": "Kodak",
+      "group": "silver_paper",
+      "kind": "print_film",
+      "order": 111,
+      "summary": "Источник: Experimental",
+      "monochrome": true
+    },
+    "exp_kodak_2383": {
+      "name": "Kodak Vision 2383",
+      "manufacturer": "Kodak",
+      "group": "print_film",
+      "kind": "print_film",
+      "order": 112,
+      "summary": "Источник: Experimental"
+    },
+    "exp_kodak_2393": {
+      "name": "Kodak Vision Premier 2393",
+      "manufacturer": "Kodak",
+      "group": "print_film",
+      "kind": "print_film",
+      "order": 113,
+      "summary": "Источник: Experimental"
+    },
+    "exp_kodak_doublex_12min": {
+      "name": "Kodak Double-X Negative Film 5222 · 12 мин",
+      "manufacturer": "Kodak",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 114,
+      "summary": "Источник: Experimental",
+      "iso": 250,
+      "monochrome": true
+    },
+    "exp_kodak_doublex_4min": {
+      "name": "Kodak Double-X Negative Film 5222 · 4 мин",
+      "manufacturer": "Kodak",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 115,
+      "summary": "Источник: Experimental",
+      "iso": 250,
+      "monochrome": true
+    },
+    "exp_kodak_doublex_5min": {
+      "name": "Kodak Double-X Negative Film 5222 · 5 мин",
+      "manufacturer": "Kodak",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 116,
+      "summary": "Источник: Experimental",
+      "iso": 250,
+      "monochrome": true
+    },
+    "exp_kodak_doublex_6p5min": {
+      "name": "Kodak Double-X Negative Film 5222 · 6.5 мин",
+      "manufacturer": "Kodak",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 117,
+      "summary": "Источник: Experimental",
+      "iso": 250,
+      "monochrome": true
+    },
+    "exp_kodak_doublex_9min": {
+      "name": "Kodak Double-X Negative Film 5222 · 9 мин",
+      "manufacturer": "Kodak",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 118,
+      "summary": "Источник: Experimental",
+      "iso": 250,
+      "monochrome": true
+    },
+    "exp_kodak_ektachrome_100": {
+      "name": "Kodak Ektachrome 100",
+      "manufacturer": "Kodak",
+      "group": "color_reversal",
+      "kind": "film",
+      "order": 119,
+      "summary": "Источник: Experimental",
+      "iso": 100
+    },
+    "exp_kodak_ektacolor_edge": {
+      "name": "Kodak Ektacolor Edge",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 120,
+      "summary": "Источник: Experimental"
+    },
+    "exp_kodak_ektar_100": {
+      "name": "Kodak Ektar 100",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 121,
+      "summary": "Источник: Experimental",
+      "iso": 100
+    },
+    "exp_kodak_endura_premier": {
+      "name": "Kodak Professional Endura Premier",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 122,
+      "summary": "Источник: Experimental"
+    },
+    "exp_kodak_gold_200": {
+      "name": "Kodak Gold 200",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 123,
+      "summary": "Источник: Experimental",
+      "iso": 200
+    },
+    "exp_kodak_kodachrome_64": {
+      "name": "Kodak Kodachrome 64",
+      "manufacturer": "Kodak",
+      "group": "color_reversal",
+      "kind": "film",
+      "order": 124,
+      "summary": "Источник: Experimental",
+      "iso": 64
+    },
+    "exp_kodak_portra_160": {
+      "name": "Kodak Portra 160",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 125,
+      "summary": "Источник: Experimental",
+      "iso": 160
+    },
+    "exp_kodak_portra_400": {
+      "name": "Kodak Portra 400",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 126,
+      "summary": "Источник: Experimental",
+      "iso": 400
+    },
+    "exp_kodak_portra_800": {
+      "name": "Kodak Portra 800",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 127,
+      "summary": "Источник: Experimental",
+      "iso": 800
+    },
+    "exp_kodak_portra_800_push1": {
+      "name": "Kodak Portra 800 (Push 1)",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 128,
+      "summary": "Источник: Experimental",
+      "iso": 800
+    },
+    "exp_kodak_portra_800_push2": {
+      "name": "Kodak Portra 800 (Push 2)",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 129,
+      "summary": "Источник: Experimental",
+      "iso": 800
+    },
+    "exp_kodak_portra_endura": {
+      "name": "Kodak Professional Portra Endura",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 130,
+      "summary": "Источник: Experimental"
+    },
+    "exp_kodak_supra_endura": {
+      "name": "Kodak Professional Supra Endura",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 131,
+      "summary": "Источник: Experimental"
+    },
+    "exp_kodak_trix_1min": {
+      "name": "Kodak Tri-X Reversal Film 7266 · 1 мин",
+      "manufacturer": "Kodak",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 132,
+      "summary": "Источник: Experimental",
+      "iso": 200,
+      "monochrome": true
+    },
+    "exp_kodak_ultra_endura": {
+      "name": "Kodak Professional Ultra Endura",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 133,
+      "summary": "Источник: Experimental"
+    },
+    "exp_kodak_ultramax_400": {
+      "name": "Kodak Ultramax 400",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 134,
+      "summary": "Источник: Experimental",
+      "iso": 400
+    },
+    "exp_kodak_verita_200d": {
+      "name": "Kodak Verita 200D",
+      "manufacturer": "Kodak",
+      "group": "motion_picture_negative",
+      "kind": "film",
+      "order": 135,
+      "summary": "Источник: Experimental",
+      "iso": 200
+    },
+    "exp_kodak_vision3_200t": {
+      "name": "Kodak Vision3 200T",
+      "manufacturer": "Kodak",
+      "group": "motion_picture_negative",
+      "kind": "film",
+      "order": 136,
+      "summary": "Источник: Experimental",
+      "iso": 200
+    },
+    "exp_kodak_vision3_250d": {
+      "name": "Kodak Vision3 250D",
+      "manufacturer": "Kodak",
+      "group": "motion_picture_negative",
+      "kind": "film",
+      "order": 137,
+      "summary": "Источник: Experimental",
+      "iso": 250
+    },
+    "exp_kodak_vision3_500t": {
+      "name": "Kodak Vision3 500T",
+      "manufacturer": "Kodak",
+      "group": "motion_picture_negative",
+      "kind": "film",
+      "order": 138,
+      "summary": "Источник: Experimental",
+      "iso": 500
+    },
+    "exp_kodak_vision3_50d": {
+      "name": "Kodak Vision3 50D",
+      "manufacturer": "Kodak",
+      "group": "motion_picture_negative",
+      "kind": "film",
+      "order": 139,
+      "summary": "Источник: Experimental",
+      "iso": 50
+    },
+    "ilford_delta100": {
+      "name": "Ilford Delta 100 Professional — ID-11 stock, 8.5min, 20C",
+      "manufacturer": "Ilford",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 147,
+      "summary": "Источник: Spektrafilm"
+    },
+    "ilford_delta400": {
+      "name": "Ilford Delta 400 Professional — ID-11 stock, 8min, 24C",
+      "manufacturer": "Ilford",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 148,
+      "summary": "Источник: Spektrafilm"
+    },
+    "ilford_fp4plus": {
+      "name": "Ilford FP4 Plus 125 — ILFOTEC HC (1+31), 8min, 20C",
+      "manufacturer": "Ilford",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 149,
+      "summary": "Источник: Spektrafilm"
+    },
+    "ilford_hp5plus": {
+      "name": "Ilford HP5 Plus 400 — ILFOTEC HC (1+31), 6.5min, 20C",
+      "manufacturer": "Ilford",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 151,
+      "summary": "Источник: Spektrafilm"
+    },
+    "ilford_multigrade_iv_rc_grade0": {
+      "name": "Ilford Multigrade IV RC (Grade 0)",
+      "manufacturer": "Ilford",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 153,
+      "summary": "Источник: Spektrafilm"
+    },
+    "ilford_multigrade_iv_rc_grade00": {
+      "name": "Ilford Multigrade IV RC (Grade 00)",
+      "manufacturer": "Ilford",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 154,
+      "summary": "Источник: Spektrafilm"
+    },
+    "ilford_multigrade_iv_rc_grade1": {
+      "name": "Ilford Multigrade IV RC (Grade 1)",
+      "manufacturer": "Ilford",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 155,
+      "summary": "Источник: Spektrafilm"
+    },
+    "ilford_multigrade_iv_rc_grade2": {
+      "name": "Ilford Multigrade IV RC (Grade 2)",
+      "manufacturer": "Ilford",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 156,
+      "summary": "Источник: Spektrafilm"
+    },
+    "ilford_multigrade_iv_rc_grade3": {
+      "name": "Ilford Multigrade IV RC (Grade 3)",
+      "manufacturer": "Ilford",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 157,
+      "summary": "Источник: Spektrafilm"
+    },
+    "ilford_multigrade_iv_rc_grade4": {
+      "name": "Ilford Multigrade IV RC (Grade 4)",
+      "manufacturer": "Ilford",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 158,
+      "summary": "Источник: Spektrafilm"
+    },
+    "ilford_multigrade_iv_rc_grade5": {
+      "name": "Ilford Multigrade IV RC (Grade 5)",
+      "manufacturer": "Ilford",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 159,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_polymax_fine_art_grade0": {
+      "name": "Kodak Professional Polymax Fine-Art Paper (Grade 0)",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 170,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_polymax_fine_art_grade1": {
+      "name": "Kodak Professional Polymax Fine-Art Paper (Grade 1)",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 171,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_polymax_fine_art_grade2": {
+      "name": "Kodak Professional Polymax Fine-Art Paper (Grade 2)",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 172,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_polymax_fine_art_grade3": {
+      "name": "Kodak Professional Polymax Fine-Art Paper (Grade 3)",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 173,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_polymax_fine_art_grade4": {
+      "name": "Kodak Professional Polymax Fine-Art Paper (Grade 4)",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 174,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_polymax_fine_art_grade5": {
+      "name": "Kodak Professional Polymax Fine-Art Paper (Grade 5)",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 175,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_polymax_fine_art_grademinus1": {
+      "name": "Kodak Professional Polymax Fine-Art Paper (Grade -1)",
+      "manufacturer": "Kodak",
+      "group": "print_paper",
+      "kind": "print_paper",
+      "order": 176,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_techpan_hc110b_12min": {
+      "name": "Technical Pan (2415/6415) — HC-110 (Dil B) 12min, CI 2.01",
+      "manufacturer": "Technical",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 184,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_techpan_hc110b_4min": {
+      "name": "Technical Pan (2415/6415) — HC-110 (Dil B) 4min, CI 1.22",
+      "manufacturer": "Technical",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 185,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_techpan_hc110b_6min": {
+      "name": "Technical Pan (2415/6415) — HC-110 (Dil B) 6min, CI 1.49",
+      "manufacturer": "Technical",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 186,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_techpan_hc110b_8min": {
+      "name": "Technical Pan (2415/6415) — HC-110 (Dil B) 8min, CI 1.73",
+      "manufacturer": "Technical",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 187,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_techpan_technidol_11min": {
+      "name": "Technical Pan (2415/6415) — Technidol 11min, CI 0.70",
+      "manufacturer": "Technical",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 188,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_techpan_technidol_5min": {
+      "name": "Technical Pan (2415/6415) — Technidol 5min, CI 0.48",
+      "manufacturer": "Technical",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 189,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_techpan_technidol_7min": {
+      "name": "Technical Pan (2415/6415) — Technidol 7min, CI 0.58",
+      "manufacturer": "Technical",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 190,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_techpan_technidol_9min": {
+      "name": "Technical Pan (2415/6415) — Technidol 9min, CI 0.64",
+      "manufacturer": "Technical",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 191,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_tmax100_d76_10min": {
+      "name": "T-Max 100 — D-76 10min",
+      "manufacturer": "T-Max",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 192,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_tmax100_d76_6min": {
+      "name": "T-Max 100 — D-76 6min",
+      "manufacturer": "T-Max",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 193,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_tmax100_d76_7p5min": {
+      "name": "T-Max 100 — D-76 7.5min, CI 0.66",
+      "manufacturer": "T-Max",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 194,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_tmax100_tmax_10min": {
+      "name": "T-Max 100 — T-MAX 10min, CI 0.64",
+      "manufacturer": "T-Max",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 195,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_tmax100_tmax_12min": {
+      "name": "T-Max 100 — T-MAX 12min, CI 0.71",
+      "manufacturer": "T-Max",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 196,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_tmax100_tmax_6min": {
+      "name": "T-Max 100 — T-MAX 6min",
+      "manufacturer": "T-Max",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 197,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_tmax100_tmax_7min": {
+      "name": "T-Max 100 — T-MAX 7min",
+      "manufacturer": "T-Max",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 198,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_tmax100_tmaxrs_10p5min": {
+      "name": "T-Max 100 — T-MAX RS 10.5min, CI 0.61",
+      "manufacturer": "T-Max",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 199,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_tmax100_tmaxrs_13min": {
+      "name": "T-Max 100 — T-MAX RS 13min, CI 0.69",
+      "manufacturer": "T-Max",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 200,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_tmax100_tmaxrs_15min": {
+      "name": "T-Max 100 — T-MAX RS 15min, CI 0.76",
+      "manufacturer": "T-Max",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 201,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_tmax100_tmaxrs_8min": {
+      "name": "T-Max 100 — T-MAX RS 8min",
+      "manufacturer": "T-Max",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 202,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_trix400tx_d76_11min": {
+      "name": "Tri-X 400 (TX) — D-76 11min, CI 0.65",
+      "manufacturer": "Tri-X",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 206,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_trix400tx_d76_7min": {
+      "name": "Tri-X 400 (TX) — D-76 7min, CI 0.45",
+      "manufacturer": "Tri-X",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 207,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_trix400tx_d76_9min": {
+      "name": "Tri-X 400 (TX) — D-76 9min, CI 0.56 (normal)",
+      "manufacturer": "Tri-X",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 208,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_trix400tx_tmax_11min": {
+      "name": "Tri-X 400 (TX) small tank — T-MAX 11min, CI 0.99",
+      "manufacturer": "Tri-X",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 209,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_trix400tx_tmax_5min": {
+      "name": "Tri-X 400 (TX) small tank — T-MAX 5min, CI 0.53",
+      "manufacturer": "Tri-X",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 210,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_trix400tx_tmax_7min": {
+      "name": "Tri-X 400 (TX) small tank — T-MAX 7min, CI 0.63",
+      "manufacturer": "Tri-X",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 211,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_trix400tx_tmax_9min": {
+      "name": "Tri-X 400 (TX) small tank — T-MAX 9min, CI 0.78",
+      "manufacturer": "Tri-X",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 212,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_trix400txp_hc110b_3p5min": {
+      "name": "Tri-X Pan Pro 320 (TXP) — HC-110B 3.5min, CI 0.47",
+      "manufacturer": "Tri-X",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 213,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_trix400txp_hc110b_6p25min": {
+      "name": "Tri-X Pan Pro 320 (TXP) — HC-110B 6.25min, CI 0.56 (normal)",
+      "manufacturer": "Tri-X",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 214,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_trix400txp_hc110b_9min": {
+      "name": "Tri-X Pan Pro 320 (TXP) — HC-110B 9min, CI 0.66",
+      "manufacturer": "Tri-X",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 215,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_trix400txt_hc110b_10min": {
+      "name": "Tri-X Pan Pro 320 sheet (TXT) — HC-110B 10min, CI 0.67",
+      "manufacturer": "Tri-X",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 216,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_trix400txt_hc110b_5p5min": {
+      "name": "Tri-X Pan Pro 320 sheet (TXT) — HC-110B 5.5min, CI 0.50",
+      "manufacturer": "Tri-X",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 217,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_trix400txt_hc110b_7min": {
+      "name": "Tri-X Pan Pro 320 sheet (TXT) — HC-110B 7min, CI 0.56 (normal)",
+      "manufacturer": "Tri-X",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 218,
+      "summary": "Источник: Spektrafilm"
+    },
+    "kodak_trix400txt_hc110b_8p5min": {
+      "name": "Tri-X Pan Pro 320 sheet (TXT) — HC-110B 8.5min, CI 0.62",
+      "manufacturer": "Tri-X",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 219,
+      "summary": "Источник: Spektrafilm"
+    },
+    "negs_agfa_agfachrome_100": {
+      "name": "Agfa Agfachrome 100",
+      "manufacturer": "Agfa",
+      "group": "color_reversal",
+      "kind": "film",
+      "order": 227,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 100,
+      "balance": "daylight"
+    },
+    "negs_agfa_agfachrome_200": {
+      "name": "Agfa Agfachrome 200",
+      "manufacturer": "Agfa",
+      "group": "color_reversal",
+      "kind": "film",
+      "order": 228,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 200,
+      "balance": "daylight"
+    },
+    "negs_agfa_agfachrome_50": {
+      "name": "Agfa Agfachrome 50",
+      "manufacturer": "Agfa",
+      "group": "color_reversal",
+      "kind": "film",
+      "order": 229,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 50,
+      "balance": "daylight"
+    },
+    "negs_cinestill_400d": {
+      "name": "CineStill 400D",
+      "manufacturer": "CineStill",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 230,
+      "summary": "Спектральный профиль Negs / Fotufilm. Приблизительная модель: часть характеристик восстановлена по примерам фотографий. · Источник: Negs",
+      "iso": 400,
+      "balance": "daylight"
+    },
+    "negs_cinestill_800t": {
+      "name": "CineStill 800T",
+      "manufacturer": "CineStill",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 231,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 800,
+      "balance": "tungsten"
+    },
+    "negs_fotufilm_infrared_color": {
+      "name": "Infrared Color",
+      "manufacturer": "Fotufilm",
+      "group": "color_reversal",
+      "kind": "film",
+      "order": 232,
+      "summary": "Спектральный профиль Negs / Fotufilm. Творческая ложноцветная ИК-модель. Обычная RGB-фотография не содержит измеренных ИК-данных. · Источник: Negs",
+      "balance": "daylight"
+    },
+    "negs_fujifilm_acros_100_ii_10min": {
+      "name": "Fujifilm Neopan 100 Acros II · 10 мин",
+      "manufacturer": "Fujifilm",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 233,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 100,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_fujifilm_acros_100_ii_4min": {
+      "name": "Fujifilm Neopan 100 Acros II · 4 мин",
+      "manufacturer": "Fujifilm",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 234,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 100,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_fujifilm_acros_100_ii_7min": {
+      "name": "Fujifilm Neopan 100 Acros II · 7 мин",
+      "manufacturer": "Fujifilm",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 235,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 100,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_fujifilm_astia_100f": {
+      "name": "Fujifilm Astia 100F",
+      "manufacturer": "Fujifilm",
+      "group": "color_reversal",
+      "kind": "film",
+      "order": 236,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 100,
+      "balance": "daylight"
+    },
+    "negs_fujifilm_eterna_500": {
+      "name": "Fujifilm Eterna 500",
+      "manufacturer": "Fujifilm",
+      "group": "motion_picture_negative",
+      "kind": "film",
+      "order": 237,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 500,
+      "balance": "tungsten"
+    },
+    "negs_fujifilm_eterna_vivid_500": {
+      "name": "Fujifilm Eterna Vivid 500",
+      "manufacturer": "Fujifilm",
+      "group": "motion_picture_negative",
+      "kind": "film",
+      "order": 238,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 500,
+      "balance": "tungsten"
+    },
+    "negs_fujifilm_f64d": {
+      "name": "Fujifilm F-64D",
+      "manufacturer": "Fujifilm",
+      "group": "motion_picture_negative",
+      "kind": "film",
+      "order": 239,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 64,
+      "balance": "daylight"
+    },
+    "negs_fujifilm_pro_160ns": {
+      "name": "Fujifilm Pro 160NS",
+      "manufacturer": "Fujifilm",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 240,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 160,
+      "balance": "daylight"
+    },
+    "negs_fujifilm_reala_100": {
+      "name": "Fujifilm Superia Reala 100",
+      "manufacturer": "Fujifilm",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 241,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 100,
+      "balance": "daylight"
+    },
+    "negs_fujifilm_reala_500d": {
+      "name": "Fujifilm Reala 500D",
+      "manufacturer": "Fujifilm",
+      "group": "motion_picture_negative",
+      "kind": "film",
+      "order": 242,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 500,
+      "balance": "daylight"
+    },
+    "negs_fujifilm_superia_200": {
+      "name": "Fujifilm Superia 200",
+      "manufacturer": "Fujifilm",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 243,
+      "summary": "Спектральный профиль Negs / Fotufilm. Приблизительная модель: часть характеристик восстановлена по примерам фотографий. · Источник: Negs",
+      "iso": 200,
+      "balance": "daylight"
+    },
+    "negs_fujifilm_velvia_50": {
+      "name": "Fujifilm Velvia 50",
+      "manufacturer": "Fujifilm",
+      "group": "color_reversal",
+      "kind": "film",
+      "order": 244,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 50,
+      "balance": "daylight"
+    },
+    "negs_harman_phoenix_200": {
+      "name": "Harman Phoenix 200",
+      "manufacturer": "Harman",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 245,
+      "summary": "Спектральный профиль Negs / Fotufilm. Приблизительная модель: часть характеристик восстановлена по примерам фотографий. · Источник: Negs",
+      "iso": 200,
+      "balance": "daylight"
+    },
+    "negs_ilford_delta_3200_12min": {
+      "name": "Ilford Delta 3200 Professional · 12 мин",
+      "manufacturer": "Ilford",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 246,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 3200,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_ilford_delta_3200_16min": {
+      "name": "Ilford Delta 3200 Professional · 16 мин",
+      "manufacturer": "Ilford",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 247,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 3200,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_ilford_delta_3200_7min": {
+      "name": "Ilford Delta 3200 Professional · 7 мин",
+      "manufacturer": "Ilford",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 248,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 3200,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_ilford_delta_3200_9min": {
+      "name": "Ilford Delta 3200 Professional · 9 мин",
+      "manufacturer": "Ilford",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 249,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 3200,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_ilford_fp4_plus_6min": {
+      "name": "Ilford FP4 Plus · 6 мин ≈",
+      "manufacturer": "Ilford",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 250,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. Время проявки оценено авторами. · Источник: Negs",
+      "iso": 125,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_ilford_fp4_plus_8min": {
+      "name": "Ilford FP4 Plus · 8 мин",
+      "manufacturer": "Ilford",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 251,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 125,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_ilford_fp4_plus_9min": {
+      "name": "Ilford FP4 Plus · 9 мин ≈",
+      "manufacturer": "Ilford",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 252,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. Время проявки оценено авторами. · Источник: Negs",
+      "iso": 125,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_ilford_hp5_plus_14min": {
+      "name": "Ilford HP5 Plus · 14 мин ≈",
+      "manufacturer": "Ilford",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 253,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. Время проявки оценено авторами. · Источник: Negs",
+      "iso": 400,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_ilford_hp5_plus_6p5min": {
+      "name": "Ilford HP5 Plus · 6.5 мин",
+      "manufacturer": "Ilford",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 254,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 400,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_ilford_hp5_plus_9p5min": {
+      "name": "Ilford HP5 Plus · 9.5 мин ≈",
+      "manufacturer": "Ilford",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 255,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. Время проявки оценено авторами. · Источник: Negs",
+      "iso": 400,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_ilford_mgrc_deluxe_grade2_1min": {
+      "name": "Ilford Multigrade RC Deluxe Grade 2 · 1 мин",
+      "manufacturer": "Ilford",
+      "group": "silver_paper",
+      "kind": "print_paper",
+      "order": 256,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_kodak_aerochrome_1443": {
+      "name": "Kodak Aerochrome III 1443",
+      "manufacturer": "Kodak",
+      "group": "color_reversal",
+      "kind": "film",
+      "order": 257,
+      "summary": "Спектральный профиль Negs / Fotufilm. Приблизительная модель: часть характеристик восстановлена по примерам фотографий. · Источник: Negs",
+      "iso": 400,
+      "balance": "daylight"
+    },
+    "negs_kodak_aerocolor_2460": {
+      "name": "Kodak Aerocolor IV 2460",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 258,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 125,
+      "balance": "daylight"
+    },
+    "negs_kodak_kodachrome_200": {
+      "name": "Kodak Kodachrome 200",
+      "manufacturer": "Kodak",
+      "group": "color_reversal",
+      "kind": "film",
+      "order": 259,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 200,
+      "balance": "daylight"
+    },
+    "negs_kodak_kodachrome_25": {
+      "name": "Kodak Kodachrome 25",
+      "manufacturer": "Kodak",
+      "group": "color_reversal",
+      "kind": "film",
+      "order": 260,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 25,
+      "balance": "daylight"
+    },
+    "negs_kodak_kodacolor_100": {
+      "name": "Kodak Kodacolor 100",
+      "manufacturer": "Kodak",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 261,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 100,
+      "balance": "daylight"
+    },
+    "negs_kodak_tmax_100_6min": {
+      "name": "Kodak T-MAX 100 · 6 мин",
+      "manufacturer": "Kodak",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 262,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 100,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_kodak_tmax_100_7p5min": {
+      "name": "Kodak T-MAX 100 · 7.5 мин",
+      "manufacturer": "Kodak",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 263,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 100,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_kodak_trix400_d76_8min_8min": {
+      "name": "Kodak Tri-X 400 · 8 мин",
+      "manufacturer": "Kodak",
+      "group": "black_and_white",
+      "kind": "film",
+      "order": 264,
+      "summary": "Спектральный профиль Negs / Fotufilm. Характеристики и спектральные таблицы перенесены с сохранением источника и лицензии CC BY-SA 4.0. · Источник: Negs",
+      "iso": 400,
+      "balance": "daylight",
+      "monochrome": true
+    },
+    "negs_lomography_color_100": {
+      "name": "Lomography Color Negative 100",
+      "manufacturer": "Lomography",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 265,
+      "summary": "Спектральный профиль Negs / Fotufilm. Приблизительная модель: часть характеристик восстановлена по примерам фотографий. · Источник: Negs",
+      "iso": 100,
+      "balance": "daylight"
+    },
+    "negs_lomography_lomochrome_metropolis": {
+      "name": "LomoChrome Metropolis",
+      "manufacturer": "Lomography",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 266,
+      "summary": "Спектральный профиль Negs / Fotufilm. Приблизительная модель: часть характеристик восстановлена по примерам фотографий. · Источник: Negs",
+      "balance": "daylight"
+    },
+    "negs_lomography_lomochrome_turquoise": {
+      "name": "LomoChrome Turquoise",
+      "manufacturer": "Lomography",
+      "group": "color_negative",
+      "kind": "film",
+      "order": 267,
+      "summary": "Спектральный профиль Negs / Fotufilm. Приблизительная модель: часть характеристик восстановлена по примерам фотографий. · Источник: Negs",
+      "balance": "daylight"
+    }
+  }
+}

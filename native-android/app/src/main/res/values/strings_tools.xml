@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Spektrafilm for Android. GPLv3. -->
+<resources>
+    <!-- Shared by the export sheet, the crop / mask / eyedropper overlays and the export notification -->
+    <string name="tool_cancel">Cancel</string>
+    <string name="tool_apply">Apply</string>
+    <string name="tool_close">Close</string>
+
+    <!-- Export sheet -->
+    <string name="tool_export_title">Export</string>
+    <string name="tool_export_action">Export</string>
+    <string name="tool_export_format">Format</string>
+    <string name="tool_export_quality">Quality</string>
+    <string name="tool_export_scene_linear_note">Exports the decoded scene-linear input — the linear RGB before the film simulation — as an untagged 32-bit float TIFF, for grading in another app. Colour space and metadata options don\'t apply.</string>
+    <string name="tool_export_size_heading">Size</string>
+    <string name="tool_export_high_bit_depth_note">High-bit-depth formats use the maximum available decoded resolution. Large RAW inputs may be reduced to fit memory.</string>
+    <string name="tool_export_dimensions">Dimensions</string>
+    <string name="tool_export_long_edge">Long edge (px)</string>
+    <string name="tool_export_custom_clamp">Clamped to %1$d–%2$d px; the photo is never enlarged.</string>
+    <string name="tool_export_border_heading">Film border</string>
+    <string name="tool_export_border">Border</string>
+    <string name="tool_export_border_note">Added around the photo, so nothing is cropped. A size limit applies to the framed image.</string>
+    <string name="tool_export_border_high_bit_note">Borders apply to JPEG, Ultra HDR and PNG. High-bit-depth exports are the bare photo.</string>
+    <string name="tool_export_border_preview_cd">Preview of the photo with the %1$s border</string>
+    <string name="tool_export_border_none">None</string>
+    <string name="tool_export_border_print">White print</string>
+    <string name="tool_export_border_filed">Black edge</string>
+    <string name="tool_export_border_135">35 mm film strip</string>
+    <string name="tool_export_border_120">Medium format roll</string>
+    <string name="tool_export_border_instant">Instant print</string>
+    <string name="tool_export_border_mat">Gallery mat</string>
+    <string name="tool_export_border_half">Half-frame strip</string>
+    <string name="tool_export_border_rough">Rough filed edge</string>
+    <string name="frame_style">Style</string>
+    <string name="frame_width">Border width</string>
+    <string name="frame_color">Colour</string>
+    <string name="frame_color_style">Style default</string>
+    <string name="frame_color_white">Paper white</string>
+    <string name="frame_color_cream">Warm cream</string>
+    <string name="frame_color_grey">Grey</string>
+    <string name="frame_color_black">Black</string>
+    <string name="frame_color_photo">From photo</string>
+    <string name="frame_aspect">Fit to aspect</string>
+    <string name="frame_aspect_original">Original</string>
+    <string name="frame_aspect_square">1:1</string>
+    <string name="frame_aspect_4_5">4:5</string>
+    <string name="frame_aspect_9_16">9:16</string>
+    <string name="frame_aspect_note">Pads the frame to this shape. The photo is never cropped.</string>
+    <string name="frame_strip_color_note">Film strips keep their film base. The colour fills the aspect padding.</string>
+    <string name="frame_export_note">The frame is added on export. Ultra HDR, JPEG and PNG carry it; high-bit-depth formats export the bare photo.</string>
+    <string name="frame_preview_cd">Photo with the chosen frame</string>
+    <string name="frame_caption">Caption</string>
+    <string name="frame_caption_none">None</string>
+    <string name="frame_caption_shot">Shot info</string>
+    <string name="frame_caption_date">Date</string>
+    <string name="frame_caption_stock">Film stock</string>
+    <string name="frame_caption_custom">Custom</string>
+    <string name="frame_caption_text">Caption text</string>
+    <string name="frame_caption_missing">This photo has no details for this caption, so none is added.</string>
+    <string name="frame_font_sans">Sans</string>
+    <string name="frame_font_serif">Serif</string>
+    <string name="frame_font_mono">Mono</string>
+    <string name="frame_markings">Edge markings</string>
+    <string name="frame_markings_show">Show edge markings</string>
+    <string name="frame_markings_label">Edge label</string>
+    <string name="frame_number">Frame number</string>
+    <string name="frame_number_note">0 takes a number from the photo.</string>
+    <string name="tool_export_color_space">Color space</string>
+    <string name="tool_export_cctf">Encode color transfer (CCTF)</string>
+    <string name="tool_export_cctf_help">On for normal viewing. Off writes scene-linear values (for further grading).</string>
+    <string name="tool_export_file_name">File name (optional)</string>
+    <string name="tool_export_file_name_placeholder">Spektrafilm_&lt;timestamp&gt;</string>
+    <string name="tool_export_file_name_tokens">Use {name}, {film}, {print}, {date} or {time} to fill in the photo\'s name, the stocks or when it was exported.</string>
+    <string name="tool_export_sharpen">Output sharpening</string>
+    <string name="tool_export_preset">Preset</string>
+    <string name="tool_export_preset_custom">Custom</string>
+    <string name="tool_export_more_options">More export options</string>
+    <string name="tool_export_preset_save">Save as preset…</string>
+    <string name="tool_export_preset_save_title">Save export preset</string>
+    <string name="tool_export_preset_save_confirm">Save</string>
+    <string name="tool_export_preset_name">Preset name</string>
+    <string name="tool_export_preset_overwrite">A preset with this name will be replaced.</string>
+    <string name="tool_export_preset_manage">Manage presets</string>
+    <string name="tool_export_batch">Export more photos with this edit…</string>
+    <string name="tool_export_preset_delete">Delete</string>
+    <string name="tool_export_preset_none">No presets saved.</string>
+    <string name="tool_done">Done</string>
+    <string name="tool_export_sharpen_none">None</string>
+    <string name="tool_export_sharpen_low">Low</string>
+    <string name="tool_export_sharpen_standard">Standard</string>
+    <string name="tool_export_sharpen_high">High</string>
+    <string name="tool_export_include_gps">Include location (GPS)</string>
+    <string name="tool_export_include_gps_help">Copy GPS coordinates from the source photo into the exported file.</string>
+    <string name="tool_export_attribution">Film modeling powered by spektrafilm</string>
+
+    <!-- Export size presets (ExportSize.labelRes) -->
+    <string name="tool_export_size_full">Maximum available resolution</string>
+    <string name="tool_export_size_large">Large — 4096 px</string>
+    <string name="tool_export_size_medium">Medium — 2048 px</string>
+    <string name="tool_export_size_small">Small — 1024 px</string>
+    <string name="tool_export_size_custom">Custom long edge</string>
+
+    <!-- Export formats (display names for ExportFormat, resolved in ExportSheet.kt) -->
+    <string name="tool_export_format_png">PNG (8-bit)</string>
+    <string name="tool_export_format_jpeg">JPEG</string>
+    <string name="tool_export_format_ultra_hdr">Ultra HDR (JPEG)</string>
+    <string name="tool_export_format_tiff">16-bit TIFF</string>
+    <string name="tool_export_format_png16">16-bit PNG</string>
+    <string name="tool_export_format_tiff32f">32-bit float TIFF</string>
+    <string name="tool_export_format_scene_linear_tiff">Scene-linear input (32-bit TIFF)</string>
+
+    <!-- Output colour spaces (export sheet) -->
+    <string name="tool_color_space_srgb">sRGB</string>
+    <string name="tool_color_space_adobe_rgb">Adobe RGB (1998)</string>
+    <string name="tool_color_space_prophoto">ProPhoto RGB</string>
+    <string name="tool_color_space_rec2020">Rec. 2020</string>
+    <string name="tool_color_space_aces2065_1">ACES2065-1</string>
+    <string name="tool_color_space_linear_srgb">Linear sRGB</string>
+
+    <!-- Export foreground-service notification -->
+    <string name="tool_export_notification_text">Exporting photo…</string>
+    <string name="tool_export_channel_name">Export</string>
+    <string name="tool_export_channel_description">Keeps a photo export running at full speed in the background.</string>
+
+    <!-- Masks panel -->
+    <string name="tool_masks_title">Masks</string>
+    <string name="tool_masks_intro">Local adjustments: a mask limits the full adjustment set — exposure, temp/tint, saturation, hue, contrast, whites/blacks, and the detail controls — to one area. A radial targets a spot (brighten a face); a gradient ramps across the frame (darken a sky from the top). Composited on the final image — the film render is untouched.</string>
+    <string name="tool_masks_add_radial">+ Radial mask</string>
+    <string name="tool_masks_add_gradient">+ Gradient mask</string>
+    <string name="tool_masks_add_skin">Skin (AI)</string>
+    <string name="tool_masks_skin_face">Face skin</string>
+    <string name="tool_masks_skin_body">Body skin</string>
+    <string name="tool_masks_skin_softness">Edge softness</string>
+    <string name="tool_masks_skin_softness_help">How gradually the selection fades out at the edge of the skin.</string>
+    <string name="tool_masks_skin_expand">Expand</string>
+    <string name="tool_masks_skin_expand_help">Grow (+) or shrink (−) the selection around the skin.</string>
+    <string name="tool_masks_skin_downloading" formatted="true">Downloading the skin finder (16 MB, once)… %1$d%%</string>
+    <string name="tool_masks_skin_finding">Finding skin…</string>
+    <string name="tool_masks_skin_found">Skin found on this phone. Your photo is never uploaded.</string>
+    <string name="tool_masks_skin_none">No person found in this photo, so this mask selects nothing.</string>
+    <string name="tool_masks_skin_unavailable">Couldn\'t load the skin finder. Check your connection and try again.</string>
+    <string name="tool_masks_skin_retry">Try again</string>
+    <string name="tool_masks_tab">Mask %1$d</string>
+    <string name="tool_masks_position_on_photo">Position on photo</string>
+    <string name="tool_masks_temp">Temp</string>
+    <string name="tool_masks_temp_help">White balance inside the mask: + warms (yellow), − cools (blue).</string>
+    <string name="tool_masks_tint">Tint</string>
+    <string name="tool_masks_tint_help">White balance inside the mask: + magenta, − green.</string>
+    <string name="tool_masks_exposure">Exposure</string>
+    <string name="tool_masks_exposure_help">Brighten / darken inside the mask, in stops (local dodge &amp; burn).</string>
+    <string name="tool_masks_saturation">Saturation</string>
+    <string name="tool_masks_saturation_help">Colorfulness inside the mask.</string>
+    <string name="tool_masks_hue">Hue shift</string>
+    <string name="tool_masks_hue_help">Rotate the hue of colors inside the mask, in degrees (e.g. shift a sky toward teal).</string>
+    <string name="tool_masks_contrast">Contrast</string>
+    <string name="tool_masks_contrast_help">Contrast inside the mask.</string>
+    <string name="tool_masks_whites">Whites</string>
+    <string name="tool_masks_whites_help">The brightest tones inside the mask: + brightens highlights, − recovers them.</string>
+    <string name="tool_masks_blacks">Blacks</string>
+    <string name="tool_masks_blacks_help">The darkest tones inside the mask: + lifts shadows, − deepens them.</string>
+    <string name="tool_masks_clarity">Clarity</string>
+    <string name="tool_masks_clarity_help">Midtone local contrast inside the mask (+ punch, − soften).</string>
+    <string name="tool_masks_texture">Texture</string>
+    <string name="tool_masks_texture_help">Fine detail inside the mask: + emphasizes, − smooths.</string>
+    <string name="tool_masks_sharpness">Sharpness</string>
+    <string name="tool_masks_sharpness_help">Edge sharpness inside the mask (unsharp mask on fine detail).</string>
+    <string name="tool_masks_highlights">Highlights</string>
+    <string name="tool_masks_highlights_help">Bright regions inside the mask: − recovers, + brightens.</string>
+    <string name="tool_masks_shadows">Shadows</string>
+    <string name="tool_masks_shadows_help">Dark regions inside the mask: + lifts, − deepens.</string>
+    <string name="tool_masks_position_x">Position X</string>
+    <string name="tool_masks_position_y">Position Y</string>
+    <string name="tool_masks_size">Size</string>
+    <string name="tool_masks_size_help">Radius of the mask (fraction of the frame).</string>
+    <string name="tool_masks_feather">Feather</string>
+    <string name="tool_masks_feather_help">Softness of the mask edge.</string>
+    <string name="tool_masks_gradient_note">The effect ramps from 0 at the start point to full at the end point.</string>
+    <string name="tool_masks_start_x">Start X</string>
+    <string name="tool_masks_start_y">Start Y</string>
+    <string name="tool_masks_end_x">End X</string>
+    <string name="tool_masks_end_y">End Y</string>
+    <string name="tool_masks_gradient_start_help">Where the gradient begins (no effect).</string>
+    <string name="tool_masks_gradient_end_help">Where the gradient reaches full effect.</string>
+    <string name="tool_masks_invert">Invert (affect outside)</string>
+    <string name="tool_masks_invert_help">Apply the adjustment OUTSIDE the mask instead of inside (e.g. darken all but the subject).</string>
+    <string name="tool_masks_opacity">Mask opacity</string>
+    <string name="tool_masks_limit_tones">Limit to tones</string>
+    <string name="tool_masks_limit_tones_help">Restrict the adjustment to a brightness range — e.g. only the highlights, or only the shadows. Turn on, then use the eyedropper to pick the tone from your photo.</string>
+    <string name="tool_masks_eyedropper_tone">Eyedropper — pick a tone from the photo</string>
+    <string name="tool_masks_tone_min">Tone min</string>
+    <string name="tool_masks_tone_min_help">Darkest tone the adjustment affects.</string>
+    <string name="tool_masks_tone_max">Tone max</string>
+    <string name="tool_masks_tone_max_help">Brightest tone the adjustment affects.</string>
+    <string name="tool_masks_tone_feather">Tone feather</string>
+    <string name="tool_masks_tone_feather_help">Softness of the tonal range edges.</string>
+    <string name="tool_masks_invert_tones">Invert tones</string>
+    <string name="tool_masks_invert_tones_help">Affect the tones OUTSIDE the range instead.</string>
+    <string name="tool_masks_limit_color">Limit to a color</string>
+    <string name="tool_masks_limit_color_help">Restrict the adjustment to one color family — e.g. only the reds, leaving skin untouched. Turn on, then use the eyedropper to pick the color from your photo.</string>
+    <string name="tool_masks_eyedropper_color">Eyedropper — pick a color from the photo</string>
+    <string name="tool_masks_target_red">Target red</string>
+    <string name="tool_masks_target_red_help">The color to affect — red component.</string>
+    <string name="tool_masks_target_green">Target green</string>
+    <string name="tool_masks_target_green_help">The color to affect — green component.</string>
+    <string name="tool_masks_target_blue">Target blue</string>
+    <string name="tool_masks_target_blue_help">The color to affect — blue component.</string>
+    <string name="tool_masks_color_range">Color range</string>
+    <string name="tool_masks_color_range_help">How wide a range of colors counts as a match.</string>
+    <string name="tool_masks_color_feather">Color feather</string>
+    <string name="tool_masks_color_feather_help">Softness of the color-selection edges.</string>
+    <string name="tool_masks_invert_color">Invert color</string>
+    <string name="tool_masks_invert_color_help">Affect the colors OUTSIDE the range instead.</string>
+    <string name="tool_masks_delete">Delete mask</string>
+
+    <!-- Editor coach marks -->
+
+    <!-- Crop overlay -->
+    <string name="tool_crop_title">Crop</string>
+    <string name="tool_crop_rotate">Rotate 90°</string>
+    <string name="tool_crop_aspect_group">Aspect ratio</string>
+    <string name="tool_crop_aspect_free">Free</string>
+    <string name="tool_crop_portrait">Portrait ratios</string>
+    <string name="tool_crop_landscape">Landscape ratios</string>
+    <string name="tool_crop_orient_portrait">Portrait</string>
+    <string name="tool_crop_orient_landscape">Landscape</string>
+    <string name="tool_crop_aspect_original">Original</string>
+    <string name="tool_crop_canvas_desc">Crop rectangle over the photo. Drag a corner or edge to resize it, drag inside it to move it.</string>
+    <string name="tool_crop_reset">Reset crop to the full photo</string>
+    <string name="tool_crop_straighten">Straighten</string>
+    <string name="tool_crop_straighten_desc">Straighten angle. Drag sideways to tilt the photo; double-tap to level it.</string>
+    <string name="tool_crop_straighten_reset">Level the photo (0°)</string>
+
+    <!-- Mask position overlay -->
+    <string name="tool_mask_geometry_title">Position mask</string>
+    <string name="tool_mask_geometry_hint">Drag to move · drag a handle to resize the radial / move a gradient end.</string>
+    <string name="tool_mask_geometry_canvas_desc">Mask over the photo. Drag the shape to move it; drag a handle to resize a radial or move a gradient end. The position sliders in the Masks panel are the screen-reader alternative.</string>
+    <string name="tool_mask_geometry_revert">Revert to the saved position</string>
+
+    <!-- Eyedropper (pixel sample) overlay -->
+    <string name="tool_sample_title_color">Tap to pick a color</string>
+    <string name="tool_sample_hint_color">Tap the color you want the mask to target (e.g. a red), then apply.</string>
+    <string name="tool_sample_canvas_desc">Photo. Tap a point to sample its color.</string>
+    <string name="tool_sample_center">Sample the centre of the photo</string>
+    <string name="tool_sample_swatch_desc">Sampled color: red %1$d, green %2$d, blue %3$d</string>
+
+    <!-- Preview viewer -->
+    <string name="tool_viewer_preview_desc" formatted="false">Preview of the current photo. Tap to inspect at 100%, pinch or double-tap to zoom, drag to pan. Press and hold to see the original.</string>
+    <!-- Spoken while the press-and-hold before/after peek is showing. -->
+    <string name="tool_viewer_original_desc">Original photo, before any edits. Release to return to the edited version.</string>
+    <string name="tool_viewer_zoom_state">Zoom %1$d%%</string>
+    <string name="tool_viewer_zoom_percent">%1$d%%</string>
+    <string name="tool_viewer_zoom_in">Zoom in</string>
+    <string name="tool_viewer_zoom_out">Zoom out</string>
+    <string name="tool_viewer_zoom_fit">Fit to screen</string>
+    <string name="tool_viewer_compare_desc">Before-after comparison. Drag or tap across the photo to move the split.</string>
+    <string name="tool_viewer_compare_state">Before shown across %1$d%% of the width</string>
+    <string name="tool_viewer_compare_show_before">Show only before</string>
+    <string name="tool_viewer_compare_show_after">Show only after</string>
+    <string name="tool_viewer_compare_split_half">Split in half</string>
+    <string name="tool_viewer_before_tag">BEFORE</string>
+    <string name="tool_viewer_after_tag">AFTER</string>
+    <string name="tool_viewer_histogram_desc">Histogram of the preview</string>
+    <!-- Spoken instead of the above when the frame is pinned at an end of the scale. -->
+    <string name="tool_viewer_histogram_desc_clipped_high">Histogram of the preview. Highlights are clipped.</string>
+    <string name="tool_viewer_histogram_desc_clipped_low">Histogram of the preview. Shadows are clipped.</string>
+    <string name="tool_viewer_histogram_desc_clipped_both">Histogram of the preview. Highlights and shadows are clipped.</string>
+    <string name="tool_viewer_magnifier_title" formatted="false">100% crop</string>
+    <string name="tool_viewer_magnifier_image_desc">Full-resolution crop of the photo</string>
+    <string name="tool_viewer_magnifier_rendering">Rendering full-resolution crop…</string>
+
+    <!-- Tone curve -->
+    <string name="tool_curve_title">Tone Curve</string>
+    <string name="tool_curve_contrast">Contrast</string>
+    <string name="tool_curve_contrast_help">Hue-neutral contrast via the master tone curve. Negative softens a too-punchy look; positive adds punch. Composes with a drawn curve.</string>
+    <string name="tool_curve_channel_master">Master</string>
+    <string name="tool_curve_channel_red">Red</string>
+    <string name="tool_curve_channel_green">Green</string>
+    <string name="tool_curve_channel_blue">Blue</string>
+    <string name="tool_curve_hint">Tap to add a point · drag to shape · double-tap a point to remove.</string>
+    <string name="tool_curve_reset_channel">Reset channel</string>
+    <string name="tool_curve_reset_all">Reset all</string>
+    <string name="tool_curve_editor_desc">Tone curve editor. Tap to add a point, drag a point to shape the curve, double-tap a point to remove it. Shaping the curve is touch-only; with a screen reader use the Contrast slider and Reset channel instead.</string>
+    <string name="tool_curve_points_state">%1$d control points</string>
+    <string name="tool_export_half_frame_pair">Export as a half-frame pair…</string>
+    <string name="tool_export_proof_none">Nothing in the preview is clipped in %1$s.</string>
+    <string name="tool_export_proof_clipped">%1$s of the preview is clipped in %2$s: blown highlights, blocked shadows or colours outside the space. The clipping button on the photo shows where.</string>
+    <string name="tool_export_proof_wide">This screen may not show every colour in %1$s. The file keeps them; the preview draws them clipped.</string>
+    <string name="tool_export_proof_sharpen">Output sharpening is applied to the file after this and can clip a little more.</string>
+</resources>

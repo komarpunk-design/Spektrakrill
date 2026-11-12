@@ -1,0 +1,361 @@
+{
+  "version": 3,
+  "_comment": "Built-in looks (six, chosen 2026-11 as the films photographers most often buy, name and emulate; see docs/PRESETS.md) are sparse overlays authored against the nested SpektraParams schema and mapped by BuiltInPresets.applyParams; omitted fields retain their current editor values. Only ENGINE-HONORED fields are set: grain is fully tunable (and per-stock here, since the engine otherwise gives every stock Portra-400 grain); halation uses halationAmount/scatterAmount/boost (halationStrength + halationFirstSigmaUm are baked from each profile's use/antihalation tags and ignored); DIR couplers use amount/inhibition/diffusion (gamma matrices are baked per stock); diffusionFilter geometry and filterFamily are honored. Grain/halation are um-based and so look stronger at full-res/zoom than in the fit preview. Every look authors enlarger y/mFilterShift so browsing between looks never carries one look's print colour into another.",
+  "presets": [
+    {
+      "id": "portra_400",
+      "name": "Portra 400",
+      "group": "Portrait",
+      "description": "Warm, forgiving skin and soft contrast on Portra Endura: the film people mean when they say \"the film look\". Auto-metered, a third of a stop over.",
+      "params": {
+        "filmProfile": "kodak_portra_400",
+        "printProfile": "kodak_portra_endura",
+        "io": {
+          "scanFilm": false,
+          "outputColorSpace": "SRGB"
+        },
+        "camera": {
+          "exposureCompensationEv": 0.3,
+          "autoExposure": true,
+          "autoExposureMethod": "center_weighted"
+        },
+        "filmRender": {
+          "densityCurveGamma": 0.96,
+          "grain": {
+            "active": true,
+            "sublayersActive": true,
+            "blur": 0.7,
+            "agxParticleScale": [
+              0.85,
+              1.05,
+              2.1
+            ],
+            "uniformity": [
+              0.97,
+              0.97,
+              0.99
+            ],
+            "blurDyeCloudsUm": 1.0,
+            "microStructure": [
+              0.2,
+              30
+            ],
+            "nSubLayers": 1
+          },
+          "halation": {
+            "active": true,
+            "halationAmount": 1.0,
+            "scatterAmount": 1.0
+          },
+          "dirCouplers": {
+            "active": true,
+            "amount": 1.0,
+            "inhibitionInterlayer": 1.0
+          }
+        },
+        "scanner": {
+          "unsharpMask": [
+            0.5,
+            0.7
+          ]
+        },
+        "enlarger": {
+          "yFilterShift": 0.0,
+          "mFilterShift": 0.0
+        }
+      }
+    },
+    {
+      "id": "gold_200",
+      "name": "Gold 200",
+      "group": "Everyday",
+      "description": "Kodak's consumer classic: sunny yellows, warm golds and a friendly grain, printed on Ektacolor Edge.",
+      "params": {
+        "filmProfile": "kodak_gold_200",
+        "printProfile": "kodak_ektacolor_edge",
+        "io": {
+          "scanFilm": false,
+          "outputColorSpace": "SRGB"
+        },
+        "camera": {
+          "exposureCompensationEv": 0.3
+        },
+        "enlarger": {
+          "yFilterShift": 2.0,
+          "mFilterShift": 0.0
+        },
+        "filmRender": {
+          "densityCurveGamma": 1.0,
+          "grain": {
+            "active": true,
+            "sublayersActive": true,
+            "blur": 0.68,
+            "agxParticleScale": [
+              0.96,
+              1.2,
+              2.3
+            ],
+            "uniformity": [
+              0.97,
+              0.97,
+              0.98
+            ],
+            "microStructure": [
+              0.22,
+              30
+            ]
+          },
+          "halation": {
+            "active": true,
+            "halationAmount": 1.0,
+            "scatterAmount": 1.0
+          },
+          "dirCouplers": {
+            "active": true,
+            "amount": 1.05,
+            "inhibitionInterlayer": 1.05
+          }
+        },
+        "scanner": {
+          "unsharpMask": [
+            0.6,
+            0.7
+          ]
+        }
+      }
+    },
+    {
+      "id": "ektar_100",
+      "name": "Ektar 100",
+      "group": "Landscape",
+      "description": "The finest-grain colour negative on Supra Endura: saturated skies and foliage with crisp detail, vivid without going garish.",
+      "params": {
+        "filmProfile": "kodak_ektar_100",
+        "printProfile": "kodak_supra_endura",
+        "io": {
+          "scanFilm": false,
+          "outputColorSpace": "SRGB"
+        },
+        "camera": {
+          "exposureCompensationEv": 0.0
+        },
+        "filmRender": {
+          "densityCurveGamma": 1.05,
+          "grain": {
+            "active": true,
+            "sublayersActive": true,
+            "blur": 0.5,
+            "agxParticleScale": [
+              0.6,
+              0.8,
+              1.6
+            ],
+            "uniformity": [
+              0.98,
+              0.98,
+              0.99
+            ],
+            "blurDyeCloudsUm": 0.8
+          },
+          "halation": {
+            "active": true,
+            "halationAmount": 0.7
+          },
+          "dirCouplers": {
+            "active": true,
+            "amount": 1.1,
+            "inhibitionInterlayer": 1.1
+          }
+        },
+        "scanner": {
+          "unsharpMask": [
+            0.7,
+            0.7
+          ]
+        },
+        "enlarger": {
+          "yFilterShift": 0.0,
+          "mFilterShift": 0.0
+        }
+      }
+    },
+    {
+      "id": "cinestill_800t",
+      "name": "CineStill 800T",
+      "group": "Night",
+      "description": "Tungsten cine film without its rem-jet backing: bright lights bloom into red halos, with the cool, lab-corrected colour of a night scan.",
+      "params": {
+        "filmProfile": "cinestill_800t",
+        "printProfile": "kodak_2383",
+        "io": {
+          "scanFilm": false,
+          "outputColorSpace": "SRGB"
+        },
+        "camera": {
+          "exposureCompensationEv": 0.3,
+          "autoExposure": true,
+          "autoExposureMethod": "center_weighted"
+        },
+        "enlarger": {
+          "yFilterShift": -20.0,
+          "mFilterShift": -10.0
+        },
+        "filmRender": {
+          "densityCurveGamma": 1.0,
+          "grain": {
+            "active": true,
+            "sublayersActive": true,
+            "blur": 0.68,
+            "agxParticleScale": [
+              0.95,
+              1.15,
+              2.3
+            ],
+            "uniformity": [
+              0.96,
+              0.96,
+              0.98
+            ],
+            "microStructure": [
+              0.25,
+              30
+            ]
+          },
+          "halation": {
+            "active": true,
+            "halationAmount": 1.0,
+            "scatterAmount": 1.0,
+            "boostEv": 0.6,
+            "boostRange": 0.35,
+            "protectEv": 3.5
+          },
+          "dirCouplers": {
+            "active": true,
+            "amount": 1.0
+          }
+        },
+        "scanner": {
+          "unsharpMask": [
+            0.55,
+            0.7
+          ]
+        }
+      }
+    },
+    {
+      "id": "kodachrome_64",
+      "name": "Kodachrome 64",
+      "group": "Slide",
+      "description": "The legendary K-14 slide film, scanned as a positive: rich reds, deep blues, warm archival colour and punchy contrast.",
+      "params": {
+        "filmProfile": "kodak_kodachrome_64",
+        "printProfile": "kodak_2383",
+        "io": {
+          "scanFilm": true,
+          "outputColorSpace": "SRGB"
+        },
+        "camera": {
+          "exposureCompensationEv": 0.0
+        },
+        "filmRender": {
+          "densityCurveGamma": 1.04,
+          "grain": {
+            "active": true,
+            "sublayersActive": true,
+            "blur": 0.55,
+            "agxParticleScale": [
+              0.7,
+              0.9,
+              1.8
+            ],
+            "uniformity": [
+              0.98,
+              0.98,
+              0.99
+            ],
+            "blurDyeCloudsUm": 0.85
+          },
+          "halation": {
+            "active": true,
+            "halationAmount": 0.6,
+            "scatterAmount": 0.9
+          },
+          "dirCouplers": {
+            "active": true,
+            "amount": 1.05,
+            "inhibitionInterlayer": 1.1
+          }
+        },
+        "scanner": {
+          "unsharpMask": [
+            0.8,
+            0.7
+          ]
+        },
+        "enlarger": {
+          "yFilterShift": 0.0,
+          "mFilterShift": 0.0
+        }
+      }
+    },
+    {
+      "id": "tri_x_400",
+      "name": "Tri-X 400",
+      "group": "Black & white",
+      "description": "The classic black-and-white film on Multigrade paper at grade 3: gritty grain, deep blacks and bright, punchy midtones.",
+      "params": {
+        "filmProfile": "kodak_tri_x_400",
+        "printProfile": "ilford_multigrade_iv_rc",
+        "io": {
+          "scanFilm": false,
+          "outputColorSpace": "SRGB"
+        },
+        "camera": {
+          "exposureCompensationEv": 0.0,
+          "autoExposure": true,
+          "autoExposureMethod": "center_weighted"
+        },
+        "enlarger": {
+          "yFilterShift": 0.0,
+          "mFilterShift": 0.0,
+          "paperGrade": "3"
+        },
+        "filmRender": {
+          "densityCurveGamma": 1.0,
+          "grain": {
+            "active": true,
+            "blur": 0.6,
+            "agxParticleScale": [
+              1.3,
+              1.3,
+              1.3
+            ],
+            "uniformity": [
+              0.96,
+              0.96,
+              0.96
+            ],
+            "microStructure": [
+              0.25,
+              30
+            ]
+          },
+          "halation": {
+            "active": true,
+            "halationAmount": 0.8,
+            "scatterAmount": 1.0
+          },
+          "dirCouplers": {
+            "active": false
+          }
+        },
+        "scanner": {
+          "unsharpMask": [
+            0.7,
+            0.8
+          ]
+        }
+      }
+    }
+  ]
+}

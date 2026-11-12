@@ -1,0 +1,87 @@
+/*
+ * Spektrafilm for Android — lib:libraw build.
+ * Copyright (C) 2026 Spektrafilm Android contributors. GPLv3.
+ * Decoding powered by statically included, dual-offered LibRaw. The selected
+ * distribution route is a fail-closed release decision tracked by ticket #166.
+ *
+ * Android library wrapping the native RAW/DNG decoder (libsfraw.so, built via
+ * CMake/NDK with LibRaw compiled in statically) plus the Kotlin RawDecoder facade.
+ *
+ * This mirrors engine:spektra-core's plain-AGP setup (com.android.library +
+ * built-in Kotlin + externalNativeBuild CMake + abiFilters) so the module
+ * configures and builds standalone the moment the project lead adds it to
+ * settings.gradle.kts — no host-specific convention plugins required.
+ */
+plugins {
+    alias(libs.plugins.android.library)
+}
+
+android {
+    namespace = "com.spectrafilm.libraw"
+    compileSdk = 36
+
+    // NDK r28c (28.2.13676358): 16 KB page-size support is the default (r27 introduced it), so
+    // native LOAD segments are 16 KB-aligned and
+    // ships a 16 KB-aligned libc++_shared.so — required for Android 15's 16 KB page
+    // devices. The CMake link flag (CMakeLists.txt) pins the alignment explicitly too.
+    ndkVersion = "28.2.13676358"
+
+    defaultConfig {
+        minSdk = 24
+        testInstrumentationRunner =
+            "com.spectrafilm.libraw.RawDecoderBoundaryInstrumentation"
+        externalNativeBuild {
+            cmake {
+                cppFlags += "-std=c++17"
+                arguments += "-DANDROID_STL=c++_shared"
+                // Make the shipping policy explicit so a stale external-native
+                // CMake cache cannot retain an earlier experimental OpenMP opt-in.
+                arguments += "-DSFRAW_ENABLE_OPENMP=OFF"
+                // Keep the audited LibRaw floating-point deflate parser compiled
+                // for corpus/security coverage. RawDecoder still routes float DNG
+                // before dcraw's quantizing bitmap stage; it is not native parity.
+                arguments += "-DSFRAW_WITH_ZLIB=ON"
+            }
+        }
+        ndk {
+            abiFilters += providers.gradleProperty("labAbis").getOrElse("arm64-v8a").split(",")
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+
+dependencies {
+    // The decoded result is a self-contained float32 ByteBuffer + width/height/
+    // colorSpace (see RawDecoder.LinearResult); the engine's LinearImage is
+    // constructed by the caller (:app), so this module needs no
+    // compile dependency on engine:spektra-core. The project lead can add
+    //   implementation(projects.engine.spektraCore)
+    // if a future change makes lib:libraw construct LinearImage directly.
+
+    // RawCoilDecoder.kt (the secondary "full-res RAW in the gallery" integration
+    // point) is written against Coil 3's Decoder API. It is declared compileOnly so
+    // this module compiles standalone without bundling Coil. No module in this repo
+    // consumes it today (:app decodes through RawDecoder directly). Coil is not in the version
+    // catalog, so the coordinate is pinned literally here.
+    compileOnly("io.coil-kt.coil3:coil-core:3.0.4")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+    testImplementation(libs.junit)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+}

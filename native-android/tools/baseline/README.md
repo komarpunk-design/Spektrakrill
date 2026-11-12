@@ -1,0 +1,116 @@
+# Export benchmark harness (#177)
+
+## Measuring the encoder vs measuring the cache
+
+Two different questions, and using the wrong capture for either produces a number
+that looks fine and means nothing.
+
+**The SLO** is a claim about the cache-hit path (#126/#179), so it needs the cache
+ON and enough runs to gate: `bash tools/baseline/run_bench.sh <apk> 11 BASE`. The
+first run of each cell/format renders and the rest are served, which is the point.
+
+**An encoder measurement** needs every sample to encode:
+
+```bash
+SPK_BENCH_BYPASS_CACHE=1 bash tools/baseline/run_bench.sh <apk> 5 "BASE,HEAVY"
+```
+
+**A same-process scheduler A/B (#182)** flips the engine's persistent render
+worker pool per capture, so alternating captures share one thermal envelope:
+
+```bash
+SPK_BENCH_BYPASS_CACHE=1 SPK_BENCH_PARALLEL_POOL=0 SPK_BENCH_OUT=build/ab/off bash tools/baseline/run_bench.sh <apk> 2 BASE
+SPK_BENCH_BYPASS_CACHE=1 SPK_BENCH_PARALLEL_POOL=1 SPK_BENCH_OUT=build/ab/on  bash tools/baseline/run_bench.sh <apk> 2 BASE
+```
+
+`SPK_BENCH_PARALLEL_POOL` is -1 (engine default, which is the pool), 0 (a
+std::thread fork-join per map) or 1 (the pool); `SPK_BENCH_CHUNKS_PER_WORKER`
+(default 0 = the engine default of 4) splits each pooled map finer. The instrumentation stream records the mode and the worker count
+(`TICKET182_PARALLEL_POOL: ...`). Digests must be identical across modes: the pool
+changes only which thread runs a chunk.
+
+**An unpinned stress source (#204)**: `SPK_BENCH_SOURCE=<image> SPK_BENCH_CORPUS=<corpus.json>`
+runs any image (a 50 MP HEIC from the camera roll, say) through the same export path.
+The corpus you pass must carry that file's own `sha256`/`bytes`/`width`/`height` and
+`STRESS*` cell ids, so every sample, file name and report line says what it is; the
+report is rendered against that corpus and never gated, and its digests are not identity
+evidence. Without the override the pinned corpus and its regenerated source are used.
+Known limit: the digest step buffers the whole container on the ART heap, so 16-bit
+formats above ~25 MP will OOM the test process (measure JPEG_Q95 there).
+
+**The Fast GPU export route (#148)**: `SPK_BENCH_GPU_EXPORT=1` sets the `gpuExport`
+bit for every measured export (the Settings toggle is gone since 294d3dc: the GPU route is the
+app's default, and this variable only selects the route for the bench) (stream line
+`TICKET148_GPU_EXPORT: enabled=...`, `gpu_export` in the capture protocol and per
+sample). Its digests are tolerance-bounded Fast GPU output: they must be one per
+format across captures (same-device determinism) and they are NOT Strict Exact
+identity evidence. The default (0) is the exact CPU route.
+
+Each sample's `memory.art` block (#465) holds the export's ART heap use: `start_used_kb`
+(after a forced GC, so the previous sample's digest garbage is gone), `peak_used_kb` (sampled
+every 20 ms until the encode ends, before the harness's own digest step) and `gc_delta` (GC
+count and time, blocking GCs included). `environment` records `large_heap`, `art_max_kb` and
+`memory_class_mb`, so a manifest A/B can be read straight from the two captures.
+
+Each sample's `memory` block also carries `minor_faults_decode` /
+`minor_faults_total` (first-touch counting, #178), the `engine_budget` snapshot
+(`spk.memory_budget.v1`: limit, total/domain/stage high-water marks since the
+budget was configured -- process peaks, not per-sample deltas, #176), and
+`decode_breakdown_ms` (`bitmap_decode`, `get_pixels`, `convert`, #198) sits next
+to `phases_ms`.
+
+Use at least `gate_runs` runs. Below that the capture is a smoke run, and the
+harness applies the protocol idle and the per-sample thermal wait **only when it is
+gating** -- so a smoke capture has no cool-down and drifts as the device heats.
+Five back-to-back smoke captures measured ~40% slower from the third one onward,
+across formats that share no code. The report prints a warning on both a bypassed
+capture and a smoke one; heed them.
+
+## Export benchmark and digest gate (#177)
+
+Automated counterpart to the wizard above: one command records the whole evidence bundle
+for the pinned corpus against the *exact* installed release candidate, and the host
+reporter decides everything statistical.
+
+Pass the APK **that was installed**, not the one Gradle emitted: an unsigned
+`app-release-unsigned.apk` is zipaligned and signed before `adb install`, so its bytes —
+and its SHA-256 — differ from the installed artifact, and the harness fails closed with
+`stale APK: installed <a> != pinned <b>`. That check is doing its job; hand it the signed
+file.
+
+```bash
+# device attached, release candidate already installed (app + test APK)
+bash tools/baseline/run_bench.sh <the signed apk you installed> 11
+# smoke (2 runs, reports but is refused as a baseline)
+bash tools/baseline/run_bench.sh <app.apk> 2 BASE
+# unplugged gate over Wi-Fi adb: run detached on-device and poll, so a dropped
+# stream cannot kill an hours-long capture (doze is disabled for the run)
+SPK_BENCH_DETACH=1 bash tools/baseline/run_bench.sh <app.apk> 11
+# #119 preview latency (640 px slider settle, print vs film-scan route); run AFTER
+# run_bench.sh — the bench phase clears the on-device evidence directory
+bash tools/baseline/run_preview.sh <app.apk> 15
+```
+
+- **Corpus** — `tools/baseline/corpus.json` pins the source bytes, dimensions, preset,
+  effects, formats and the container-identity policy per format; the source image itself is
+  regenerated byte-for-byte by `tools/baseline/corpus/make_source.py` (`--check` verifies the
+  pin), so no multi-megabyte blob lives in git.
+- **Capture** — `ticket177_phase=bench` drives the shipping export path (decode → engine →
+  grade → encoder → MediaStore publication) and writes `spk.bench_capture.v1`: three digests
+  per run (engine samples, decoded samples + normalized metadata, complete container), phase
+  times, peak PSS, thermal/battery/cpuset, device and APK fingerprints, and the cold/warm
+  state. It refuses to run against an APK whose SHA-256 is not the one passed in, and against
+  a debuggable build.
+- **Report** — `tools/baseline/bench_report.py` computes p50/p95 and a 95% confidence
+  interval, checks C0/C3 (and C4 where the corpus gates it), reconciles phases against the
+  total, and under `--gate` also enforces the Tier A device, the unplugged/thermal/battery
+  protocol and the SLO. A capture marked `smoke` is **refused** as a baseline.
+- **CI** — the `python-lint` job runs the corpus check, the reporter tests and a
+  device-free gate over the committed fixture capture. The device leg is explicit: without a
+  device `run_bench.sh` exits 2 rather than reporting nothing.
+
+The contract these gates enforce is
+[docs/BIT_IDENTICAL_EXPORT_ROADMAP.md](../../docs/BIT_IDENTICAL_EXPORT_ROADMAP.md#the-approved-export-contract-issue-126).
+Canonical owner-device numbers stay with
+[#119](https://github.com/thetechgeekko/Spektrafilm-android/issues/119); this harness only
+produces the evidence they are read from.

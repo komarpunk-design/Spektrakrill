@@ -35,3 +35,11 @@ android-toolchain/
 
 # Also ignore a local dependency symlink
 node_modules
+
+# Public upstream debug key; release signing remains external.
+!native-android/debug.keystore
+native-android/local.properties
+native-android/keystore.properties
+
+__pycache__/
+*.pyc

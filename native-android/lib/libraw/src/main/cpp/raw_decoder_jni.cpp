@@ -1,0 +1,775 @@
+/*
+ * Spektrafilm for Android -- hardened lib:libraw JNI bridge.
+ * Copyright (C) 2026 Spektrafilm Android contributors. GPLv3.
+ * Uses statically included, dual-offered LibRaw; distribution is governed by the
+ * bundled decision record and fail-closed release audit.
+ */
+#include <jni.h>
+
+#include <algorithm>
+#include <chrono>
+#include <array>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <exception>
+#include <cmath>
+#include <limits>
+#include <memory>
+#include <new>
+
+#include "native_allocation_registry.h"
+#include "raw_decoder.h"
+#include "raw_decoder_jni_safety.h"
+#include "raw_preview.h"
+#include "raw_result_publication.h"
+
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
+
+#define JNI(ret, name) extern "C" JNIEXPORT ret JNICALL \
+    Java_com_spectrafilm_libraw_RawDecoder_##name
+
+namespace {
+
+constexpr jlong kMaxEncodedInputBytes = 64LL * 1024LL * 1024LL;
+constexpr jint kNativeReleased = 0;
+constexpr jint kNativeUnknownToken = 1;
+constexpr jint kNativeMismatch = 2;
+
+using CancellationLease =
+    std::shared_ptr<sfraw::NativeCancellationRegistry::Flag>;
+
+class ByteArrayElements final {
+ public:
+    ByteArrayElements(JNIEnv* env, jbyteArray array)
+        : env_(env), array_(array), data_(env->GetByteArrayElements(array, nullptr)) {}
+
+    ~ByteArrayElements() {
+        if (data_ != nullptr) env_->ReleaseByteArrayElements(array_, data_, JNI_ABORT);
+    }
+
+    ByteArrayElements(const ByteArrayElements&) = delete;
+    ByteArrayElements& operator=(const ByteArrayElements&) = delete;
+
+    jbyte* get() const { return data_; }
+
+ private:
+    JNIEnv* env_;
+    jbyteArray array_;
+    jbyte* data_;
+};
+
+void throwRawDecodeException(JNIEnv* env, const char* message, jint status,
+                             jint librawCode) noexcept {
+    if (env->ExceptionCheck()) env->ExceptionClear();
+    const char* stableMessage = message != nullptr ? message : "RAW decode failed";
+    jclass exceptionClass =
+        env->FindClass("com/spectrafilm/libraw/RawDecodeException");
+    if (exceptionClass != nullptr) {
+        jmethodID constructor = env->GetMethodID(
+            exceptionClass, "<init>", "(Ljava/lang/String;II)V");
+        if (constructor != nullptr) {
+            jstring javaMessage = env->NewStringUTF(stableMessage);
+            if (javaMessage != nullptr) {
+                jobject exception = env->NewObject(
+                    exceptionClass, constructor, javaMessage, status, librawCode);
+                if (exception != nullptr) {
+                    env->Throw(static_cast<jthrowable>(exception));
+                    return;
+                }
+            }
+        }
+    }
+    if (env->ExceptionCheck()) env->ExceptionClear();
+    jclass fallback = env->FindClass("java/lang/RuntimeException");
+    if (fallback != nullptr) env->ThrowNew(fallback, stableMessage);
+}
+
+void throwDecodeResult(JNIEnv* env,
+                       const spectrafilm::DecodeResult& result) noexcept {
+    throwRawDecodeException(
+        env,
+        result.error.empty() ? "RAW decode failed" : result.error.c_str(),
+        static_cast<jint>(result.status),
+        static_cast<jint>(result.librawCode));
+}
+
+void throwCancelled(JNIEnv* env,
+                    const char* message = "RAW decode cancelled") noexcept {
+    throwRawDecodeException(env, message, spectrafilm::SFRAW_ERR_CANCELLED, 0);
+}
+
+void throwCaught(JNIEnv* env, bool noMemory) noexcept {
+    throwRawDecodeException(
+        env,
+        noMemory ? "RAW JNI bridge out of memory" : "RAW JNI bridge failure",
+        noMemory ? spectrafilm::SFRAW_ERR_NO_MEMORY
+                 : spectrafilm::SFRAW_ERR_UNKNOWN,
+        0);
+}
+
+CancellationLease acquireCancellation(JNIEnv* env, jlong token) {
+    if (token == 0) return nullptr;
+    if (token < 0) {
+        throwCancelled(env, "invalid RAW cancellation token");
+        return nullptr;
+    }
+    CancellationLease lease = sfraw::nativeCancellationRegistry().acquire(
+        static_cast<std::uint64_t>(token));
+    if (lease == nullptr) {
+        throwCancelled(env, "RAW cancellation token is closed");
+    }
+    return lease;
+}
+
+bool isCancelled(const CancellationLease& lease) {
+    return lease != nullptr && lease->load(std::memory_order_acquire);
+}
+
+spectrafilm::DecodeOptions readOptions(
+    jint wbMode, jdouble temperatureK, jdouble tint, jboolean halfSize,
+    jint maxLongEdge, jboolean hotPixels, jfloat chromaNoise,
+    const CancellationLease& cancellation) {
+    spectrafilm::DecodeOptions options;
+    switch (wbMode) {
+        case 0: options.whiteBalance = spectrafilm::WhiteBalanceMode::AsShot; break;
+        case 1: options.whiteBalance = spectrafilm::WhiteBalanceMode::Daylight; break;
+        case 2: options.whiteBalance = spectrafilm::WhiteBalanceMode::Tungsten; break;
+        case 3: options.whiteBalance = spectrafilm::WhiteBalanceMode::Custom; break;
+        default: options.whiteBalance = spectrafilm::WhiteBalanceMode::AsShot; break;
+    }
+    options.temperatureK = temperatureK;
+    options.tint = tint;
+    options.halfSize = halfSize != JNI_FALSE;
+    options.maxLongEdge = maxLongEdge > 0 ? maxLongEdge : 0;
+    options.hotPixelCorrection = hotPixels != JNI_FALSE;
+    // NaN and negatives are off; above 100 is clamped by the filter itself.
+    options.chromaNoiseReduction =
+        std::isfinite(chromaNoise) && chromaNoise > 0.0f ? chromaNoise : 0.0f;
+    options.cancelFlag = cancellation.get();
+    return options;
+}
+
+bool checkedOutputBytes(const spectrafilm::DecodeResult& result,
+                        std::size_t* byteCount) {
+    if (result.width <= 0 || result.height <= 0) return false;
+    const std::size_t width = static_cast<std::size_t>(result.width);
+    const std::size_t height = static_cast<std::size_t>(result.height);
+    if (height > std::numeric_limits<std::size_t>::max() / width) return false;
+    const std::size_t pixels = width * height;
+    if (pixels > std::numeric_limits<std::size_t>::max() / 3U) return false;
+    const std::size_t floats = pixels * 3U;
+    if (result.rgb.size() != floats) return false;
+    if (floats > static_cast<std::size_t>(INT32_MAX) / sizeof(float)) return false;
+    *byteCount = floats * sizeof(float);
+    return *byteCount != 0U;
+}
+
+enum class JavaPublicationFailure {
+    None,
+    DirectBuffer,
+    ResultAbi,
+    ColorSpace,
+    Descriptor,
+    DescriptorValidation,
+    ResultConstructionNoMemory,
+};
+
+struct JavaPublicationContext {
+    JNIEnv* env = nullptr;
+    const spectrafilm::DecodeResult* decoded = nullptr;
+    jobject javaResult = nullptr;
+    JavaPublicationFailure failure = JavaPublicationFailure::None;
+    std::chrono::steady_clock::time_point phaseAt;
+    double handoffAdoptMs = 0.0;
+    double wrapMs = 0.0;
+    double constructMs = 0.0;
+
+    double markPhase() {
+        const auto now = std::chrono::steady_clock::now();
+        const double elapsed = std::chrono::duration<double, std::milli>(
+            now - phaseAt).count();
+        phaseAt = now;
+        return elapsed;
+    }
+};
+
+bool cancellationLeaseRequested(void* opaque) noexcept {
+    const auto* cancellation = static_cast<const CancellationLease*>(opaque);
+    return cancellation != nullptr && isCancelled(*cancellation);
+}
+
+enum class DescriptorArrayResult {
+    Success,
+    Invalid,
+    AllocationFailure,
+};
+
+DescriptorArrayResult createDescriptorArrays(
+        JNIEnv* env, const spectrafilm::RawPrecisionDescriptor& source,
+        jintArray* javaWords, jfloatArray* javaReals) {
+    constexpr std::size_t kWordCount =
+        spectrafilm::RawPrecisionDescriptor::kJniWordCount;
+    constexpr std::size_t kRealCount =
+        spectrafilm::RawPrecisionDescriptor::kJniRealCount;
+    constexpr std::size_t kBlackPatternAt = 24U;
+    constexpr std::size_t kWhiteLevelsAt = 88U;
+    constexpr std::size_t kCfaPatternCountAt = 92U;
+    constexpr std::size_t kCfaPatternAt = 93U;
+    constexpr std::size_t kBaselinePresentAt = 129U;
+    constexpr std::size_t kLinearResponsePresentAt = 130U;
+    constexpr std::size_t kCompressionAt = 131U;
+    constexpr std::size_t kRequestedMaxLongEdgeAt = 132U;
+    constexpr std::size_t kOutputSubsampleStepAt = 133U;
+    constexpr std::size_t kCfaPatternRowsAt = 134U;
+    constexpr std::size_t kCfaPatternColumnsAt = 135U;
+    static_assert(spectrafilm::RawPrecisionDescriptor::kMaxBlackPatternEntries == 64U);
+    static_assert(spectrafilm::RawPrecisionDescriptor::kMaxCfaPatternEntries == 36U);
+    static_assert(kBlackPatternAt +
+                      spectrafilm::RawPrecisionDescriptor::kMaxBlackPatternEntries ==
+                  kWhiteLevelsAt);
+    static_assert(kCfaPatternAt +
+                      spectrafilm::RawPrecisionDescriptor::kMaxCfaPatternEntries ==
+                  kBaselinePresentAt);
+    static_assert(kCfaPatternColumnsAt + 1U == kWordCount);
+    const bool blackShapeValid =
+        source.blackPatternRows >= 0 && source.blackPatternRows <= 8 &&
+        source.blackPatternColumns >= 0 && source.blackPatternColumns <= 8 &&
+        ((source.blackPatternCount == 0U && source.blackPatternRows == 0 &&
+          source.blackPatternColumns == 0) ||
+         (source.blackPatternRows > 0 && source.blackPatternColumns > 0 &&
+          static_cast<std::size_t>(source.blackPatternRows) *
+                  static_cast<std::size_t>(source.blackPatternColumns) ==
+              source.blackPatternCount));
+    const bool cfaShapeValid =
+        source.cfaPatternRows >= 0 && source.cfaPatternRows <= 6 &&
+        source.cfaPatternColumns >= 0 && source.cfaPatternColumns <= 6 &&
+        ((source.cfaPatternCount == 0U && source.cfaPatternRows == 0 &&
+          source.cfaPatternColumns == 0) ||
+         (source.cfaPatternRows > 0 && source.cfaPatternColumns > 0 &&
+          static_cast<std::size_t>(source.cfaPatternRows) *
+                  static_cast<std::size_t>(source.cfaPatternColumns) ==
+              source.cfaPatternCount));
+    if (!blackShapeValid || !cfaShapeValid ||
+        source.blackPatternCount >
+            spectrafilm::RawPrecisionDescriptor::kMaxBlackPatternEntries ||
+        source.cfaPatternCount >
+            spectrafilm::RawPrecisionDescriptor::kMaxCfaPatternEntries ||
+        source.requestedMaxLongEdge < 0 || source.outputSubsampleStep < 1) {
+        return DescriptorArrayResult::Invalid;
+    }
+
+    std::array<jint, kWordCount> words{};
+    words[0] = source.version;
+    words[1] = static_cast<jint>(source.sampleFormat);
+    words[2] = source.declaredBitsPerSample;
+    words[3] = source.effectiveBitsPerSample;
+    words[4] = source.processedBitsPerSample;
+    words[5] = static_cast<jint>(source.byteOrder);
+    words[6] = static_cast<jint>(source.packing);
+    words[7] = static_cast<jint>(source.pixelLayout);
+    words[8] = source.colorChannels;
+    static_assert(sizeof(words[9]) == sizeof(source.cfaFilterCode));
+    std::memcpy(&words[9], &source.cfaFilterCode, sizeof(words[9]));
+    words[10] = static_cast<jint>(source.decoderRoute);
+    words[11] = static_cast<jint>(source.postprocessRoute);
+    words[12] = static_cast<jint>(source.linearSpace);
+    words[13] = static_cast<jint>(source.whiteLevelProvenance);
+    words[14] = static_cast<jint>(source.blackLevelProvenance);
+    words[15] = source.halfSizeRequested ? 1 : 0;
+    words[16] = static_cast<jint>(source.blackLevelCommon);
+    for (std::size_t index = 0U; index < 4U; ++index) {
+        words[17U + index] =
+            static_cast<jint>(source.blackLevelChannels[index]);
+    }
+    words[21] = source.blackPatternRows;
+    words[22] = source.blackPatternColumns;
+    words[23] = static_cast<jint>(source.blackPatternCount);
+    for (std::size_t index = 0U; index < source.blackPatternCount; ++index) {
+        words[kBlackPatternAt + index] =
+            static_cast<jint>(source.blackPattern[index]);
+    }
+    for (std::size_t index = 0U; index < 4U; ++index) {
+        words[kWhiteLevelsAt + index] =
+            static_cast<jint>(source.whiteLevels[index]);
+    }
+    words[kCfaPatternCountAt] = static_cast<jint>(source.cfaPatternCount);
+    for (std::size_t index = 0U; index < source.cfaPatternCount; ++index) {
+        words[kCfaPatternAt + index] = source.cfaPattern[index];
+    }
+    words[kBaselinePresentAt] = source.baselineExposurePresent ? 1 : 0;
+    words[kLinearResponsePresentAt] =
+        source.linearResponseLimitPresent ? 1 : 0;
+    words[kCompressionAt] = source.containerCompression;
+    words[kRequestedMaxLongEdgeAt] = source.requestedMaxLongEdge;
+    words[kOutputSubsampleStepAt] = source.outputSubsampleStep;
+    words[kCfaPatternRowsAt] = source.cfaPatternRows;
+    words[kCfaPatternColumnsAt] = source.cfaPatternColumns;
+    const std::array<jfloat, kRealCount> reals{{
+        source.baselineExposure,
+        source.linearResponseLimit,
+    }};
+
+    jintArray wordArray = env->NewIntArray(static_cast<jsize>(words.size()));
+    if (wordArray == nullptr) return DescriptorArrayResult::AllocationFailure;
+    env->SetIntArrayRegion(wordArray, 0, static_cast<jsize>(words.size()),
+                           words.data());
+    if (env->ExceptionCheck()) {
+        env->DeleteLocalRef(wordArray);
+        return DescriptorArrayResult::AllocationFailure;
+    }
+    jfloatArray realArray = env->NewFloatArray(static_cast<jsize>(reals.size()));
+    if (realArray == nullptr) {
+        env->DeleteLocalRef(wordArray);
+        return DescriptorArrayResult::AllocationFailure;
+    }
+    env->SetFloatArrayRegion(realArray, 0, static_cast<jsize>(reals.size()),
+                             reals.data());
+    if (env->ExceptionCheck()) {
+        env->DeleteLocalRef(realArray);
+        env->DeleteLocalRef(wordArray);
+        return DescriptorArrayResult::AllocationFailure;
+    }
+    *javaWords = wordArray;
+    *javaReals = realArray;
+    return DescriptorArrayResult::Success;
+}
+
+bool consumePendingOutOfMemory(JNIEnv* env) {
+    if (!env->ExceptionCheck()) return false;
+    jthrowable pending = env->ExceptionOccurred();
+    env->ExceptionClear();
+    jclass oomClass = env->FindClass("java/lang/OutOfMemoryError");
+    if (oomClass == nullptr) {
+        if (env->ExceptionCheck()) env->ExceptionClear();
+        if (pending != nullptr) env->DeleteLocalRef(pending);
+        return true;
+    }
+    const bool isOom = pending != nullptr && env->IsInstanceOf(pending, oomClass);
+    env->DeleteLocalRef(oomClass);
+    if (pending != nullptr) env->DeleteLocalRef(pending);
+    return isOom;
+}
+
+sfraw::jni::PublicationDecision attemptJavaPublication(
+        const sfraw::jni::NativePublication& publication, void* opaque) {
+    auto& context = *static_cast<JavaPublicationContext*>(opaque);
+    context.handoffAdoptMs = context.markPhase();
+
+    jobject owned = context.env->NewDirectByteBuffer(
+        publication.base, static_cast<jlong>(publication.capacity));
+    if (owned == nullptr) {
+        context.failure = JavaPublicationFailure::DirectBuffer;
+        return sfraw::jni::PublicationDecision::Failed;
+    }
+    context.wrapMs = context.markPhase();
+
+    jclass resultClass = context.env->FindClass(
+        "com/spectrafilm/libraw/RawDecoder$NativeResult");
+    jmethodID constructor = resultClass != nullptr
+        ? context.env->GetMethodID(
+              resultClass, "<init>",
+              "(Ljava/nio/ByteBuffer;IILjava/lang/String;J[I[F)V")
+        : nullptr;
+    if (constructor == nullptr) {
+        context.failure = JavaPublicationFailure::ResultAbi;
+        return sfraw::jni::PublicationDecision::Failed;
+    }
+
+    jstring colorSpace =
+        context.env->NewStringUTF(context.decoded->colorSpace.c_str());
+    if (colorSpace == nullptr) {
+        context.failure = JavaPublicationFailure::ColorSpace;
+        return sfraw::jni::PublicationDecision::Failed;
+    }
+    jintArray descriptorWords = nullptr;
+    jfloatArray descriptorReals = nullptr;
+    const DescriptorArrayResult descriptorResult = createDescriptorArrays(
+        context.env, context.decoded->descriptor, &descriptorWords,
+        &descriptorReals);
+    if (descriptorResult != DescriptorArrayResult::Success) {
+        context.failure = descriptorResult == DescriptorArrayResult::Invalid
+            ? JavaPublicationFailure::DescriptorValidation
+            : JavaPublicationFailure::Descriptor;
+        return sfraw::jni::PublicationDecision::Failed;
+    }
+    context.javaResult = context.env->NewObject(
+        resultClass, constructor, owned,
+        static_cast<jint>(context.decoded->width),
+        static_cast<jint>(context.decoded->height), colorSpace,
+        static_cast<jlong>(publication.token), descriptorWords, descriptorReals);
+    context.env->DeleteLocalRef(descriptorReals);
+    context.env->DeleteLocalRef(descriptorWords);
+    if (context.javaResult == nullptr) {
+        context.failure = consumePendingOutOfMemory(context.env)
+            ? JavaPublicationFailure::ResultConstructionNoMemory
+            : JavaPublicationFailure::DescriptorValidation;
+        return sfraw::jni::PublicationDecision::Failed;
+    }
+    context.constructMs = context.markPhase();
+    return sfraw::jni::PublicationDecision::Published;
+}
+
+void abortJavaPublication(void* opaque) noexcept {
+    auto& context = *static_cast<JavaPublicationContext*>(opaque);
+    if (context.javaResult != nullptr) {
+        context.env->DeleteLocalRef(context.javaResult);
+        context.javaResult = nullptr;
+    }
+}
+
+jobject toJavaResult(JNIEnv* env, spectrafilm::DecodeResult& result,
+                     CancellationLease& cancellation) {
+    const auto jniStartedAt = std::chrono::steady_clock::now();
+    if (!result.ok) {
+        throwDecodeResult(env, result);
+        return nullptr;
+    }
+
+    std::size_t byteCount = 0U;
+    if (!checkedOutputBytes(result, &byteCount)) {
+        throwRawDecodeException(env, "invalid RAW output geometry",
+                                spectrafilm::SFRAW_ERR_FORMAT, 0);
+        return nullptr;
+    }
+
+    // DecodeResult already owns malloc-compatible storage. Transfer that exact
+    // allocation into the registry: no second full-frame allocation, zero-fill,
+    // or memcpy is needed before NewDirectByteBuffer publishes it to Kotlin.
+    // The production publication seam owns every release/adopt/failure/cancel
+    // transition so no JNI branch can strand or double-free the allocation.
+    JavaPublicationContext publicationContext;
+    publicationContext.env = env;
+    publicationContext.decoded = &result;
+    publicationContext.phaseAt = jniStartedAt;
+    const auto publication = sfraw::jni::publishDecodedAllocation(
+        result.rgb, byteCount, sfraw::nativeAllocationRegistry(),
+        cancellationLeaseRequested, &cancellation,
+        attemptJavaPublication, &publicationContext,
+        abortJavaPublication);
+
+    if (publication.decision == sfraw::jni::PublicationDecision::Cancelled) {
+        throwCancelled(env);
+        return nullptr;
+    }
+    if (publication.decision != sfraw::jni::PublicationDecision::Published) {
+        switch (publicationContext.failure) {
+            case JavaPublicationFailure::DirectBuffer:
+                throwRawDecodeException(env, "failed to wrap native RAW output",
+                                        spectrafilm::SFRAW_ERR_NO_MEMORY, 0);
+                break;
+            case JavaPublicationFailure::ResultAbi:
+                throwRawDecodeException(env, "RAW NativeResult ABI mismatch",
+                                        spectrafilm::SFRAW_ERR_FORMAT, 0);
+                break;
+            case JavaPublicationFailure::ColorSpace:
+                throwRawDecodeException(
+                    env, "failed to create RAW color-space metadata",
+                    spectrafilm::SFRAW_ERR_NO_MEMORY, 0);
+                break;
+            case JavaPublicationFailure::Descriptor:
+                throwRawDecodeException(
+                    env, "failed to publish bounded RAW precision descriptor",
+                    spectrafilm::SFRAW_ERR_NO_MEMORY, 0);
+                break;
+            case JavaPublicationFailure::DescriptorValidation:
+                throwRawDecodeException(
+                    env, "invalid native RAW precision descriptor",
+                    spectrafilm::SFRAW_ERR_PRECISION_METADATA, 0);
+                break;
+            case JavaPublicationFailure::ResultConstructionNoMemory:
+                // Replace VM-specific construction failures (most commonly OOM)
+                // with the stable typed contract used by every JNI failure path.
+                throwRawDecodeException(env, "failed to construct RAW result",
+                                        spectrafilm::SFRAW_ERR_NO_MEMORY, 0);
+                break;
+            case JavaPublicationFailure::None:
+                throwRawDecodeException(env, "missing native RAW output",
+                                        spectrafilm::SFRAW_ERR_FORMAT, 0);
+                break;
+        }
+        return nullptr;
+    }
+#ifdef __ANDROID__
+    __android_log_print(
+        ANDROID_LOG_INFO, "sfraw",
+        "jni result ms: handoff_adopt=%.3f wrap=%.3f "
+        "construct=%.3f total=%.3f bytes=%zu",
+        publicationContext.handoffAdoptMs, publicationContext.wrapMs,
+        publicationContext.constructMs,
+        std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - jniStartedAt).count(),
+        byteCount);
+#endif
+    return publicationContext.javaResult;
+}
+
+bool validateDirectInput(JNIEnv* env, jobject buffer, jint length,
+                         void** address) {
+    if (buffer == nullptr) {
+        throwRawDecodeException(env, "null RAW ByteBuffer",
+                                spectrafilm::SFRAW_ERR_INPUT, 0);
+        return false;
+    }
+    const jlong capacity = env->GetDirectBufferCapacity(buffer);
+    void* directAddress = env->GetDirectBufferAddress(buffer);
+    if (capacity < 0 || directAddress == nullptr) {
+        throwRawDecodeException(env, "expected a direct RAW ByteBuffer",
+                                spectrafilm::SFRAW_ERR_INPUT, 0);
+        return false;
+    }
+    jclass bufferClass = env->GetObjectClass(buffer);
+    if (bufferClass == nullptr) {
+        throwRawDecodeException(env, "cannot inspect RAW ByteBuffer range",
+                                spectrafilm::SFRAW_ERR_INPUT, 0);
+        return false;
+    }
+    jmethodID positionMethod = env->GetMethodID(bufferClass, "position", "()I");
+    jmethodID limitMethod = env->GetMethodID(bufferClass, "limit", "()I");
+    env->DeleteLocalRef(bufferClass);
+    if (positionMethod == nullptr || limitMethod == nullptr) {
+        throwRawDecodeException(env, "cannot inspect RAW ByteBuffer range",
+                                spectrafilm::SFRAW_ERR_INPUT, 0);
+        return false;
+    }
+    const jint position = env->CallIntMethod(buffer, positionMethod);
+    if (env->ExceptionCheck()) {
+        throwRawDecodeException(env, "cannot inspect RAW ByteBuffer position",
+                                spectrafilm::SFRAW_ERR_INPUT, 0);
+        return false;
+    }
+    const jint limit = env->CallIntMethod(buffer, limitMethod);
+    if (env->ExceptionCheck()) {
+        throwRawDecodeException(env, "cannot inspect RAW ByteBuffer limit",
+                                spectrafilm::SFRAW_ERR_INPUT, 0);
+        return false;
+    }
+    std::uintptr_t resolved = 0U;
+    if (!sfraw::jni::checkedEncodedInputWindow(
+            capacity, position, limit, length, kMaxEncodedInputBytes,
+            reinterpret_cast<std::uintptr_t>(directAddress), &resolved)) {
+        throwRawDecodeException(env, "invalid RAW ByteBuffer logical range",
+                                spectrafilm::SFRAW_ERR_INPUT, 0);
+        return false;
+    }
+    *address = reinterpret_cast<void*>(resolved);
+    return true;
+}
+
+}  // namespace
+
+JNI(jint, nativeRelease)(JNIEnv* env, jobject, jlong token, jobject buffer) {
+    try {
+        if (token <= 0 || buffer == nullptr) return kNativeMismatch;
+        void* address = env->GetDirectBufferAddress(buffer);
+        const jlong capacity = env->GetDirectBufferCapacity(buffer);
+        if (address == nullptr || capacity <= 0 ||
+            static_cast<std::uint64_t>(capacity) >
+                std::numeric_limits<std::size_t>::max() ||
+            (reinterpret_cast<std::uintptr_t>(address) % alignof(float)) != 0U ||
+            (capacity % static_cast<jlong>(sizeof(float))) != 0) {
+            return kNativeMismatch;
+        }
+        switch (sfraw::nativeAllocationRegistry().release(
+            static_cast<std::uint64_t>(token), address,
+            static_cast<std::size_t>(capacity))) {
+            case sfraw::ReleaseResult::Released: return kNativeReleased;
+            case sfraw::ReleaseResult::UnknownToken: return kNativeUnknownToken;
+            case sfraw::ReleaseResult::Mismatch: return kNativeMismatch;
+        }
+    } catch (...) {
+        return kNativeMismatch;
+    }
+    return kNativeMismatch;
+}
+
+JNI(jlong, nativeCreateCancellation)(JNIEnv* env, jobject) {
+    try {
+        return static_cast<jlong>(sfraw::nativeCancellationRegistry().create());
+    } catch (const std::bad_alloc&) {
+        throwCaught(env, true);
+    } catch (const std::exception&) {
+        throwCaught(env, false);
+    } catch (...) {
+        throwCaught(env, false);
+    }
+    return 0;
+}
+
+JNI(jboolean, nativeCancelCancellation)(JNIEnv*, jobject, jlong token) {
+    try {
+        return token > 0 && sfraw::nativeCancellationRegistry().cancel(
+                                static_cast<std::uint64_t>(token))
+            ? JNI_TRUE
+            : JNI_FALSE;
+    } catch (...) {
+        return JNI_FALSE;
+    }
+}
+
+JNI(jboolean, nativeReleaseCancellation)(JNIEnv*, jobject, jlong token) {
+    try {
+        return token > 0 && sfraw::nativeCancellationRegistry().release(
+                                static_cast<std::uint64_t>(token))
+            ? JNI_TRUE
+            : JNI_FALSE;
+    } catch (...) {
+        return JNI_FALSE;
+    }
+}
+
+JNI(jobject, nativeDecodeBytes)(JNIEnv* env, jobject, jbyteArray bytes,
+                                jint wbMode, jdouble temperatureK, jdouble tint,
+                                jboolean halfSize, jint maxLongEdge,
+                                jboolean hotPixels, jfloat chromaNoise,
+                                jlong cancellationToken) {
+    try {
+        if (bytes == nullptr) {
+            throwRawDecodeException(env, "null RAW byte array",
+                                    spectrafilm::SFRAW_ERR_INPUT, 0);
+            return nullptr;
+        }
+        const jsize length = env->GetArrayLength(bytes);
+        if (length <= 0 || static_cast<jlong>(length) > kMaxEncodedInputBytes) {
+            throwRawDecodeException(env, "invalid RAW byte-array length",
+                                    spectrafilm::SFRAW_ERR_INPUT, 0);
+            return nullptr;
+        }
+        CancellationLease cancellation =
+            acquireCancellation(env, cancellationToken);
+        if (cancellationToken != 0 && cancellation == nullptr) return nullptr;
+        if (isCancelled(cancellation)) {
+            throwCancelled(env);
+            return nullptr;
+        }
+        ByteArrayElements input(env, bytes);
+        if (input.get() == nullptr) {
+            throwRawDecodeException(env, "failed to pin RAW byte array",
+                                    spectrafilm::SFRAW_ERR_NO_MEMORY, 0);
+            return nullptr;
+        }
+        if (isCancelled(cancellation)) {
+            throwCancelled(env);
+            return nullptr;
+        }
+        spectrafilm::DecodeResult result = spectrafilm::decodeFromBuffer(
+            reinterpret_cast<const std::uint8_t*>(input.get()),
+            static_cast<std::size_t>(length),
+            readOptions(wbMode, temperatureK, tint, halfSize, maxLongEdge,
+                        hotPixels, chromaNoise, cancellation));
+        if (isCancelled(cancellation) && result.ok) {
+            throwCancelled(env);
+            return nullptr;
+        }
+        return toJavaResult(env, result, cancellation);
+    } catch (const std::bad_alloc&) {
+        throwCaught(env, true);
+    } catch (const std::exception&) {
+        throwCaught(env, false);
+    } catch (...) {
+        throwCaught(env, false);
+    }
+    return nullptr;
+}
+
+JNI(jobject, nativeDecodeBuffer)(JNIEnv* env, jobject, jobject directBuffer,
+                                 jint length, jint wbMode,
+                                 jdouble temperatureK, jdouble tint,
+                                 jboolean halfSize, jint maxLongEdge,
+                                 jboolean hotPixels, jfloat chromaNoise,
+                                 jlong cancellationToken) {
+    try {
+        void* address = nullptr;
+        if (!validateDirectInput(env, directBuffer, length, &address)) return nullptr;
+        CancellationLease cancellation =
+            acquireCancellation(env, cancellationToken);
+        if (cancellationToken != 0 && cancellation == nullptr) return nullptr;
+        if (isCancelled(cancellation)) {
+            throwCancelled(env);
+            return nullptr;
+        }
+        spectrafilm::DecodeResult result = spectrafilm::decodeFromBuffer(
+            reinterpret_cast<const std::uint8_t*>(address),
+            static_cast<std::size_t>(length),
+            readOptions(wbMode, temperatureK, tint, halfSize, maxLongEdge,
+                        hotPixels, chromaNoise, cancellation));
+        if (isCancelled(cancellation) && result.ok) {
+            throwCancelled(env);
+            return nullptr;
+        }
+        return toJavaResult(env, result, cancellation);
+    } catch (const std::bad_alloc&) {
+        throwCaught(env, true);
+    } catch (const std::exception&) {
+        throwCaught(env, false);
+    } catch (...) {
+        throwCaught(env, false);
+    }
+    return nullptr;
+}
+
+JNI(jobject, nativeDecodeFd)(JNIEnv* env, jobject, jint fd, jint wbMode,
+                             jdouble temperatureK, jdouble tint,
+                             jboolean halfSize, jint maxLongEdge,
+                             jboolean hotPixels, jfloat chromaNoise,
+                             jlong cancellationToken, jint scratchFd,
+                             jlong admittedBytes) {
+    try {
+        CancellationLease cancellation =
+            acquireCancellation(env, cancellationToken);
+        if (cancellationToken != 0 && cancellation == nullptr) return nullptr;
+        if (isCancelled(cancellation)) {
+            throwCancelled(env);
+            return nullptr;
+        }
+        auto options = readOptions(wbMode, temperatureK, tint, halfSize, maxLongEdge,
+                                   hotPixels, chromaNoise, cancellation);
+        options.inputScratchFd = scratchFd;
+        options.admittedBytes = admittedBytes > 0 ? static_cast<std::uint64_t>(admittedBytes) : 0U;
+        spectrafilm::DecodeResult result = spectrafilm::decodeFromFd(fd, options);
+        if (isCancelled(cancellation) && result.ok) {
+            throwCancelled(env);
+            return nullptr;
+        }
+        return toJavaResult(env, result, cancellation);
+    } catch (const std::bad_alloc&) {
+        throwCaught(env, true);
+    } catch (const std::exception&) {
+        throwCaught(env, false);
+    } catch (...) {
+        throwCaught(env, false);
+    }
+    return nullptr;
+}
+
+// Embedded camera JPEG for thumbnails/placeholders (raw_preview.h). Never
+// throws a RawDecodeException: every outcome is a status in outMeta[0]
+// (outMeta = {status, width, height, flip}); the JPEG bytes are returned only
+// for SFRAW_PREVIEW_OK. A failed Java allocation leaves the VM's pending
+// OutOfMemoryError for the caller.
+JNI(jbyteArray, nativeExtractPreview)(JNIEnv* env, jobject, jint fd,
+                                      jint minLongEdge, jintArray outMeta) {
+    if (outMeta == nullptr || env->GetArrayLength(outMeta) < 4) return nullptr;
+    spectrafilm::EmbeddedPreview preview =
+        spectrafilm::extractEmbeddedPreview(fd, minLongEdge);
+    if (preview.status == spectrafilm::SFRAW_PREVIEW_OK &&
+        preview.jpeg.size() > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+        preview.status = spectrafilm::SFRAW_PREVIEW_NO_MEMORY;
+    }
+    const jint meta[4] = {
+        preview.status,
+        static_cast<jint>(std::min<uint32_t>(preview.width, 0xFFFFU)),
+        static_cast<jint>(std::min<uint32_t>(preview.height, 0xFFFFU)),
+        preview.flip,
+    };
+    env->SetIntArrayRegion(outMeta, 0, 4, meta);
+    if (preview.status != spectrafilm::SFRAW_PREVIEW_OK) return nullptr;
+    const auto length = static_cast<jsize>(preview.jpeg.size());
+    jbyteArray array = env->NewByteArray(length);
+    if (array == nullptr) return nullptr;
+    env->SetByteArrayRegion(array, 0, length,
+                            reinterpret_cast<const jbyte*>(preview.jpeg.data()));
+    return array;
+}

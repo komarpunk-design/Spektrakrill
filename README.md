@@ -1,26 +1,33 @@
 # Spektrafilm Lab · Spektrakrill
 
-Android-фоторедактор на React / Capacitor с нативным спектральным движком. Текущая экспериментальная версия: **9.55 / 125**, ARM64, Android 7.0 и выше.
+Текущая нативная версия: **9.57 / 127**, ARM64, Android 7.0 и выше.
 
-[Скачать APK 9.55](https://github.com/komarpunk-design/Spektrakrill/releases/download/v9.55-build125/SpektrafilmLab-9.55-arm64.apk)
+[Скачать APK 9.57](https://github.com/komarpunk-design/Spektrakrill/releases/download/v9.57.0/Spektrafilm-v9.57.0.apk) · [Фактические проверки](docs/NATIVE_VERIFICATION.md).
 
-Интерфейс адаптирован из приложения, которое собирается в [Zalupa](https://github.com/komarpunk-design/Zalupa): круглые действия сверху, фотография, панель страниц и нижние группы инструментов, лента фотокарточек плёнок. Математика обработки, набор плёнок и экспорт прежние. Инструменты разделены по происхождению: Spektrafilm, Spektrafilm Experimental, Negs, Fotufilm. Плёнки всех источников находятся в одном каталоге.
+Основное приложение находится в `native-android/`. Оно построено на полном исходном коде
+[Spektrafilm for Android v1.0.0](https://github.com/thetechgeekko/Spektrafilm-android/tree/v1.0.0):
+Compose UI, движок C++, LibRaw, просмотр, маски, библиотека и экспорт. В эту основу
+перенесены дополнительные материалы и модели Spektrafilm Lab.
 
-[Разделение функций по источникам — 9.55](docs/TOOLS_BY_SOURCE.md). [Источник UI и проверка переноса — 9.54](docs/ZALUPA_UI.md).
+[Архитектура, карта инструментов и ограничения переноса](docs/NATIVE_UPSTREAM_MIGRATION.md).
+[Происхождение файлов](docs/upstream/native-v1/source-manifest.json).
+Лицензия — GPLv3; оригинальные авторские уведомления сохранены.
 
-## Разработка и проверка
+## Сборка
 
-Нужны Node.js, Java и Android SDK/NDK. Настройки Java/SDK берутся из окружения; сборку выполняет `bash scripts/build-apk.sh`. Подробности платформы и интеграций находятся в `docs/`.
+Нужны полный JDK 21, Android SDK 37, build-tools 36.0.0, NDK 28.2.13676358 и CMake 3.22.1.
+Gradle wrapper закреплён на 9.6.1 с проверкой SHA-256.
+Установите `JAVA_HOME`, `ANDROID_HOME`, затем запустите `bash scripts/build-apk.sh`.
+APK копируется в `artifacts/SpektrafilmLab.apk`.
 
-Для проверки интерфейса в браузере: `npm run build:apk-web`, затем `python3 -m http.server 8091 --directory dist-apk` и `node scripts/test-zalupa-ui.mjs` (нужны Playwright и Chromium; адрес можно изменить через `TEST_URL`).
+Для подписи задайте локальный `native-android/keystore.properties` с `storeFile`,
+`storePassword`, `keyAlias`, `keyPassword`. Файл и приватный ключ не коммитятся.
+Без него release APK будет неподписанным. Публичный debug-ключ оригинального приложения
+сохранён отдельно и не используется для подписи нашего релиза.
 
-Граница UI/движок: `node scripts/check-zalupa-engine.mjs`. Контракт исходных контролов: `node scripts/check-ux-ranges.mjs`. Типы: `npm run typecheck`. Профильные тесты: `npm run test:transport`, `npm run test:outputs`, `npm run test:negs`, `npm run test:experimental`.
+Проверки: из `native-android/` запустите `./gradlew :app:testDebugUnitTest :app:assembleRelease`.
+Нативные тесты: CMake-проект `tests/native-upstream/`, затем
+`python3 scripts/test-native-upstream.py --build-dir /path/to/host-build`.
 
-## Документация и ограничения
-
-- [UI из Zalupa: источник, границы переноса и проверки](docs/ZALUPA_UI.md).
-- Архив исследования 9.53: [матрица функций](docs/ux/FUNCTION_MATRIX.md), [три концепции](docs/ux/DESIGN.md).
-- Архив проверки 9.53: [сценарии и ограничения](docs/ux/REVIEW.md).
-- [Layered Transport](docs/LAYERED_TRANSPORT.md), [Outputs](docs/OUTPUT_MODELS.md), [Push / Pull](docs/PUSH_PULL_DEVELOPMENT.md).
-
-Браузерный предпросмотр не заменяет проверку нативной обработки на устройстве. Физическое Android-тестирование и пользовательское исследование не проведены; холодное восстановление исходного RAW после уничтожения процесса не добавлено. Общий `npm test` содержит ошибки прежнего веб-шаблона — точные результаты перечислены в отчёте.
+Предыдущая версия React/Capacitor сохранена в корне (`src/`, `android/`) как legacy.
+Её сборка: `bash scripts/build-legacy-apk.sh`. Старые документы 9.4x–9.56 относятся к ней.

@@ -26,7 +26,7 @@ int main(int argc,char** argv)try{
  }
  if(argc==3&&std::string(argv[1])=="--pipelines"){
   spk_engine* engine=nullptr;if(spk_engine_create(argv[2],&engine)!=SPK_OK)throw std::runtime_error("engine create");struct Owner{spk_engine* e;~Owner(){spk_engine_destroy(e);}} owner{engine};
-  std::vector<float> pixels(48*32*3);for(size_t i=0;i<pixels.size();i++)pixels[i]=.01+.49*(i%57)/56.;spk_image input{pixels.data(),48,32,SPK_CS_PROPHOTO};spk_params p;spk_default_params(&p);p.auto_exposure=0;p.grain_active=0;p.halation_active=0;p.glare_active=0;p.dir_couplers_active=0;p.scanner_unsharp[0]=0;p.scanner_unsharp[1]=0;p.print_profile="kodak_portra_endura";
+  std::vector<float> pixels(48*32*3);for(size_t i=0;i<pixels.size();i++)pixels[i]=.01+.49*(i%57)/56.;spk_image input{pixels.data(),48,32,SPK_CS_PROPHOTO};spk_params p{};spk_default_params(&p);p.auto_exposure=0;p.grain_active=0;p.halation_active=0;p.glare_active=0;p.dir_couplers_active=0;p.scanner_unsharp[0]=0;p.scanner_unsharp[1]=0;p.print_profile="kodak_portra_endura";
   auto render=[&](){spk_image out{};spk_status status=spk_simulate(engine,&input,&p,&out);if(status!=SPK_OK)throw std::runtime_error(std::string(p.film_profile)+": "+spk_last_error_message());std::vector<float> data(out.data,out.data+out.width*out.height*3);spk_image_free(&out);for(float v:data)if(!std::isfinite(v))throw std::runtime_error("nonfinite output");return data;};
   int n=0;for(const auto& file:std::filesystem::directory_iterator(std::string(argv[2])+"/profiles")){
    std::string id=file.path().stem();if(id.rfind("negs_",0)!=0||id.find("mgrc")!=std::string::npos)continue;p.film_profile=id.c_str();

@@ -1,0 +1,65 @@
+# Android / Gradle
+*.iml
+.gradle/
+local.properties
+.idea/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# NDK / native
+obj/
+**/.cxx/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keystores / secrets
+*.jks
+*.keystore
+# Exception: the shared DEBUG keystore is committed (standard public creds:
+# storepass/keypass "android", alias androiddebugkey) so every build — CI, any cloud
+# container, every contributor — signs debug builds with ONE identical key. Without it
+# AGP generates a random ~/.android/debug.keystore per machine, and a freshly built
+# debug APK then refuses to install over a previous one ("App not installed"). This is
+# NOT a release key (release signing still uses the ignored keystore.properties).
+!/debug.keystore
+keystore.properties
+
+# Python (engine reference / tooling only)
+__pycache__/
+*.pyc
+.venv/
+
+# Release artifacts are published to GitHub Releases (see release.yml), NOT committed.
+# (Historical dist/*.apk were removed: stale, 4 KB-page-misaligned, and debug-signed.)
+
+# Kotlin/CMake incremental caches
+.kotlin/
+**/.cxx/
+
+# Local verification caches and crash/coverage artifacts
+.gradle-user-home/
+*.gcov
+/crash-*
+/.hermes/
+
+# Ephemeral agent worktrees (Claude Code isolation)
+.claude/worktrees/
+
+# Editors and tool caches
+.vscode/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+/tools/baseline/.baseline.env
+
+# Merge/patch leftovers (#359 committed one by accident)
+*.orig
+*.rej
