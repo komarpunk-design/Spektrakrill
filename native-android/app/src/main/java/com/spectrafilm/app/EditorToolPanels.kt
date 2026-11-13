@@ -493,14 +493,17 @@ internal fun GlareSection(s: ParamsState) {
 internal val GAMMA_FACTOR_RANGE = 0.05f..3f
 
 @Composable
-internal fun ExperimentalSection(s: ParamsState) {
+internal fun ExperimentalSection(s: ParamsState, film:Boolean=true, print:Boolean=true) {
     var expanded by remember { mutableStateOf(true) }
-    SectionCard(stringResource(R.string.editor_exp_title), expanded, { expanded = it },
+    SectionCard(if(LocalPhotoTool.current==PhotoTool.DEVELOP) "Характеристика плёнки" else if(LocalPhotoTool.current==PhotoTool.PAPER) "Проявка печатного материала" else stringResource(R.string.editor_exp_title), expanded, { expanded = it },
         help = ParamHelpText.forKey(ParamHelpText.PRINT_GAMMA)) {
+        if(film) {
         EnhancedSlider(stringResource(R.string.editor_exp_film_gamma), s.filmGammaFactor, GAMMA_FACTOR_RANGE, { s.filmGammaFactor = it },
             step = 0.05f, decimals = 2,
             tooltip = stringResource(R.string.editor_exp_film_gamma_tooltip),
             default = PARAM_DEFAULTS.filmGammaFactor)
+        }
+        if(print) {
         EnhancedSlider(stringResource(R.string.editor_exp_print_gamma), s.printGammaFactor, GAMMA_FACTOR_RANGE, { s.printGammaFactor = it },
             step = 0.05f, decimals = 2,
             tooltip = stringResource(R.string.editor_exp_print_gamma_tooltip),
@@ -536,6 +539,7 @@ internal fun ExperimentalSection(s: ParamsState) {
                 step = 0.02f, decimals = 2,
                 tooltip = stringResource(R.string.editor_exp_morph_exhaustion_tooltip),
                 default = PARAM_DEFAULTS.morphDeveloperExhaustion)
+        }
         }
     }
 }

@@ -42,13 +42,17 @@ internal fun EditorWideLayout(
     editSections: List<Stage>,
     openSection: (Stage) -> Unit,
     panelContent: @Composable ColumnScope.() -> Unit,
+    workflowTitle: String? = null,
+    workflowKey: Any? = null,
+    workflowTabs: (@Composable () -> Unit)? = null,
+    workflowNavigation: (@Composable (Boolean) -> Unit)? = null,
     cropOpen: Boolean = false,
     cropPanelContent: @Composable ColumnScope.() -> Unit = {},
 ) {
     Row(Modifier.fillMaxSize()) {
         // --- STAGE RAIL (expanded windows), Export as its FAB ---
         if (!chromeHidden) {
-            StageRail(
+            if (workflowNavigation != null) workflowNavigation(true) else StageRail(
                 active = activeCategory,
                 dirty = dirty,
                 onOpen = { onActiveCategoryChange(it) },
@@ -83,7 +87,7 @@ internal fun EditorWideLayout(
         // neither the photo nor the tools sit under it.
         if (bookAligned && bookHingeGap > 0.dp) Spacer(Modifier.width(bookHingeGap))
         if (cropOpen) {
-            CropPanel(sideWidth = sidePaneWidth, content = cropPanelContent)
+            CropPanel(sideWidth = sidePaneWidth, content = { workflowTabs?.invoke(); cropPanelContent() })
         } else if (sideCategory == null && bookAligned) {
             // Panel closed in book posture: the photo still keeps to its own
             // screen rather than straddling the fold; the tools' screen stays
@@ -97,11 +101,14 @@ internal fun EditorWideLayout(
                 onDismiss = { onActiveCategoryChange(null) },
                 onResetCategory = resetActiveCategory,
                 width = sidePaneWidth,
-                tabs = if (editOpen) emptyList() else categoriesOf(sideCategory.stage),
+                tabs = if (workflowTabs != null || editOpen) emptyList() else categoriesOf(sideCategory.stage),
                 dirty = dirty,
                 onSelectTab = { onActiveCategoryChange(it) },
                 sections = if (editOpen) editSections else emptyList(),
                 onSelectSection = openSection,
+                workflowTitle = workflowTitle,
+                workflowKey = workflowKey,
+                workflowTabs = workflowTabs,
                 content = panelContent,
             )
         }
@@ -133,6 +140,10 @@ internal fun EditorNarrowLayout(
     editSections: List<Stage>,
     openSection: (Stage) -> Unit,
     panelContent: @Composable ColumnScope.() -> Unit,
+    workflowTitle: String? = null,
+    workflowKey: Any? = null,
+    workflowTabs: (@Composable () -> Unit)? = null,
+    workflowNavigation: (@Composable (Boolean) -> Unit)? = null,
     cropOpen: Boolean = false,
     cropPanelContent: @Composable ColumnScope.() -> Unit = {},
 ) {
@@ -180,7 +191,7 @@ internal fun EditorNarrowLayout(
                         modifier = Modifier
                             .widthIn(max = SHEET_MAX_WIDTH_DP.dp)
                             .onSizeChanged { onPanelHeightChange(it.height) },
-                        content = cropPanelContent,
+                        content = { workflowTabs?.invoke(); cropPanelContent() },
                     )
                 } else AdjustmentPanel(
                     modifier = Modifier
@@ -194,11 +205,14 @@ internal fun EditorNarrowLayout(
                     tall = panelTall,
                     onTallChange = onPanelTallChange,
                     fixedHeight = tabletopPanelHeight,
-                    tabs = if (editOpen) emptyList() else activeCategory?.let { categoriesOf(it.stage) }.orEmpty(),
+                    tabs = if (workflowTabs != null || editOpen) emptyList() else activeCategory?.let { categoriesOf(it.stage) }.orEmpty(),
                     dirty = dirty,
                     onSelectTab = { onActiveCategoryChange(it) },
                     sections = if (editOpen) editSections else emptyList(),
                     onSelectSection = openSection,
+                    workflowTitle = workflowTitle,
+                    workflowKey = workflowKey,
+                    workflowTabs = workflowTabs,
                     content = panelContent,
                 )
             }
@@ -226,7 +240,7 @@ internal fun EditorNarrowLayout(
         // --- STAGE ROW (compact and medium windows) ---
         // Tapping the open stage folds the panel away: photo + this row.
         if (!chromeHidden) {
-            StageRow(
+            if (workflowNavigation != null) workflowNavigation(false) else StageRow(
                 active = activeCategory,
                 dirty = dirty,
                 onOpen = { onActiveCategoryChange(it) },

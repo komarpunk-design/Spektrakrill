@@ -440,6 +440,9 @@ internal fun AdjustmentPanel(
     // in [content]. Empty for Looks and Masks.
     sections: List<Stage> = emptyList(),
     onSelectSection: (Stage) -> Unit = {},
+    workflowTitle: String? = null,
+    workflowKey: Any? = null,
+    workflowTabs: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val screenH = localConfigurationHeightDp()
@@ -449,7 +452,7 @@ internal fun AdjustmentPanel(
     )
     val expandLabel = stringResource(R.string.editor_panel_expand)
     val collapseLabel = stringResource(R.string.editor_panel_collapse)
-    val title = category?.let { stringResource(it.labelRes) } ?: ""
+    val title = workflowTitle ?: category?.let { stringResource(it.labelRes) } ?: ""
     val panelTitle = stringResource(R.string.editor_panel_title, title)
     val closeLabel = stringResource(R.string.editor_close_panel_named, title)
     val closeAction = stringResource(R.string.editor_close)
@@ -541,12 +544,13 @@ internal fun AdjustmentPanel(
                     modifier = Modifier.padding(bottom = 4.dp),
                 )
             }
+            workflowTabs?.invoke()
             // A new section starts at its top, not wherever the last one was scrolled to.
             // Reset by an effect, not by key(stage) { rememberScrollState() }: that keyed
             // group sat among the panel's node-emitting siblings and opening Edit crashed in
             // LayoutNode.onChildRemoved (null child) on device.
             val scroll = rememberScrollState()
-            LaunchedEffect(category?.stage) { scroll.scrollTo(0) }
+            LaunchedEffect(workflowKey ?: category?.stage) { scroll.scrollTo(0) }
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -605,9 +609,12 @@ internal fun SidePanel(
     onSelectTab: (Category) -> Unit = {},
     sections: List<Stage> = emptyList(),
     onSelectSection: (Stage) -> Unit = {},
+    workflowTitle: String? = null,
+    workflowKey: Any? = null,
+    workflowTabs: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val title = stringResource(category.labelRes)
+    val title = workflowTitle ?: stringResource(category.labelRes)
     // The heading names the mode; the tool list or section tabs under it name the group.
     val heading = if (tabs.size > 1 || sections.size > 1) stringResource(category.mode.labelRes) else title
     val panelTitle = stringResource(R.string.editor_panel_title, title)
@@ -679,8 +686,9 @@ internal fun SidePanel(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
+            workflowTabs?.invoke()
             val sideScroll = rememberScrollState()
-            LaunchedEffect(category.stage) { sideScroll.scrollTo(0) }
+            LaunchedEffect(workflowKey ?: category.stage) { sideScroll.scrollTo(0) }
             Column(
                 Modifier
                     .fillMaxWidth()

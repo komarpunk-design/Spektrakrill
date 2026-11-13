@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
@@ -66,6 +68,7 @@ internal fun ColumnScope.EditorBody(
     toolContent: @Composable ColumnScope.(Category) -> Unit,
     previewRegion: @Composable (controlsBottomInset: Dp, editOpen: Boolean) -> Unit,
     /** The Crop tab is open: its panel takes the tool panel's place (CropTool.kt). */
+    sourceKey: Any? = null,
     cropOpen: Boolean = false,
     cropPanelContent: @Composable ColumnScope.() -> Unit = {},
 ) {
@@ -97,45 +100,39 @@ internal fun ColumnScope.EditorBody(
         // reset is offered only when it actually holds edits, which is the same
         // question the dot asks.
         val dirty by remember(state) { derivedStateOf { dirtyCategories(state) } }
-        val resetCategory: (Category) -> Unit = { target ->
-            // A partial recipe carrying only this tool's sections or keys.
-            // Presets.applyJson reads each section behind its own optJSONObject and
-            // keeps the current value of any key it leaves out, so nothing outside
-            // them can move.
-            categoryDefaults(target)?.let { defaults ->
-                runCatching { Presets.decode(defaults, state); state.resetLabCategory(target) }
-                onParamsChanged()
+        // 9.56 task order; keep the author's adaptive panes and native control bodies.
+        var savedPhotoTool by rememberSaveable(sourceKey) { mutableStateOf<String?>(null) }
+        var lastByStage by rememberSaveable { mutableStateOf(mapOf<String,String>()) }
+        val page = if (cropOpen) PhotoTool.CROP else resolvePhotoTool(savedPhotoTool, activeCategory)
+        val chooseTool: (PhotoTool) -> Unit = { next ->
+            savedPhotoTool = next.id
+            next.stage?.let { stage -> lastByStage = lastByStage + (stage.name to next.id) }
+            if (next == PhotoTool.CROP) { if (!cropOpen) onOpenCrop() }
+            else onActiveCategoryChange(next.category)
+        }
+        val chooseStage: (PhotoStage) -> Unit = { stage ->
+            if(cropOpen && page.stage == stage) onOpenCrop()
+            else if (activeCategory != null && page.stage == stage) onActiveCategoryChange(null)
+            else chooseTool(photoTools(stage).firstOrNull { it.id == lastByStage[stage.name] } ?: photoTools(stage).first())
+        }
+        val workflowDirty by remember(state) { derivedStateOf { photoDirtyTools(state) } }
+        val editOpen = activeCategory != null
+        val lastEdit: Category? = null
+        val panelContent: @Composable ColumnScope.() -> Unit = {
+            CompositionLocalProvider(LocalSliderInteraction provides sliderInteraction, LocalPhotoTool provides page,
+                LocalPhotoExport provides PhotoExportAction(exportVisible && !exportInFlight, onExport)) {
+                key(page.id) {
+                    page.bypassReason(state)?.let { LabNote(it) }
+                    if (page == PhotoTool.RAW_CLEANUP && !toolShown(Category.RAW_CLEANUP)) {
+                        LabNote("Очистка сенсора доступна для RAW/DNG. Откройте RAW через Камера → Исходник.")
+                    } else for (tool in page.categories) toolContent(tool)
+                }
             }
         }
-        // The tool Edit reopens on: the last one shown there.
-        var lastEdit by rememberSaveable { mutableStateOf<Category?>(null) }
-        LaunchedEffect(activeCategory) {
-            activeCategory?.takeIf { it.mode == EditorMode.EDIT }?.let { lastEdit = it }
-        }
-        val editOpen = activeCategory?.mode == EditorMode.EDIT
-        // Edit's tool open in full (every control and its help), or null for the rail.
-        var railDetail by rememberSaveable { mutableStateOf<Category?>(null) }
-        // A tab tapped or the panel closed returns to the rail.
-        LaunchedEffect(activeCategory?.stage) {
-            if (railDetail != null && railDetail?.stage != activeCategory?.stage) railDetail = null
-        }
-        // The open panel's body. Looks and Masks show the one picked tool; Edit shows
-        // every tool on one sideways rail of instrument cards (ToolRail.kt), and a tool
-        // opened from its chip in full, under its own name and reset.
-        val panelContent: @Composable ColumnScope.() -> Unit = {
-            EditorPanelContent(
-                sliderInteraction = sliderInteraction,
-                state = state,
-                activeCategory = activeCategory,
-                onActiveCategoryChange = onActiveCategoryChange,
-                railDetail = railDetail,
-                onRailDetailChange = { railDetail = it },
-                backEnabled = panelBackEnabled,
-                dirty = dirty,
-                resetCategory = resetCategory,
-                toolShown = toolShown,
-                toolContent = toolContent,
-            )
+        val workflowTabs: @Composable () -> Unit = { PhotoToolTabs(page, workflowDirty, chooseTool) }
+        val workflowNavigation: @Composable (Boolean) -> Unit = { isWide ->
+            PhotoStageNavigation(page, activeCategory != null || cropOpen, workflowDirty, isWide,
+                chooseStage, chooseTool, exportVisible, exportInFlight, onExport, onShare)
         }
         // Measured height of the floating adjustment panel (narrow layout only). The
         // preview's zoom control is inset by it so it never sits under the panel.
@@ -160,12 +157,9 @@ internal fun ColumnScope.EditorBody(
         val panelInset by animateDpAsState(panelTarget, label = "previewPanelInset")
         // In Edit each stacked tool carries its own reset (ToolHeader); elsewhere the
         // panel offers one for the open tool.
-        val resetActiveCategory: (() -> Unit)? =
-            activeCategory?.takeIf { !editOpen && it in dirty }?.let { target -> { resetCategory(target) } }
-        val editSections = stagesOf(EditorMode.EDIT)
-        val openSection: (Stage) -> Unit = { section ->
-            onActiveCategoryChange(categoriesOf(section).first(toolShown))
-        }
+        val resetActiveCategory: (() -> Unit)? = if (page in workflowDirty) ({ page.reset(state); onParamsChanged() }) else null
+        val editSections = emptyList<Stage>()
+        val openSection: (Stage) -> Unit = {}
         if (wide) {
             EditorWideLayout(
                 chromeHidden = chromeHidden,
@@ -188,6 +182,10 @@ internal fun ColumnScope.EditorBody(
                 editSections = editSections,
                 openSection = openSection,
                 panelContent = panelContent,
+                workflowTitle = page.stage?.let { "${it.title} · ${page.title}" } ?: page.title,
+                workflowKey = page.id,
+                workflowTabs = workflowTabs,
+                workflowNavigation = workflowNavigation,
                 cropOpen = cropOpen,
                 cropPanelContent = cropPanelContent,
             )
@@ -212,6 +210,10 @@ internal fun ColumnScope.EditorBody(
                 editSections = editSections,
                 openSection = openSection,
                 panelContent = panelContent,
+                workflowTitle = page.stage?.let { "${it.title} · ${page.title}" } ?: page.title,
+                workflowKey = page.id,
+                workflowTabs = workflowTabs,
+                workflowNavigation = workflowNavigation,
                 cropOpen = cropOpen,
                 cropPanelContent = cropPanelContent,
             )

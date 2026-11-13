@@ -351,15 +351,29 @@ private fun categoryHowtoDesc(c: Category): Int = when (c) {
 @Composable
 private fun CategoryList() {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Stage.entries.forEach { stage ->
+        PhotoStage.entries.forEach { stage ->
         Text(
-            stringResource(stage.labelRes),
+            stage.title,
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(top = 8.dp).semantics { heading() },
         )
-        categoriesOf(stage).map { categoryHowtoName(it) to categoryHowtoDesc(it) }
-            .forEach { (nameRes, descriptionRes) ->
+        photoTools(stage).forEach { tool ->
+            val description=when(tool) {
+                PhotoTool.OUTPUT->"Выбор фотобумаги, Digital Reference, Auto Levels, Lab Scan или негатива на просвет."
+                PhotoTool.PREP->"Подготовка фотографии до виртуальной плёнки: тон, детали и независимая экспозиция."
+                PhotoTool.PROFILE->"Восстановление настроек зерна и DIR выбранного материала."
+                PhotoTool.SPECTRUM->"Реконструкция спектра света из RGB и настройки базового метода."
+                PhotoTool.FILM_BASE->"Плотность основы и оранжевая маска негативной плёнки."
+                PhotoTool.FILTER->"Съёмочный цветной фильтр до экспонирования плёнки."
+                PhotoTool.CHEMISTRY->"Послойная химия, цветовые каналы и истощение проявителя."
+                PhotoTool.NEGATIVE->"Отдельная конвертация скана настоящего негатива и калибровка."
+                PhotoTool.PAPER_BASE->"Плотность и цвет основы печатного материала."
+                PhotoTool.TEST_PRINT->"Пять пробных выдержек текущей фотографии и применение выбранной пробы."
+                PhotoTool.FILE->"Формат, качество, размер, имя и исходное окно сохранения."
+                PhotoTool.TONE->"Кривые, насыщенность, свет и тени, контрастная маска."
+                else->stringResource(categoryHowtoDesc(tool.category))
+            }
             Row(
                 // Badge + description read as one item.
                 modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
@@ -371,14 +385,14 @@ private fun CategoryList() {
                     modifier = Modifier.padding(top = 2.dp),
                 ) {
                     Text(
-                        stringResource(nameRes),
+                        tool.title,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                     )
                 }
                 Text(
-                    stringResource(R.string.screen_howto_category_line, stringResource(descriptionRes)),
+                    stringResource(R.string.screen_howto_category_line, description),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 4.dp),

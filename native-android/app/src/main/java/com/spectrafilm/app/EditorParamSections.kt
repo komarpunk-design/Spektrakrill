@@ -49,10 +49,13 @@ internal fun ButtonIcon(icon: androidx.compose.ui.graphics.vector.ImageVector) {
     Spacer(Modifier.width(8.dp))
 }
 
+internal enum class InputPart { ALL, COLOR, SPECTRUM, LENS, SIZE }
+
 @Composable
-internal fun InputSection(s: ParamsState, onEditCrop: () -> Unit) {
+internal fun InputSection(s: ParamsState, onEditCrop: () -> Unit, part:InputPart=InputPart.ALL) {
     var expanded by remember { mutableStateOf(true) }
     SectionCard(stringResource(R.string.editor_input_title), expanded, { expanded = it }) {
+        if (part == InputPart.ALL || part == InputPart.COLOR) {
         // Honesty: the engine's input space is fixed to linear ProPhoto RGB (the
         // runtime InputColorSpace enum has a single value). RAW imports are decoded
         // ACES2065-1 -> ProPhoto and photos are converted sRGB -> ProPhoto before the
@@ -64,6 +67,8 @@ internal fun InputSection(s: ParamsState, onEditCrop: () -> Unit) {
         }
         SwitchRow(stringResource(R.string.editor_input_cctf), s.inputCctfDecoding, { s.inputCctfDecoding = it },
             stringResource(R.string.editor_input_cctf_tooltip))
+        }
+        if (part == InputPart.ALL || part == InputPart.SPECTRUM) {
         // Honesty: the engine only implements HANATOS2025 (filming.expose always calls
         // rgb_to_raw_hanatos2025); MALLETT2019 marshals but falls back, so the choice is inert.
         // Creative warmth/tint and the eyedropper used to be repeated here; they live in
@@ -81,6 +86,8 @@ internal fun InputSection(s: ParamsState, onEditCrop: () -> Unit) {
             { s.spectralGaussianBlur = it }, step = 0.1f, decimals = 1,
             tooltip = stringResource(R.string.editor_input_spectral_blur_tooltip),
             default = PARAM_DEFAULTS.spectralGaussianBlur)
+        }
+        if (part == InputPart.ALL || part == InputPart.LENS) {
         TripleSlider(stringResource(R.string.editor_input_uv_filter), s.filterUv, 0f..800f, { s.filterUv = it },
             step = 1f, decimals = 0,
             tooltip = stringResource(R.string.editor_input_uv_filter_tooltip),
@@ -89,10 +96,14 @@ internal fun InputSection(s: ParamsState, onEditCrop: () -> Unit) {
             step = 1f, decimals = 0,
             tooltip = stringResource(R.string.editor_input_ir_filter_tooltip),
             componentLabels = Triple("amp", "λ", "σ"), default = PARAM_DEFAULTS.filterIr)
+        }
+        if (part == InputPart.ALL || part == InputPart.SIZE) {
         EnhancedSlider(stringResource(R.string.editor_input_upscale), s.upscaleFactor, OperationalParamLimits.UPSCALE_FACTOR, { s.upscaleFactor = it },
             step = 0.5f, decimals = 1,
             tooltip = stringResource(R.string.editor_input_upscale_tooltip),
             default = PARAM_DEFAULTS.upscaleFactor)
+        }
+        if (part == InputPart.ALL) {
         // Crop is now an interactive overlay (see the crop button under the
         // preview). Upscale stays a slider: it is a resolution multiplier, not
         // part of the crop rectangle, so it does not fit the crop metaphor.
@@ -133,6 +144,7 @@ internal fun InputSection(s: ParamsState, onEditCrop: () -> Unit) {
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(stringResource(R.string.editor_input_reset_geometry)) }
+        }
         }
     }
 }
@@ -300,7 +312,16 @@ internal fun SimulationSection(
     part: SimPart = SimPart.FILM_STOCK,
 ) {
     var expanded by remember { mutableStateOf(true) }
-    SectionCard(stringResource(R.string.editor_sim_title), expanded, { expanded = it }) {
+    val category=when(part) {
+        SimPart.FILM_STOCK->Category.SIMULATION;SimPart.EXPOSURE->Category.EXPOSURE
+        SimPart.FILM_FORMAT->Category.FILM_FORMAT;SimPart.LENS_BLUR->Category.LENS_BLUR
+        SimPart.CAMERA_DIFFUSION->Category.CAMERA_DIFFUSION;SimPart.SCENE_LATITUDE->Category.SCENE_LATITUDE
+        SimPart.DATE_STAMP->Category.DATE_STAMP;SimPart.PAPER->Category.PAPER
+        SimPart.PRINT_EXPOSURE->Category.PRINT_EXPOSURE;SimPart.PRINT_COLOR->Category.PRINT_COLOR
+        SimPart.ENLARGER->Category.ENLARGER;SimPart.SCANNER->Category.SCANNER
+        SimPart.OUTPUT->Category.OUTPUT;SimPart.SAT_VIB->Category.SAT_VIB
+    }
+    SectionCard(stringResource(if(LocalPhotoTool.current==null) R.string.editor_sim_title else category.labelRes), expanded, { expanded = it }) {
         // One part per editor tool (m3-design-language, ux-flows §2: one level of peers, no
         // nested tab rows).
         when (part) {
@@ -377,7 +398,7 @@ internal fun SimulationSection(
                     previewHost = printPreviewHost,
                 )
                 // Slide mode skips the paper altogether, so it sits with the paper choice.
-                SwitchRow(stringResource(R.string.editor_sim_slide_mode), s.scanFilm, { s.scanFilm = it },
+                if(LocalPhotoTool.current==null) SwitchRow(stringResource(R.string.editor_sim_slide_mode), s.scanFilm, { s.scanFilm = it },
                     stringResource(R.string.editor_sim_slide_mode_tooltip))
                 OutlinedButton(
                     onClick = onOpenPrintCurves,
@@ -491,7 +512,7 @@ internal fun SimulationSection(
                     },
                     { s.outputGamutCompress = it },
                 )
-                Dropdown(
+                if(LocalPhotoTool.current==null) Dropdown(
                     stringResource(R.string.editor_sim_input_gamut),
                     s.inputGamutCompress,
                     InputGamutCompress.entries.toList(),

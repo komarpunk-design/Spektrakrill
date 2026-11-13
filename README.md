@@ -1,15 +1,16 @@
 # Spektrafilm Lab · Spektrakrill
 
-Текущая нативная версия: **9.57 / 127**, ARM64, Android 7.0 и выше.
+Текущая нативная версия: **9.58 / 128**, ARM64, Android 7.0 и выше.
 
-[Скачать APK 9.57](https://github.com/komarpunk-design/Spektrakrill/releases/download/v9.57.0/Spektrafilm-v9.57.0.apk) · [Фактические проверки](docs/NATIVE_VERIFICATION.md).
+[Скачать APK 9.58](https://github.com/komarpunk-design/Spektrakrill/releases/download/v9.58.0/Spektrafilm-v9.58.0.apk) · [Расположение инструментов](docs/NATIVE_WORKSPACE_956.md).
 
 Основное приложение находится в `native-android/`. Оно построено на полном исходном коде
 [Spektrafilm for Android v1.0.0](https://github.com/thetechgeekko/Spektrafilm-android/tree/v1.0.0):
 Compose UI, движок C++, LibRaw, просмотр, маски, библиотека и экспорт. В эту основу
 перенесены дополнительные материалы и модели Spektrafilm Lab.
 
-[Архитектура, карта инструментов и ограничения переноса](docs/NATIVE_UPSTREAM_MIGRATION.md).
+[Текущая навигация: порядок 9.56 в нативном UI](docs/NATIVE_WORKSPACE_956.md).
+[История перехода на нативную основу 9.57](docs/NATIVE_UPSTREAM_MIGRATION.md).
 [Происхождение файлов](docs/upstream/native-v1/source-manifest.json).
 Лицензия — GPLv3; оригинальные авторские уведомления сохранены.
 

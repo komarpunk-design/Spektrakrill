@@ -1306,6 +1306,9 @@ internal fun EditorScreen(
                     )
                     onOpenLibrary()
                 },
+                onOpenRecipes = { openCategory(Category.PRESETS) },
+                onOpenMasks = { openCategory(Category.MASKS) },
+                onOpenPreview = { openCategory(Category.DISPLAY) },
                 onPhotoInfo = sourceUri?.let { { openPhotoInfo() } },
                 // The canvas tools that used to float on the photo (EditorPreviewRegion.kt).
                 hasPhoto = preview != null || gpuProxy != null,
@@ -1360,6 +1363,7 @@ internal fun EditorScreen(
                 onOpenCrop = ::toggleCrop,
                 toolContent = toolContent,
                 previewRegion = previewRegion,
+                sourceKey = sourceUri?.toString(),
                 cropOpen = toolUi.cropOpen,
                 cropPanelContent = {
                     CropPanelContent(

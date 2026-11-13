@@ -89,6 +89,22 @@ internal fun ColumnScope.EditorToolContent(
     val previewTickState = screen.previewTickState
     val hasRecipeState = screen.hasRecipeState
     val state = session.params
+    val page = LocalPhotoTool.current
+    when(page) {
+        PhotoTool.PREP -> { LabNote("Подготовка до виртуальной плёнки. Эта экспозиция не компенсируется при печати."); LabGroup(state,"prep"); return }
+        PhotoTool.PROFILE -> { PhotoProfileDefaults(state); return }
+        PhotoTool.OUTPUT -> { LabOutputSection(state); return }
+        PhotoTool.PAPER_BASE -> { LabPaperBase(state); return }
+        PhotoTool.DEVELOP -> {
+            LabNote("Экспозиция при съёмке и проявка — разные действия. Поправка света задаётся в Камера → Экспозиция; γ ниже меняет характеристическую кривую. Push: недодержка и усиленная проявка, Pull: передержка и более мягкая проявка.")
+            LabTimeFamily(state); ExperimentalSection(state,print=false); return
+        }
+        PhotoTool.FILTER, PhotoTool.FILM_BASE, PhotoTool.CHEMISTRY, PhotoTool.NEGATIVE, PhotoTool.TEST_PRINT -> {
+            LabAdvancedSection(state,sourceUri,isRawSource,when(page){PhotoTool.FILTER->"filter";else->page.id}); return
+        }
+        PhotoTool.FILE -> { PhotoFileControls(exportOptions,onExportOptionsChange); return }
+        else -> Unit
+    }
     val rotationState = session.rotation
     val editHistory = session.history
     val sourceState = session.source
@@ -112,7 +128,14 @@ internal fun ColumnScope.EditorToolContent(
         else -> null
     }
     when (tool) {
-        Category.INPUT -> InputSection(state, onEditCrop = { toolVm.onAction(EditorToolAction.OpenCrop) })
+        Category.INPUT -> {
+            if(page==PhotoTool.SPECTRUM)LabAdvancedSection(state,sourceUri,isRawSource,"spectrum")
+            InputSection(state, onEditCrop = { toolVm.onAction(EditorToolAction.OpenCrop) }, part=when(page){
+                PhotoTool.INPUT_COLOR->InputPart.COLOR;PhotoTool.SPECTRUM->InputPart.SPECTRUM
+                PhotoTool.LENS->InputPart.LENS;PhotoTool.OUTPUT_COLOR->InputPart.SIZE;else->InputPart.ALL
+            })
+            if(page==PhotoTool.INPUT_COLOR)Dropdown("Входной гамут",state.inputGamutCompress,com.spectrafilm.engine.InputGamutCompress.entries,{it.name},{state.inputGamutCompress=it})
+        }
         Category.RAW_WB -> ImportRawSection(state, isRaw = isRawSource,
             onPickNeutral = { toolVm.onAction(EditorToolAction.PickNeutral) })
         Category.RAW_CLEANUP -> RawCleanupSection(state)
@@ -142,10 +165,10 @@ internal fun ColumnScope.EditorToolContent(
         )
             when(tool) {
                 Category.SIMULATION -> LabProfileImport(state)
-                Category.EXPOSURE -> { LabNote("Prep · подготовка исходника до плёнки. Экспозиция подготовки не компенсируется печатью."); LabGroup(state,"prep") }
+                Category.EXPOSURE -> if(page==null) { LabNote("Prep · подготовка исходника до плёнки. Экспозиция подготовки не компенсируется печатью."); LabGroup(state,"prep") }
                 Category.FILM_FORMAT -> LabFilmFormat(state)
-                Category.SCANNER -> LabOutputSection(state)
-                Category.PAPER -> LabPaperBase(state)
+                Category.SCANNER -> if(page==null) LabOutputSection(state)
+                Category.PAPER -> if(page==null) LabPaperBase(state)
                 else -> Unit
             }
         }
@@ -165,7 +188,7 @@ internal fun ColumnScope.EditorToolContent(
             if(state.labBoolean("dirLangmuir")){LabGroup(state,"dir"); androidx.compose.material3.TextButton(onClick={state.applyLabStock(state.filmProfile,grain=false)}) { androidx.compose.material3.Text("Восстановить DIR из профиля") }}
         }
         Category.GLARE -> GlareSection(state)
-        Category.EXPERIMENTAL -> { ExperimentalSection(state);LabAdvancedSection(state,sourceUri,isRawSource) }
+        Category.EXPERIMENTAL -> if(page==PhotoTool.PAPER) ExperimentalSection(state,film=false) else { ExperimentalSection(state);LabAdvancedSection(state,sourceUri,isRawSource) }
         Category.TONE_CURVE -> ToneCurveSection(state, preview)
         Category.MASKS -> MasksSection(
             state,

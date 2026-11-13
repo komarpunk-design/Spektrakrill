@@ -51,6 +51,9 @@ internal fun EditorTopBar(
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenLibrary: () -> Unit,
+    onOpenRecipes: (() -> Unit)? = null,
+    onOpenMasks: (() -> Unit)? = null,
+    onOpenPreview: (() -> Unit)? = null,
     /** Opens the Photo info sheet; null while there is no photo to describe (the demo image). */
     onPhotoInfo: (() -> Unit)?,
     /** A rendered photo is on screen: Crop and the view toggles have something to act on. */
@@ -315,6 +318,9 @@ internal fun EditorTopBar(
                             leadingIcon = { Icon(SpectraIcons.Help, contentDescription = null) },
                             onClick = { menuOpen = false; quickHelp.open() },
                         )
+                    }
+                    for ((label, action) in listOf("Рецепты" to onOpenRecipes,"Маски" to onOpenMasks,"Предпросмотр" to onOpenPreview)) {
+                        if(action!=null)DropdownMenuItem(text={Text(label)},onClick={menuOpen=false;action()})
                     }
                     androidx.compose.material3.DropdownMenuItem(
                         text = { Text(stringResource(R.string.editor_action_about)) },

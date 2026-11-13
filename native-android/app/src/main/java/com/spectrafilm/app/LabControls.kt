@@ -54,6 +54,10 @@ import org.json.JSONArray
 @Composable internal fun LabOutputSection(s: ParamsState) {
     LabChoice(s,"outputModel.mode","Получение изображения",listOf("paper" to "Фотобумага / кинопозитив","digital" to "Digital Reference · нейтральный позитив","auto-levels" to "Auto Levels · автоматический позитив","lab-scan" to "Lab Scan · минилаб","negative" to "Негатив на просвет"),"paper")
     val mode=s.labString("outputModel.mode","paper")
+    if(mode=="paper") {
+        SwitchRow("Прямой спектральный скан плёнки",s.scanFilm,{s.scanFilm=it},"Исходный режим приложения: получить позитив плёнки без виртуальной фотобумаги. Digital Reference / Lab Scan выбираются отдельно в списке выше.")
+        if(s.scanFilm)LabNote("Спектральный скан включён: фотобумага обходится.")
+    }
     if(mode!="paper") LabNote("Этот маршрут обходит фотобумагу. Яркость и цвет ниже — операторские поправки готового скана, независимо от экспозиции съёмки.")
     if(mode in listOf("digital","auto-levels","lab-scan")) LabGroup(s,"output")
 }
@@ -74,18 +78,22 @@ import org.json.JSONArray
     LabNote("Основа печатного материала участвует только в маршруте на фотобумагу. Цифровые режимы её обходят.")
     LabTimeFamily(s,true);LabGroup(s,"paper-base")
 }
-@Composable internal fun LabAdvancedSection(s:ParamsState,sourceUri:Uri?,isRaw:Boolean) {
-    var page by remember { mutableStateOf("spectrum") }
+@Composable internal fun LabAdvancedSection(s:ParamsState,sourceUri:Uri?,isRaw:Boolean,pageOverride:String?=null) {
+    var selectedPage by remember { mutableStateOf("spectrum") }
+    val page=pageOverride ?: selectedPage
     val sections=listOf("spectrum" to "Спектр и фильтр","chemistry" to "Химия плёнки","film-base" to "Основа и маска","negative" to "Настоящий негатив", "test-print" to "Пробная печать")
-    HorizontalDivider();Text("Spektrafilm Lab",style=MaterialTheme.typography.titleMedium)
-    Dropdown("Инструмент",page,sections.map{it.first},{p->sections.first{it.first==p}.second},{page=it})
+    if(pageOverride==null) {
+        HorizontalDivider();Text("Spektrafilm Lab",style=MaterialTheme.typography.titleMedium)
+        Dropdown("Инструмент",page,sections.map{it.first},{p->sections.first{it.first==p}.second},{selectedPage=it})
+    }
     when(page) {
-        "spectrum" -> {
+        "spectrum", "filter" -> {
+            if(page != "filter")
             LabChoice(s,"spectralMethod","Спектральная реконструкция",listOf("legacy" to "Авто · профиль / базовый метод","hanatos2025" to "Hanatos 2025 · Experimental","mallett2019" to "Mallett & Yuksel 2019","otsu2018" to "Otsu 2018","jakob2019" to "Jakob & Hanika 2019","arctic2026beta04" to "Arctic 2026 beta04","gauss-lasers" to "Gauss lasers"),"legacy")
-            LabChoice(s,"colorFilter","Съёмочный цветной фильтр",listOf("none" to "Без фильтра","hoya_x0" to "Hoya X0 · жёлто-зелёный","hoya_x1" to "Hoya X1 · зелёный","hoya_y2" to "Hoya Y2 · жёлтый","hoya_ya3" to "Hoya YA3 · насыщенный жёлтый","hoya_r1" to "Hoya R1 · красный"),"none")
-            LabNote("Фильтр меняет свет до экспонирования виртуальной плёнки. Базовые настройки Hanatos и гамута находятся в исходных разделах Input / Output.")
+            if(pageOverride==null || page=="filter") LabChoice(s,"colorFilter","Съёмочный цветной фильтр",listOf("none" to "Без фильтра","hoya_x0" to "Hoya X0 · жёлто-зелёный","hoya_x1" to "Hoya X1 · зелёный","hoya_y2" to "Hoya Y2 · жёлтый","hoya_ya3" to "Hoya YA3 · насыщенный жёлтый","hoya_r1" to "Hoya R1 · красный"),"none")
+            LabNote("Фильтр меняет свет до экспонирования виртуальной плёнки. Параметры реконструкции находятся в Плёнка → Спектр, входной цвет — в Камера → Входной цвет.")
         }
-        "chemistry" -> {LabTimeFamily(s);LabNote("Послойные коэффициенты меняют кривые негатива. Общая γ выше используется совместно с ними; это не количество ступеней EV.");LabGroup(s,"chemistry")}
+        "chemistry" -> {LabTimeFamily(s);LabNote("Послойные коэффициенты меняют кривые негатива. Общая γ находится в Проявка → Push / Pull и используется совместно с ними; это не количество ступеней EV.");LabGroup(s,"chemistry")}
         "film-base" -> {LabNote("Плотность и цвет подложки. Для негатива это оранжевая маска; настройки используются также при восстановлении настоящего скана.");LabGroup(s,"film-base")}
         "negative" -> LabNegativeSection(s,sourceUri,isRaw)
         "test-print" -> LabPrintTrials(s,sourceUri,isRaw)
