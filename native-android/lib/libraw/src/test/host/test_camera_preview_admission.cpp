@@ -48,7 +48,7 @@ int main(int argc, char** argv) try {
     std::vector<uint8_t> bytes(static_cast<size_t>(size)); input.seekg(0);
     if (!input.read(reinterpret_cast<char*>(bytes.data()), size)) throw std::runtime_error("truncated RAW");
     spectrafilm::DecodeOptions options;
-    options.halfSize = true; options.maxLongEdge = 1024;
+    options.halfSize = true; options.maxLongEdge = 2048;
     // 24 MiPixels * production's measured 28 B/pixel reproduces the exact old tier.
     options.admittedBytes = 24ULL * MiB * 28ULL;
     {
@@ -61,7 +61,7 @@ int main(int argc, char** argv) try {
     options.admittedBytes = 768ULL * MiB;
     {
         const auto fd = readFd(argv[1], options); checkImage(fd);
-        require(fd.width <= 1024 && fd.height <= 1024, "native preview stays within requested edge");
+        require(std::max(fd.width, fd.height) == 2048, "26MP RAW preview fills the requested 2048px edge without integer-step undersizing");
         const auto buffer = spectrafilm::decodeFromBuffer(bytes.data(), bytes.size(), options);
         checkImage(buffer);
         require(fd.width == buffer.width && fd.height == buffer.height &&

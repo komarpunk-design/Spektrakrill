@@ -78,7 +78,7 @@ private const val RAIL_PAD_DP = 104
 private val OPENS_SETTINGS_ONLY = setOf(Category.OUTPUT, Category.DISPLAY, Category.INPUT, Category.EXPERIMENTAL)
 
 /** Preview sizes the Display card's stepped slider offers, in px on the long edge. */
-internal val RAIL_PREVIEW_SIZES = listOf(256, 384, 512, 640, 768, 1024)
+internal val RAIL_PREVIEW_SIZES = listOf(256, 384, 512, 640, 768, 1024, 1280, 1536, 1792, 2048)
 
 /** Output gamut modes on the Output card, in the full settings' order. */
 private val RAIL_GAMUTS = listOf(

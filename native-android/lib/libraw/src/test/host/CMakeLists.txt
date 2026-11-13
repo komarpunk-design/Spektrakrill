@@ -457,3 +457,8 @@ if(SFRAW_CAMERA_ADMISSION_SAMPLE)
     add_test(NAME sfraw.camera.preview-memory
              COMMAND sfraw_camera_preview_memory_test "${SFRAW_CAMERA_ADMISSION_SAMPLE}")
 endif()
+
+add_executable(sfraw_preview_resample_test test_raw_preview_resample.cpp)
+target_include_directories(sfraw_preview_resample_test PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../../main/cpp")
+target_link_libraries(sfraw_preview_resample_test PRIVATE sfraw_host_sanitizers)
+add_test(NAME sfraw_preview_resample COMMAND sfraw_preview_resample_test)

@@ -17,10 +17,10 @@ class AdaptivePreviewTest {
         displayPx: Int = 2400,
     ) = DeviceRenderProfile(ramGib * gib, lowRam, perfClass, cores, bigCores, aggregateKHz, displayPx)
 
-    @Test fun missingTelemetryKeepsTheOldFixedDefaults() {
+    @Test fun missingTelemetryUsesDetailedSettleAndSmallDraft() {
         val e = autoPreviewEdges(DeviceRenderProfile(0, false, 0, 0, 0, 0, 0))
         assertEquals(PreviewTier.BASELINE, e.tier)
-        assertEquals(640, e.previewEdge)
+        assertEquals(1536, e.previewEdge)
         assertEquals(DRAFT_RENDER_MAX_PX, e.draftEdge)
     }
 
@@ -34,7 +34,7 @@ class AdaptivePreviewTest {
     @Test fun lowRamFlagForcesLowTier() {
         val e = autoPreviewEdges(profile(ramGib = 12, lowRam = true))
         assertEquals(PreviewTier.LOW, e.tier)
-        assertEquals(512, e.previewEdge)
+        assertEquals(1024, e.previewEdge)
         assertEquals(256, e.draftEdge)
     }
 
@@ -56,6 +56,19 @@ class AdaptivePreviewTest {
         )
         // MAX is reachable from RAM only.
         assertEquals(PreviewTier.HIGH, autoPreviewEdges(profile(ramGib = 8, perfClass = 34)).tier)
+    }
+
+    @Test fun detailedPreviewDoesNotIncreaseDraftWork() {
+        val baseline = autoPreviewEdges(profile(ramGib = 6))
+        val high = autoPreviewEdges(profile(ramGib = 8))
+        val max = autoPreviewEdges(profile(ramGib = 12))
+        assertEquals(1536, baseline.previewEdge)
+        assertEquals(1792, high.previewEdge)
+        assertEquals(2048, max.previewEdge)
+        assertEquals(DRAFT_RENDER_MAX_PX, baseline.draftEdge)
+        assertEquals(448, high.draftEdge)
+        assertEquals(512, max.draftEdge)
+        assertTrue(RAIL_PREVIEW_SIZES.contains(PREVIEW_EDGE_MAX))
     }
 
     @Test fun previewIsCappedBySmallScreens() {

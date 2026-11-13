@@ -548,7 +548,7 @@ internal fun ExperimentalSection(s: ParamsState, film:Boolean=true, print:Boolea
 internal fun DisplaySection(s: ParamsState) {
     var expanded by remember { mutableStateOf(true) }
     SectionCard(stringResource(R.string.editor_display_title), expanded, { expanded = it }) {
-        IntSlider(stringResource(R.string.editor_display_preview_max_size), s.previewMaxSize, 128..1024, { s.previewMaxSize = it },
+        IntSlider(stringResource(R.string.editor_display_preview_max_size), s.previewMaxSize, 128..PREVIEW_EDGE_MAX, { s.previewMaxSize = it },
             tooltip = stringResource(R.string.editor_display_preview_max_size_tooltip),
             default = PARAM_DEFAULTS.previewMaxSize)
     }

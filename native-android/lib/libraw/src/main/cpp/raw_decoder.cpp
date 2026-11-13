@@ -25,6 +25,7 @@
 #include "raw_decode_budget.h"
 #include "raw_cleanup.h"
 #include "raw_inset_crop.h"
+#include "raw_preview_resample.h"
 
 #include <algorithm>
 #include <array>
@@ -2835,52 +2836,25 @@ DecodeResult finishDecode(DecodeLibRaw& raw, const DecodeOptions& options,
         ? (1.0f / 65535.0f)
         : (1.0f / 255.0f);
 
-    // Cap the longest edge to options.maxLongEdge (proxy bound) DURING the uint16->float
-    // copy: subsample img->data straight into the final-sized buffer so we never hold a
-    // second full-resolution float image. LibRaw's half_size is honoured for most Bayer
-    // DNGs, but some (e.g. certain Samsung Expert-RAW DNGs) decode full-resolution
-    // regardless; without this cap result.rgb stays full-res and the returned direct
-    // buffer plus downstream copies can exhaust the process memory budget. Peak native
-    // memory here is LibRaw's own image + the capped buffer, not two full-res copies.
-    int step = 1;
-    {
-        const int longest = fullW > fullH ? fullW : fullH;
-        if (options.maxLongEdge > 0 && longest > options.maxLongEdge) {
-            step = static_cast<int>(
-                (static_cast<int64_t>(longest) + options.maxLongEdge - 1) /
-                options.maxLongEdge);
-        }
-    }
-    const int ow = step > 1 ? (fullW + step - 1) / step : fullW;
-    const int oh = step > 1 ? (fullH + step - 1) / step : fullH;
+    // Filter directly from LibRaw's integer bitmap into an exactly bounded proxy.
+    // Full-size export follows the unchanged sample conversion; no second full-size
+    // float allocation is needed for either route.
+    const auto output = preview::boundedSize(fullW, fullH, options.maxLongEdge);
+    const int ow = output.width, oh = output.height;
+    const int step = static_cast<int>((int64_t(std::max(fullW, fullH)) +
+                                      std::max(ow, oh) - 1) / std::max(ow, oh));
+    // Legacy descriptor field: ceiling of the reduction ratio (1 = native size).
     result.descriptor.outputSubsampleStep = step;
     result.width = ow;
     result.height = oh;
     result.rgb.allocateUninitialized(static_cast<size_t>(ow) * oh * 3U);
     mAllocate = phaseMs();
-    for (int oy = 0; oy < oh; ++oy) {
-        if (cancellationRequested(options)) return cancellationFailure();
-        const size_t srow =
-            (static_cast<size_t>(cropY) + static_cast<size_t>(oy) * step) * bitmapW +
-            static_cast<size_t>(cropX);
-        for (int ox = 0; ox < ow; ++ox) {
-            const size_t si = (srow + static_cast<size_t>(ox) * step) * 3;
-            const size_t di = (static_cast<size_t>(oy) * ow + ox) * 3;
-            if (image->bits == 16) {
-                result.rgb[di] = static_cast<float>(src16[si]) * processedScale;
-                result.rgb[di + 1] =
-                    static_cast<float>(src16[si + 1]) * processedScale;
-                result.rgb[di + 2] =
-                    static_cast<float>(src16[si + 2]) * processedScale;
-            } else {
-                result.rgb[di] = static_cast<float>(src8[si]) * processedScale;
-                result.rgb[di + 1] =
-                    static_cast<float>(src8[si + 1]) * processedScale;
-                result.rgb[di + 2] =
-                    static_cast<float>(src8[si + 2]) * processedScale;
-            }
-        }
-    }
+    const bool copied = image->bits == 16
+        ? preview::reduce(src16, bitmapW, cropX, cropY, fullW, fullH, output,
+                          processedScale, result.rgb.data(), options.cancelFlag)
+        : preview::reduce(src8, bitmapW, cropX, cropY, fullW, fullH, output,
+                          processedScale, result.rgb.data(), options.cancelFlag);
+    if (!copied) return cancellationFailure();
     mCopy = phaseMs();
     image.reset();
 

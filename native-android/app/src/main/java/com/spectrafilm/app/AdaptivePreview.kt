@@ -33,14 +33,14 @@ internal enum class PreviewTier { LOW, BASELINE, HIGH, MAX }
 
 internal data class AutoPreviewEdges(
     val tier: PreviewTier,
-    /** Settle preview long edge; inside the existing 128..1024 slider range. */
+    /** Settle preview long edge; inside the existing 128..2048 slider range. */
     val previewEdge: Int,
     /** Starting live-draft long edge; inside the existing 128..512 draft range. */
     val draftEdge: Int,
 )
 
 internal const val PREVIEW_EDGE_MIN = 256
-internal const val PREVIEW_EDGE_MAX = 1024
+internal const val PREVIEW_EDGE_MAX = 2048
 internal const val DRAFT_EDGE_MIN = 128
 internal const val DRAFT_EDGE_MAX = 512
 private const val EDGE_STEP = 64
@@ -53,7 +53,7 @@ private const val EDGE_STEP = 64
  * RAM picks the base tier (the same physical-RAM bands as [deviceMemoryPolicy], so
  * the preview never asks for more than the process memory budget is sized for);
  * CPU strength and the platform performance class move it one step either way.
- * Missing telemetry keeps the baseline (640 / 384, i.e. the old fixed defaults).
+ * Missing telemetry keeps the baseline (1536 / 384).
  */
 internal fun autoPreviewEdges(p: DeviceRenderProfile): AutoPreviewEdges {
     var tier = when (deviceMemoryPolicy(p.physicalBytes).tier) {
@@ -75,10 +75,10 @@ internal fun autoPreviewEdges(p: DeviceRenderProfile): AutoPreviewEdges {
     if (p.lowRamDevice) tier = PreviewTier.LOW
 
     val (preview, draft) = when (tier) {
-        PreviewTier.LOW -> 512 to 256
-        PreviewTier.BASELINE -> 640 to DRAFT_RENDER_MAX_PX
-        PreviewTier.HIGH -> 896 to 448
-        PreviewTier.MAX -> 1024 to 512
+        PreviewTier.LOW -> 1024 to 256
+        PreviewTier.BASELINE -> 1536 to DRAFT_RENDER_MAX_PX
+        PreviewTier.HIGH -> 1792 to 448
+        PreviewTier.MAX -> 2048 to 512
     }
     // No point rendering a preview much larger than the screen can show at fit zoom.
     val screenCap = if (p.displayLongEdgePx > 0) {

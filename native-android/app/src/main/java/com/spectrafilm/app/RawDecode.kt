@@ -20,7 +20,9 @@ import com.spectrafilm.libraw.WhiteBalance
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.ceil
 import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Decode a camera RAW/DNG [uri] to a scene-linear ProPhoto-RGB [LinearImage] via LibRaw
@@ -33,7 +35,7 @@ import kotlin.math.max
  * (it edits a ~2560px proxy and only reaches for the original on export / deep zoom).
  * Concretely, when [maxEdge] is at or below [HALF_DECODE_EDGE_THRESHOLD] we ask LibRaw
  * for a half-size decode (averages each Bayer 2x2 -> 1/4 the pixels and memory), then
- * box-downsample the rest of the way to [maxEdge]. Export-scale targets decode full-res.
+ * area-filter the rest of the way to [maxEdge]. Export-scale targets decode full-res.
  *
  * [wb]/[temperatureK]/[tint] mirror the GUI "Import Raw" white-balance controls.
  */
@@ -161,7 +163,7 @@ private const val MIN_RAW_FALLBACK_EDGE = 512
  */
 internal const val HALF_DECODE_EDGE_THRESHOLD = 4096
 
-/** Single RAW decode + box-downsample attempt at a specific [maxEdge] (see [decodeRawToLinear]). */
+/** Single RAW decode + bounded area-filter attempt at a specific [maxEdge] (see [decodeRawToLinear]). */
 private fun decodeRawAtEdge(
     ctx: Context,
     uri: Uri,
@@ -251,11 +253,10 @@ internal fun rawResultToLinearImage(result: LinearResult, maxEdge: Int): LinearI
         val packed = logical.slice().order(ByteOrder.nativeOrder())
 
         val longest = max(width, height)
-        var step = 1
-        while (longest / step > maxEdge) step++
+        val needsReduction = longest > maxEdge
         val exportScale = maxEdge > HALF_DECODE_EDGE_THRESHOLD
 
-        return if (step <= 1 && exportScale) {
+        return if (!needsReduction && exportScale) {
             val image = LinearImage.fromDataLease(
                 packed,
                 width,
@@ -265,7 +266,7 @@ internal fun rawResultToLinearImage(result: LinearResult, maxEdge: Int): LinearI
             )
             leaseTransferred = true
             image
-        } else if (step <= 1) {
+        } else if (!needsReduction) {
             val managed = ByteBuffer.allocateDirect(requiredBytes)
                 .order(ByteOrder.nativeOrder())
             managed.put(packed.duplicate())
@@ -273,21 +274,33 @@ internal fun rawResultToLinearImage(result: LinearResult, maxEdge: Int): LinearI
             LinearImage(managed, width, height, colorSpace = result.colorSpace)
         } else {
             val src = packed.asFloatBuffer()
-            val outWidth = ((width.toLong() + step - 1L) / step).toInt()
-            val outHeight = ((height.toLong() + step - 1L) / step).toInt()
+            // Defensive path for decoders ignoring the native output cap: preserve
+            // the requested size and average the covered area, never pick every Nth pixel.
+            val outWidth = max(1, (width.toLong() * maxEdge / longest).toInt())
+            val outHeight = max(1, (height.toLong() * maxEdge / longest).toInt())
             val out = ByteBuffer.allocateDirect(checkedRgbFloatBytes(outWidth, outHeight))
                 .order(ByteOrder.nativeOrder())
             val output = out.asFloatBuffer()
-            var outputIndex = 0
-            for (outputY in 0 until outHeight) {
-                val sourceY = outputY * step
-                val sourceRow = sourceY * width
-                for (outputX in 0 until outWidth) {
-                    val sourceIndex = (sourceRow + outputX * step) * 3
-                    output.put(outputIndex, src.get(sourceIndex))
-                    output.put(outputIndex + 1, src.get(sourceIndex + 1))
-                    output.put(outputIndex + 2, src.get(sourceIndex + 2))
-                    outputIndex += 3
+            val scaleX = width.toDouble() / outWidth
+            val scaleY = height.toDouble() / outHeight
+            for (oy in 0 until outHeight) {
+                val top = oy * scaleY; val bottom = (oy + 1) * scaleY
+                for (ox in 0 until outWidth) {
+                    val left = ox * scaleX; val right = (ox + 1) * scaleX
+                    var red = 0.0; var green = 0.0; var blue = 0.0; var weight = 0.0
+                    for (iy in top.toInt() until min(height, ceil(bottom).toInt())) {
+                        val wy = min(bottom, (iy + 1).toDouble()) - max(top, iy.toDouble())
+                        for (ix in left.toInt() until min(width, ceil(right).toInt())) {
+                            val w = wy * (min(right, (ix + 1).toDouble()) - max(left, ix.toDouble()))
+                            val i = (iy * width + ix) * 3
+                            red += src.get(i) * w; green += src.get(i + 1) * w; blue += src.get(i + 2) * w
+                            weight += w
+                        }
+                    }
+                    val i = (oy * outWidth + ox) * 3
+                    output.put(i, (red / weight).toFloat())
+                    output.put(i + 1, (green / weight).toFloat())
+                    output.put(i + 2, (blue / weight).toFloat())
                 }
             }
             LinearImage(out, outWidth, outHeight, colorSpace = result.colorSpace)
