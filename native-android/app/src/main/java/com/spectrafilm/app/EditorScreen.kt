@@ -861,7 +861,11 @@ internal fun EditorScreen(
     // Preset import/export and LUT save launchers (EditorPresetFiles.kt).
     val presetFiles = rememberEditorPresetFiles(
         ctx, scope, dispatchers, state, presetRepo, pendingPresetExportState, pendingLutTextState,
-        onImported = { previewTick++ },
+        presetVm = presetVm,
+        onImported = { names ->
+            presetList = (presetList+names).distinct().sorted()
+            names.firstOrNull()?.let { presetVm.onAction(PresetAction.Select(it)) }
+        },
         setStatus = { status = it },
     )
     val presetImporter = presetFiles.presetImporter
@@ -1141,6 +1145,7 @@ internal fun EditorScreen(
             builtInGroups = builtInGroups,
             presetUi = presetUi,
             presetImporter = presetImporter,
+            importPresetText = presetFiles.importText,
             presetExporter = presetExporter,
             savedPresetExporter = savedPresetExporter,
             lutExporter = lutExporter,

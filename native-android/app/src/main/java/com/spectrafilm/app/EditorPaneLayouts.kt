@@ -108,6 +108,7 @@ internal fun EditorWideLayout(
                 onSelectSection = openSection,
                 workflowTitle = workflowTitle,
                 workflowKey = workflowKey,
+                scrollContent = workflowKey != "presets",
                 workflowTabs = workflowTabs,
                 content = panelContent,
             )
@@ -212,6 +213,7 @@ internal fun EditorNarrowLayout(
                     onSelectSection = openSection,
                     workflowTitle = workflowTitle,
                     workflowKey = workflowKey,
+                scrollContent = workflowKey != "presets",
                     workflowTabs = workflowTabs,
                     content = panelContent,
                 )

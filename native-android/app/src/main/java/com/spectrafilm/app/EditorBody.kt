@@ -140,6 +140,7 @@ internal fun ColumnScope.EditorBody(
         // Compact vs tall panel height (drag the handle). Kept across panel closes
         // and rotation so a user who prefers the tall panel is not reset each time.
         var panelTall by rememberSaveable { mutableStateOf(false) }
+        var presetPanelTall by rememberSaveable { mutableStateOf(true) }
         // Preview-first: the photo fits into the space ABOVE the floating panel
         // instead of sitting underneath it, so opening a panel never hides the
         // part of the frame being judged. Animated so the photo eases up as the
@@ -202,8 +203,8 @@ internal fun ColumnScope.EditorBody(
                 sliderReadout = sliderReadout,
                 previewRegion = { previewRegion(panelInset, editOpen) },
                 panelBackProgress = panelBackProgress,
-                panelTall = panelTall,
-                onPanelTallChange = { panelTall = it },
+                panelTall = if(page==PhotoTool.PRESETS)presetPanelTall else panelTall,
+                onPanelTallChange = { if(page==PhotoTool.PRESETS)presetPanelTall=it else panelTall=it },
                 onPanelHeightChange = { panelHeightPx = it },
                 resetActiveCategory = resetActiveCategory,
                 editOpen = editOpen,

@@ -22,6 +22,11 @@ internal interface PresetRepository {
 
     /** A preset document's normalized JSON, from a SAF [uri]. */
     fun readUri(uri: Uri): String
+    fun readImport(uri: Uri): String = readUri(uri)
+    fun saveNewJson(name:String,json:String):Boolean {
+        if(exists(name))return false
+        saveJson(name,json);return true
+    }
 
     /** Stores pre-serialized preset [json] under [name]. */
     fun saveJson(name: String, json: String)
@@ -45,6 +50,8 @@ internal class FilePresetRepository(context: Context) : PresetRepository {
     override fun list() = Presets.list(app)
     override fun read(name: String) = Presets.read(app, name)
     override fun readUri(uri: Uri) = Presets.readUri(app, uri)
+    override fun readImport(uri:Uri)=Presets.readUriText(app,uri)
+    override fun saveNewJson(name:String,json:String)=Presets.saveNewJson(app,name,json)
     override fun saveJson(name: String, json: String) = Presets.saveJson(app, name, json)
     override fun exportJson(uri: Uri, json: String) = Presets.exportJson(app, uri, json)
     override fun delete(name: String) = Presets.delete(app, name)

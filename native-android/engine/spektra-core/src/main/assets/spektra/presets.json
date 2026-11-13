@@ -5,8 +5,8 @@
     {
       "id": "portra_400",
       "name": "Portra 400",
-      "group": "Portrait",
-      "description": "Warm, forgiving skin and soft contrast on Portra Endura: the film people mean when they say \"the film look\". Auto-metered, a third of a stop over.",
+      "group": "Портрет",
+      "description": "Тёплые оттенки кожи и мягкий контраст Portra Endura. Автоэкспозиция с небольшой передержкой.",
       "params": {
         "filmProfile": "kodak_portra_400",
         "printProfile": "kodak_portra_endura",
@@ -68,8 +68,8 @@
     {
       "id": "gold_200",
       "name": "Gold 200",
-      "group": "Everyday",
-      "description": "Kodak's consumer classic: sunny yellows, warm golds and a friendly grain, printed on Ektacolor Edge.",
+      "group": "На каждый день",
+      "description": "Солнечные жёлтые оттенки, тёплое золото и заметное зерно. Печать на Ektacolor Edge.",
       "params": {
         "filmProfile": "kodak_gold_200",
         "printProfile": "kodak_ektacolor_edge",
@@ -127,8 +127,8 @@
     {
       "id": "ektar_100",
       "name": "Ektar 100",
-      "group": "Landscape",
-      "description": "The finest-grain colour negative on Supra Endura: saturated skies and foliage with crisp detail, vivid without going garish.",
+      "group": "Пейзаж",
+      "description": "Мелкое зерно, насыщенное небо и зелень, чёткие детали. Печать на Supra Endura.",
       "params": {
         "filmProfile": "kodak_ektar_100",
         "printProfile": "kodak_supra_endura",
@@ -182,8 +182,8 @@
     {
       "id": "cinestill_800t",
       "name": "CineStill 800T",
-      "group": "Night",
-      "description": "Tungsten cine film without its rem-jet backing: bright lights bloom into red halos, with the cool, lab-corrected colour of a night scan.",
+      "group": "Ночь",
+      "description": "Холодная ночная палитра и красные ореолы вокруг ярких источников света.",
       "params": {
         "filmProfile": "cinestill_800t",
         "printProfile": "kodak_2383",
@@ -245,8 +245,8 @@
     {
       "id": "kodachrome_64",
       "name": "Kodachrome 64",
-      "group": "Slide",
-      "description": "The legendary K-14 slide film, scanned as a positive: rich reds, deep blues, warm archival colour and punchy contrast.",
+      "group": "Слайд",
+      "description": "Насыщенные красные, глубокие синие и выразительный контраст. Прямой скан слайда без фотобумаги.",
       "params": {
         "filmProfile": "kodak_kodachrome_64",
         "printProfile": "kodak_2383",
@@ -301,8 +301,8 @@
     {
       "id": "tri_x_400",
       "name": "Tri-X 400",
-      "group": "Black & white",
-      "description": "The classic black-and-white film on Multigrade paper at grade 3: gritty grain, deep blacks and bright, punchy midtones.",
+      "group": "Чёрно-белое",
+      "description": "Выразительное зерно, глубокий чёрный и плотные полутона. Бумага Multigrade, градация 3.",
       "params": {
         "filmProfile": "kodak_tri_x_400",
         "printProfile": "ilford_multigrade_iv_rc",

@@ -15,6 +15,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import android.provider.OpenableColumns
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.withContext
 
 /** The four document launchers [rememberEditorPresetFiles] registers. */
@@ -23,6 +27,7 @@ internal class EditorPresetFiles(
     val presetExporter: ManagedActivityResultLauncher<String, Uri?>,
     val savedPresetExporter: ManagedActivityResultLauncher<String, Uri?>,
     val lutExporter: ManagedActivityResultLauncher<String, Uri?>,
+    val importText:(String)->Unit,
 )
 
 /**
@@ -39,31 +44,38 @@ internal fun rememberEditorPresetFiles(
     presetRepo: PresetRepository,
     pendingPresetExportState: MutableState<String?>,
     pendingLutTextState: MutableState<String?>,
-    onImported: () -> Unit,
+    presetVm:PresetViewModel,
+    onImported: (List<String>) -> Unit,
     setStatus: (String) -> Unit,
 ): EditorPresetFiles {
     var pendingLutText by pendingLutTextState
-    val presetImporter = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            // Read the SAF stream off-main; decode (Compose-state write) on main.
-            scope.launch {
-                val text = withContext(dispatchers.io) {
-                    runCatching { presetRepo.readUri(uri) }.getOrNull()
+    var importing by remember { mutableStateOf(false) }
+    fun startImport(load:suspend ()->Pair<String,String>) {
+        if(importing)return
+        importing=true;presetVm.onAction(PresetAction.ImportStatus(true,"Читаю и проверяю JSON…"))
+        scope.launch {
+            try {
+                val (names,notes)=withContext(dispatchers.io) {
+                    val (text,fileName)=load()
+                    val entries=PresetImports.parse(text,fileName)
+                    PresetImports.store(presetRepo,entries) to entries.map{it.note}.filter{it.isNotBlank()}.distinct()
                 }
-                if (text == null) { setStatus(ctx.getString(R.string.editor_status_preset_import_failed)); return@launch }
-                runCatching {
-                    // Decode into a detached clone first. The live Compose state changes only
-                    // after the entire bounded/versioned import has validated successfully.
-                    val candidate = ParamsState()
-                    Presets.decode(Presets.encode(state), candidate)
-                    Presets.decode(org.json.JSONObject(text), candidate)
-                    Presets.decode(Presets.encode(candidate), state)
-                }
-                    .onSuccess { setStatus(ctx.getString(R.string.editor_status_preset_imported)); onImported() }
-                    .onFailure { setStatus(ctx.getString(R.string.editor_status_preset_import_failed_reason, it.message)) }
-            }
+                onImported(names)
+                val message="Добавлено в Мои: ${names.size}. Нажмите карточку, чтобы применить."+notes.take(2).joinToString(" ",prefix=if(notes.isEmpty())""else" ")+(if(notes.size>2)" Полные особенности сохранены в JSON каждого рецепта."else"")
+                presetVm.onAction(PresetAction.ImportStatus(false,message));setStatus(message)
+            }catch(e:CancellationException){throw e}
+            catch(e:Exception){
+                val message="Не удалось импортировать JSON: ${e.message?:"ошибка чтения файла"}"
+                presetVm.onAction(PresetAction.ImportStatus(false,message));setStatus(message)
+            }finally{importing=false;if(presetVm.current.importing)presetVm.onAction(PresetAction.ImportStatus(false,"Импорт прерван"))}
+        }
+    }
+    val presetImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if(uri!=null)startImport {
+            val name=runCatching {
+                ctx.contentResolver.query(uri,arrayOf(OpenableColumns.DISPLAY_NAME),null,null,null)?.use{c->if(c.moveToFirst())c.getString(0)else""}
+            }.getOrNull().orEmpty().take(256)
+            presetRepo.readImport(uri) to name
         }
     }
     val presetExporter = rememberLauncherForActivityResult(
@@ -117,5 +129,5 @@ internal fun rememberEditorPresetFiles(
         }
         pendingLutText = null
     }
-    return EditorPresetFiles(presetImporter, presetExporter, savedPresetExporter, lutExporter)
+    return EditorPresetFiles(presetImporter, presetExporter, savedPresetExporter, lutExporter, importText={text->startImport{text to ""}})
 }

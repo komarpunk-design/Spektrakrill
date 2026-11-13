@@ -66,7 +66,8 @@ import androidx.compose.ui.unit.sp
 }
 
 @Composable internal fun PhotoToolTabs(page:PhotoTool,dirty:Set<PhotoTool>,onSelect:(PhotoTool)->Unit) {
-    val tools=page.stage?.let(::photoTools)?:listOf(page)
+    if(page.stage==null)return
+    val tools=photoTools(page.stage)
     PrimaryScrollableTabRow(
         selectedTabIndex=tools.indexOf(page).coerceAtLeast(0),
         containerColor=MaterialTheme.colorScheme.surfaceContainer,

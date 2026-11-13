@@ -6,7 +6,7 @@ import org.json.JSONArray
 internal fun importLegacyLabRecipe(root:JSONObject):JSONObject? {
     if(root.has("schema") && root.optString("schema") != PRESET_SCHEMA_ID && root.optString("app") != "kirillkovaya-plenka")return null
     val p=root.optJSONObject("params")?:root
-    if(!p.has("filmStock") || !p.has("experimental"))return null
+    if(!p.has("filmStock"))return null
     val out=JSONObject().put("schema",PRESET_SCHEMA_ID).put("version",PRESET_VERSION)
         .put("filmProfile",p.optString("filmStock","kodak_portra_400")).put("printProfile",p.optString("printPaper","kodak_portra_endura"))
     fun block(name:String,vararg map:Pair<String,String>) {
@@ -32,9 +32,23 @@ internal fun importLegacyLabRecipe(root:JSONObject):JSONObject? {
     block("glare","glareActive" to "active","glarePercent" to "percent","glareRoughness" to "roughness","glareBlur" to "blur")
     block("experimental","filmGamma" to "filmGammaFactor","printGamma" to "printGammaFactor","chemistryActive" to "morphActive","printGammaFast" to "morphGammaFactorFast","printGammaSlow" to "morphGammaFactorSlow","printGammaR" to "morphGammaFactorRed","printGammaG" to "morphGammaFactorGreen","printGammaB" to "morphGammaFactorBlue","developerExhaustion" to "morphDeveloperExhaustion")
     for((old,new)in listOf("cameraDiffusion" to "camera","printDiffusion" to "enlarger"))p.optJSONObject(old)?.let{out.getJSONObject(new).put("diffusion",JSONObject(it.toString()))}
-    val lab=JSONObject(p.getJSONObject("experimental").toString())
+    block("output","scanFilm" to "scanFilm","outputCctf" to "savingCctfEncoding")
+    val lab=JSONObject((p.optJSONObject("experimental")?:JSONObject()).toString())
     for((old,new)in listOf("prep" to "negsPrep","transport" to "layeredTransport","output" to "outputModel"))p.optJSONObject(old)?.let{lab.put(new,JSONObject(it.toString()))}
     if(p.has("frameStyle"))lab.put("legacyFrame",JSONObject().put("style",p.getString("frameStyle")).put("number",p.optInt("frameNumber",1)).put("barcode",p.optBoolean("frameBarcode",true)).put("date",p.optString("frameDate")))
+    for((old,new)in listOf("scatterCoreUm" to "scatterCoreUm","scatterTailUm" to "scatterTailUm","halationFirstSigmaUm" to "firstSigmaUm"))p.optJSONArray(old)?.let{out.getJSONObject("halation").put(new,it)}
+    for((old,new)in listOf("scatterTailWeight" to "scatterTailWeightPct","halationStrength" to "halationStrengthPct"))p.optJSONArray(old)?.let{a->
+        require(a.length()==3);val arr=JSONArray();for(i in 0..2){val n=a.get(i);require(n is Number);arr.put(java.math.BigDecimal(n.toString()).multiply(java.math.BigDecimal(100)))};out.getJSONObject("halation").put(new,arr)
+    }
+    fun enumField(old:String,target:String,allowed:List<String>) {
+        if(!p.has(old))return
+        val value=p.getString(old)
+        val resolved=allowed.firstOrNull{it.equals(value,ignoreCase=true)}?:throw IllegalArgumentException("$old: неизвестное значение $value")
+        out.getJSONObject("output").put(target,resolved)
+    }
+    enumField("exportColorSpace","outputColorSpace",com.spectrafilm.engine.ColorSpace.entries.map{it.name})
+    enumField("inputGamutCompress","inputGamutCompress",com.spectrafilm.engine.InputGamutCompress.entries.map{it.name})
+    enumField("outputGamutCompress","outputGamutCompress",com.spectrafilm.engine.OutputGamutCompress.entries.map{it.name})
     out.put("spektrafilmLab",lab)
     return out
 }

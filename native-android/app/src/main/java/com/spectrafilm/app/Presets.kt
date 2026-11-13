@@ -59,6 +59,13 @@ object Presets {
         AtomicJsonStore.writeUtf8(file(ctx, name), normalized, AtomicJsonStore.MAX_PRESET_BYTES)
     }
 
+    internal fun saveNewJson(ctx:Context,name:String,json:String):Boolean {
+        val target=file(ctx,name)
+        return AtomicJsonStore.withPathLock(target) {
+            if(target.exists())false else {saveJson(ctx,name,json);true}
+        }
+    }
+
     fun load(ctx: Context, name: String, into: ParamsState) {
         fromJson(readPersistentJson(ctx, name), into)
     }
@@ -209,7 +216,7 @@ object Presets {
         }
     }
 
-    private fun readUriText(ctx: Context, uri: Uri): String {
+    internal fun readUriText(ctx: Context, uri: Uri): String {
         require(uri.scheme == "content") { "preset source must be content://" }
         return ctx.contentResolver.openInputStream(uri)?.use {
             AtomicJsonStore.readUtf8(it, AtomicJsonStore.MAX_PRESET_BYTES)
@@ -220,7 +227,7 @@ object Presets {
 
     /**
      * The name a save under [name] will ACTUALLY use on disk. [safeName] rewrites anything
-     * outside `A-Za-z0-9_- ` to an underscore and truncates to 96 characters, so "Portra #2"
+     * outside Unicode letters/numbers, combining marks, spaces, `_` and `-` to an underscore and truncates to 96 characters, so "Portra #2"
      * becomes "Portra _2" — which the UI used to hide, reporting the typed name back to the
      * user while storing something else.
      */
@@ -232,7 +239,7 @@ object Presets {
     private fun safeName(name: String): String = name.trim()
         .take(96)
         .ifEmpty { "preset" }
-        .replace(Regex("[^A-Za-z0-9_\\- ]"), "_")
+        .replace(Regex("""[^\p{L}\p{N}\p{M}_\- ]"""), "_")
 
     // --- JSON (de)serialization ---
 

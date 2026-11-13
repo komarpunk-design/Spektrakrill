@@ -18,6 +18,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import kotlinx.coroutines.CancellationException
 
 /**
  * The Presets panel with every callback it runs: built-in and saved presets, the amount
@@ -38,6 +39,7 @@ internal fun EditorPresetPanel(
     builtInGroups: Map<String, List<BuiltInPreset>>,
     presetUi: PresetUiState,
     presetImporter: ManagedActivityResultLauncher<Array<String>, Uri?>,
+    importPresetText:(String)->Unit,
     presetExporter: ManagedActivityResultLauncher<String, Uri?>,
     savedPresetExporter: ManagedActivityResultLauncher<String, Uri?>,
     lutExporter: ManagedActivityResultLauncher<String, Uri?>,
@@ -79,13 +81,52 @@ internal fun EditorPresetPanel(
             if (id != null && runCatching { Presets.toJsonString(state) }.getOrNull() == lastBuiltInOutput) id else ""
         }
     }
+    var savedInfo by remember { mutableStateOf<Map<String,SavedPresetInfo>>(emptyMap()) }
+    var applyGeneration by remember { mutableIntStateOf(0) }
+    var metadataRevision by remember { mutableIntStateOf(0) }
+    val latestSource by rememberUpdatedState(stripSourceKey)
+    fun missingProfile(j:JSONObject):String? {
+        val available=ctx.assets.list("spektra/profiles").orEmpty().map{it.removeSuffix(".json")}.toSet()+LabProfiles.entries(ctx).keys
+        for(key in listOf("filmProfile","printProfile"))if(j.has(key)&&j.optString(key) !in available)
+            return "Не установлен профиль ${j.optString(key)}. Сначала импортируйте материал в Плёнка → Каталог."
+        return null
+    }
+    LaunchedEffect(presetList,LabProfiles.generation,metadataRevision) {
+        savedInfo=withContext(dispatchers.io){presetList.associateWith { name ->
+            runCatching {
+                val j=JSONObject(presetRepo.read(name));val lab=j.optJSONObject("spektrafilmLab")
+                SavedPresetInfo(j.optString("filmProfile"),j.optString("printProfile"),lab?.optJSONObject("outputModel")?.optString("mode","paper")?:if(j.optJSONObject("output")?.optBoolean("scanFilm")==true)"Прямой скан"else"paper",error=missingProfile(j).orEmpty(),note=j.optString("importNote"))
+            }.getOrElse{SavedPresetInfo(error="Не удалось прочитать JSON: ${it.message}")}
+        }}
+    }
+    fun applySaved(name:String) {
+        val generation=++applyGeneration;val source=stripSourceKey
+        presetVm.onAction(PresetAction.Select(name))
+        scope.launch {
+            try {
+                val text=withContext(dispatchers.io){presetRepo.read(name).also { json -> missingProfile(JSONObject(json))?.let{error(it)} }}
+                if(generation!=applyGeneration||source!=latestSource)return@launch
+                applyWithAmount { Presets.decodeLook(JSONObject(text),state) }
+                lastBuiltInId=null;lastBuiltInOutput=null
+                status=ctx.getString(R.string.editor_status_preset_applied,name);previewTick++
+            }catch(e:CancellationException){throw e}
+            catch(e:Exception){status=ctx.getString(R.string.editor_status_preset_apply_failed_reason,e.message)}
+        }
+    }
     PresetPanel(
+        importing = presetUi.importing,
+        importMessage = presetUi.importMessage,
+        onDismissImportMessage = {presetVm.onAction(PresetAction.ImportStatus(false,""))},
+        onImportText = importPresetText,
+        savedInfo = savedInfo,
+        onApplySaved = ::applySaved,
         builtInGroups = builtInGroups,
         appliedBuiltInId = appliedBuiltIn,
         previewHost = presetPreviewHost,
         stripSourceKey = stripSourceKey,
         stripPaused = stripPaused,
         onApplyBuiltIn = { p ->
+            applyGeneration++
             val now = runCatching { Presets.toJsonString(state) }.getOrNull()
             val baseline =
                 presetRunBaseline(now, lastBuiltInOutput, presetBaselineJson)
@@ -133,11 +174,12 @@ internal fun EditorPresetPanel(
                 // state field-by-field — a torn snapshot off-main);
                 // only the file write + listing cross to IO.
                 scope.launch {
-                    val json = Presets.toJsonString(state)
-                    val names = withContext(dispatchers.io) {
+                    val json = runCatching{Presets.toJsonString(state)}.getOrElse{status="Не удалось сохранить рецепт: ${it.message}";return@launch}
+                    val names = try { withContext(dispatchers.io) {
                         presetRepo.saveJson(name, json); presetRepo.list()
-                    }
+                    }} catch(e:Exception) {status="Не удалось сохранить рецепт: ${e.message}";return@launch}
                     presetList = names
+                    metadataRevision++
                     // Report the name on disk, not the typed one:
                     // safeName may have rewritten it.
                     val stored = presetRepo.resolveName(name)
@@ -155,24 +197,7 @@ internal fun EditorPresetPanel(
                 savedPresetExporter.launch("$selectedPreset.json")
             }
         },
-        onApply = {
-            if (presetVm.current.selected.isNotBlank()) {
-                val name = presetVm.current.selected
-                // Read the JSON off-main; decode (Compose-state write)
-                // + applyWithAmount run back on the main thread.
-                scope.launch {
-                    val text = withContext(dispatchers.io) {
-                        runCatching { presetRepo.read(name) }.getOrNull()
-                    }
-                    if (text == null) { status = ctx.getString(R.string.editor_status_preset_apply_failed); return@launch }
-                    runCatching {
-                        applyWithAmount { Presets.decodeLook(org.json.JSONObject(text), state) }
-                    }
-                        .onSuccess { status = ctx.getString(R.string.editor_status_preset_applied, name); previewTick++ }
-                        .onFailure { status = ctx.getString(R.string.editor_status_preset_apply_failed_reason, it.message) }
-                }
-            }
-        },
+        onApply = { presetVm.current.selected.takeIf{it.isNotBlank()}?.let(::applySaved) },
         onDelete = {
             if (presetVm.current.selected.isNotBlank()) {
                 val name = presetVm.current.selected

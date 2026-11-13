@@ -442,6 +442,7 @@ internal fun AdjustmentPanel(
     onSelectSection: (Stage) -> Unit = {},
     workflowTitle: String? = null,
     workflowKey: Any? = null,
+    scrollContent:Boolean = true,
     workflowTabs: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -557,7 +558,7 @@ internal fun AdjustmentPanel(
                     // fill = false: a short panel stays short, a long one scrolls while the
                     // tool row below it stays in view.
                     .weight(1f, fill = false)
-                    .verticalScroll(scroll)
+                    .then(if(scrollContent)Modifier.verticalScroll(scroll)else Modifier)
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -611,6 +612,7 @@ internal fun SidePanel(
     onSelectSection: (Stage) -> Unit = {},
     workflowTitle: String? = null,
     workflowKey: Any? = null,
+    scrollContent:Boolean = true,
     workflowTabs: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -693,7 +695,7 @@ internal fun SidePanel(
                 Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .verticalScroll(sideScroll)
+                    .then(if(scrollContent)Modifier.verticalScroll(sideScroll)else Modifier)
                     .navigationBarsPadding()
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 12.dp),

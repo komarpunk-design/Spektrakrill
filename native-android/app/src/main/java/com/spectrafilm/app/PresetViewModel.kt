@@ -35,6 +35,8 @@ internal data class PresetUiState(
     val amount: Float = 1f,
     /** Copy/paste settings clipboard: a full params snapshot, or null. */
     val clipboardJson: String? = null,
+    val importing:Boolean = false,
+    val importMessage:String = "",
 ) {
     val amountEnabled: Boolean get() = fullJson != null
     val canPaste: Boolean get() = clipboardJson != null
@@ -66,6 +68,7 @@ internal data class PresetUiState(
 }
 
 internal sealed interface PresetAction {
+    data class ImportStatus(val busy:Boolean,val message:String) : PresetAction
     data class SetName(val value: String) : PresetAction
     data class Select(val value: String) : PresetAction
 
@@ -98,6 +101,7 @@ internal class PresetViewModel : ViewModel() {
 
     companion object {
         fun reduce(state: PresetUiState, action: PresetAction): PresetUiState = when (action) {
+            is PresetAction.ImportStatus -> state.copy(importing=action.busy,importMessage=action.message)
             is PresetAction.SetName -> state.copy(name = action.value)
             is PresetAction.Select -> state.copy(selected = action.value)
             is PresetAction.Applied ->
