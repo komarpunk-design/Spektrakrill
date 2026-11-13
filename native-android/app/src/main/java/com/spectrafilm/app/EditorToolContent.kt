@@ -13,6 +13,8 @@ import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
@@ -95,6 +97,21 @@ internal fun ColumnScope.EditorToolContent(
         PhotoTool.PREP -> { LabNote("Подготовка до виртуальной плёнки. Эта экспозиция не компенсируется при печати."); LabGroup(state,"prep"); return }
         PhotoTool.PROFILE -> { PhotoProfileDefaults(state); return }
         PhotoTool.OUTPUT -> { LabOutputSection(state); return }
+        PhotoTool.SCAN -> { ScanWorkspace(state); return }
+        PhotoTool.SPECTRAL_SCAN -> {
+            val digitalActive=state.labScanFilm() && state.labString("outputModel.mode","paper") in SCAN_RECEIVER_MODES &&
+                !StockCatalog.isReversalFilm(ctx,state.filmProfile) && LabCatalog.stock(state.filmProfile)?.optString("type")!="positive"
+            if(digitalActive) {
+                if(tool==Category.SCANNER) {
+                    LabNote("Цифровой приёмник обходит XYZ-коррекцию и оптическую вуаль исходного спектрального сканера. Его тон, цвет и детализация находятся в «Скан без бумаги». Сохранённые параметры этого инструмента доступны при возврате к спектральному выводу.")
+                    val navigate=LocalPhotoNavigate.current
+                    OutlinedButton(onClick={navigate(PhotoTool.SCAN)}) { Text("Открыть скан без бумаги") }
+                    OutlinedButton(onClick={navigate(PhotoTool.OUTPUT)}) { Text("Выбрать другой вывод") }
+                }
+                return
+            }
+            if(tool==Category.SCANNER)LabNote("Исходный спектральный сканер: размытие, коррекция XYZ и оптическая вуаль. Доступность коррекции зависит от плёнки и маршрута.")
+        }
         PhotoTool.PAPER_BASE -> { LabPaperBase(state); return }
         PhotoTool.DEVELOP -> {
             LabNote("Экспозиция при съёмке и проявка — разные действия. Поправка света задаётся в Камера → Экспозиция; γ ниже меняет характеристическую кривую. Push: недодержка и усиленная проявка, Pull: передержка и более мягкая проявка.")

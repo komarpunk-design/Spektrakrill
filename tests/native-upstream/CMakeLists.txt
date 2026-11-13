@@ -237,3 +237,7 @@ target_link_libraries(custom_profile_probe PRIVATE spektra_host)
 add_executable(preview_export_probe preview_export_probe.cpp)
 target_include_directories(preview_export_probe PRIVATE ${ROOT})
 target_link_libraries(preview_export_probe PRIVATE spektra_host Threads::Threads)
+
+add_executable(scan_workstation_probe scan_workstation_probe.cpp)
+target_include_directories(scan_workstation_probe PRIVATE ${ROOT})
+target_link_libraries(scan_workstation_probe PRIVATE spektra_host)

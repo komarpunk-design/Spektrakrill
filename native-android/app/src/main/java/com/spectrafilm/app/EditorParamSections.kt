@@ -448,7 +448,7 @@ internal fun SimulationSection(
                 // active only for a slide/positive film on the scan-film route, or in print mode — all
                 // print papers are negative), so we flag and gray it out there; elsewhere it's active
                 // but often subtle at the default 0.98/0.01 levels.
-                val correctionNoOp = s.scanFilm && !StockCatalog.isReversalFilm(ctx, s.filmProfile)
+                val correctionNoOp = s.labScanFilm() && !StockCatalog.isReversalFilm(ctx, s.filmProfile)
                 if (correctionNoOp) {
                     Text(
                         stringResource(R.string.editor_sim_scan_correction_noop),

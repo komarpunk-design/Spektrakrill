@@ -48,6 +48,7 @@ class PhotographicNavigationUiTest {
        val page=LocalPhotoTool.current!!
        Text("Page: ${page.id}",Modifier.testTag("open-page"))
        if(page==PhotoTool.OUTPUT)LabOutputSection(state)
+       if(page==PhotoTool.SCAN)ScanWorkspace(state)
       })
     }
    }
@@ -72,6 +73,29 @@ class PhotographicNavigationUiTest {
   System.getProperty("workflow.capture")?.let { path ->
    val file=java.io.File(path);file.parentFile?.mkdirs()
    file.outputStream().use { stream -> assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,stream)) }
+  }
+ }
+ @Test fun paperlessScanIsTheFirstScanPageAndPrintLinksToIt(){
+  show();stage("SCAN")
+  compose.onNodeWithText("Page: scan").assertIsDisplayed()
+  compose.onNodeWithText("Включить Lab Scan без бумаги").performScrollTo().performClick()
+  compose.runOnIdle{assertTrue(state.toParams().io.scanFilm)}
+  stage("PRINT");compose.onNodeWithText("Открыть настройки скана").performScrollTo().performClick()
+  compose.onNodeWithText("Page: scan").assertIsDisplayed()
+  compose.onNodeWithText("Перейти к сохранению").performScrollTo().performClick()
+  compose.onNodeWithText("Page: export").assertIsDisplayed()
+ }
+ @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun capturePaperlessScanInTheNativeWorkspace(){
+  show();stage("SCAN");compose.onNodeWithText("Включить Lab Scan без бумаги").performScrollTo().performClick()
+  compose.onNodeWithTag("preview").assertExists()
+  System.getenv("SCAN_WORKSPACE_CAPTURE_DIR")?.let { path ->
+   val file=java.io.File(path,"scan-phone.png");file.parentFile?.mkdirs()
+   file.outputStream().use { assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)) }
+   val close=RuntimeEnvironment.getApplication().getString(R.string.editor_close_panel_named,"Скан · Скан без бумаги")
+   val actions=compose.onNodeWithContentDescription(close).fetchSemanticsNode().config[SemanticsActions.CustomActions]
+   compose.runOnIdle { actions.first { it.label=="Make panel taller" }.action() }
+   compose.waitForIdle()
+   java.io.File(path,"scan-phone-tall.png").outputStream().use { assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)) }
   }
  }
  @Test fun negativeRouteDoesNotRequireOpeningAnExperimentalSubmenu(){

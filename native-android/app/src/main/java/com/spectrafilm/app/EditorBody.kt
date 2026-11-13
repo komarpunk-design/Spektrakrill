@@ -120,7 +120,8 @@ internal fun ColumnScope.EditorBody(
         val lastEdit: Category? = null
         val panelContent: @Composable ColumnScope.() -> Unit = {
             CompositionLocalProvider(LocalSliderInteraction provides sliderInteraction, LocalPhotoTool provides page,
-                LocalPhotoExport provides PhotoExportAction(exportVisible && !exportInFlight, onExport)) {
+                LocalPhotoExport provides PhotoExportAction(exportVisible && !exportInFlight, onExport),
+                LocalPhotoNavigate provides chooseTool) {
                 key(page.id) {
                     page.bypassReason(state)?.let { LabNote(it) }
                     if (page == PhotoTool.RAW_CLEANUP && !toolShown(Category.RAW_CLEANUP)) {

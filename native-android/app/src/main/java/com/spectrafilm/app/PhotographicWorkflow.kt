@@ -33,8 +33,9 @@ internal enum class PhotoTool(val id:String,val title:String,val stage:PhotoStag
     PAPER("paper","Бумага и печать",PhotoStage.PRINT,Category.PAPER,Category.PRINT_EXPOSURE,Category.PRINT_COLOR,Category.ENLARGER,Category.PREFLASH,Category.EXPERIMENTAL),
     PAPER_BASE("paper-base","Основа бумаги",PhotoStage.PRINT,Category.PAPER),
     TEST_PRINT("test-print","Пробная печать",PhotoStage.PRINT,Category.EXPERIMENTAL),
-    SCAN("scan","Отделка скана",PhotoStage.SCAN,Category.SCANNER,Category.GLARE),
+    SCAN("scan","Скан без бумаги",PhotoStage.SCAN,Category.SCANNER),
     NEGATIVE("negative","Настоящий негатив",PhotoStage.SCAN,Category.EXPERIMENTAL),
+    SPECTRAL_SCAN("spectral-scan","Спектральный скан",PhotoStage.SCAN,Category.SCANNER,Category.GLARE),
     CROP("crop","Кадрирование",PhotoStage.FINISH,Category.INPUT),
     FRAME("frame","Рамка",PhotoStage.FINISH,Category.FRAME),
     TONE("tone","Цифровой тон",PhotoStage.FINISH,Category.TONE_CURVE,Category.SAT_VIB,Category.SCENE_LATITUDE,Category.CONTRAST_MASK),
@@ -45,6 +46,7 @@ internal enum class PhotoTool(val id:String,val title:String,val stage:PhotoStag
     DISPLAY("display","Предпросмотр",null,Category.DISPLAY);
     val category:Category get()=categories.first()
 }
+internal val LocalPhotoNavigate=staticCompositionLocalOf<(PhotoTool)->Unit>{{}}
 internal val LocalPhotoTool=staticCompositionLocalOf<PhotoTool?>{null}
 internal fun photoTools(stage:PhotoStage)=PhotoTool.entries.filter{it.stage==stage}
 internal fun photoToolFor(category:Category):PhotoTool = when(category) {
@@ -64,6 +66,7 @@ internal fun PhotoTool.nativePaths():List<String> = when(this) {
     PhotoTool.PREP,PhotoTool.FILTER,PhotoTool.FILM_BASE,PhotoTool.PROFILE,PhotoTool.CHEMISTRY,
     PhotoTool.PAPER_BASE,PhotoTool.TEST_PRINT,PhotoTool.NEGATIVE,PhotoTool.FILE -> emptyList()
     PhotoTool.OUTPUT -> listOf("output.scanFilm")
+    PhotoTool.SCAN -> listOf("scanner.lensBlur","scanner.unsharpMask")
     PhotoTool.LENS -> listOf("camera.lensBlurUm","camera.diffusion","input.filterUv","input.filterIr")
     PhotoTool.INPUT_COLOR -> listOf("input.inputColorSpace","input.inputCctfDecoding","output.inputGamutCompress")
     PhotoTool.SPECTRUM -> listOf("input.spectralUpsampling","input.adaptationWindow","input.adaptationSurface","input.spectralGaussianBlur")
@@ -83,7 +86,8 @@ internal fun PhotoTool.labPrefixes():List<String> = when(this) {
     PhotoTool.GRAIN -> listOf("grain")
     PhotoTool.HALATION -> listOf("layeredTransport")
     PhotoTool.PAPER_BASE -> listOf("printBase")
-    PhotoTool.OUTPUT -> listOf("outputModel")
+    PhotoTool.OUTPUT -> listOf("outputModel.mode")
+    PhotoTool.SCAN -> listOf("outputModel")
     PhotoTool.NEGATIVE -> listOf("scan","workflow")
     else -> emptyList()
 }
@@ -98,11 +102,15 @@ internal fun photoDirtyTools(s:ParamsState):Set<PhotoTool> {
     return PhotoTool.entries.filterTo(mutableSetOf()){it.changed(s,current,photoDefaults,lab)}
 }
 internal fun PhotoTool.changed(s:ParamsState,current:JSONObject=Presets.encode(s),defaults:JSONObject=photoDefaults,lab:JSONObject=s.labObject()):Boolean {
+    if(this==PhotoTool.OUTPUT)return s.scanFilm!=PARAM_DEFAULTS.scanFilm || s.labString("outputModel.mode","paper")!="paper"
+    if(this==PhotoTool.SCAN)return s.scanCorrectionsChanged()
     if(nativePaths().any{!samePhotoValue(current.valueAt(it),defaults.valueAt(it))})return true
     fun changed(v:Any?,path:String):Boolean=if(v is JSONObject)v.keys().asSequence().any{changed(v.opt(it),"$path.$it")}else!samePhotoValue(v,LabCatalog.default(path))
     return lab.keys().asSequence().any{k->labPrefixes().any{k.startsWith(it)}&&changed(lab.opt(k),k)}
 }
 internal fun PhotoTool.reset(s:ParamsState) {
+    if(this==PhotoTool.OUTPUT){s.setLab("outputModel.mode",null);s.scanFilm=PARAM_DEFAULTS.scanFilm;return}
+    if(this==PhotoTool.SCAN){s.resetScanCorrections();return}
     val defaults=Presets.encode(PARAM_DEFAULTS);val partial=JSONObject()
     for(path in nativePaths())partial.setAt(path,defaults.valueAt(path))
     if(partial.length()>0)Presets.decode(partial,s)

@@ -58,8 +58,12 @@ import org.json.JSONArray
         SwitchRow("Прямой спектральный скан плёнки",s.scanFilm,{s.scanFilm=it},"Исходный режим приложения: получить позитив плёнки без виртуальной фотобумаги. Digital Reference / Lab Scan выбираются отдельно в списке выше.")
         if(s.scanFilm)LabNote("Спектральный скан включён: фотобумага обходится.")
     }
-    if(mode!="paper") LabNote("Этот маршрут обходит фотобумагу. Яркость и цвет ниже — операторские поправки готового скана, независимо от экспозиции съёмки.")
-    if(mode in listOf("digital","auto-levels","lab-scan")) LabGroup(s,"output")
+    if(mode!="paper") LabNote("Этот маршрут обходит фотобумагу. Параметры съёмки и проявки сохраняются.")
+    if(mode in SCAN_RECEIVER_MODES) {
+        val navigate=LocalPhotoNavigate.current
+        LabNote("Яркость, цвет, контраст, чёрная и белая точки и детализация собраны в Скан → Скан без бумаги.")
+        OutlinedButton(onClick={navigate(PhotoTool.SCAN)},modifier=Modifier.fillMaxWidth()){Text("Открыть настройки скана")}
+    }
 }
 @Composable internal fun LabFilmFormat(s:ParamsState) {
     val formats=listOf(17f to "110 · 17 мм",24f to "Полукадр · 24 мм",35f to "135 · 35 мм",56f to "6×4.5 / 6×6 · 56 мм",70f to "6×7 · 70 мм",84f to "6×9 · 84 мм",120f to "4×5 · 120 мм")

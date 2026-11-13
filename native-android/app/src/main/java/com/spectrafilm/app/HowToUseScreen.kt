@@ -360,6 +360,8 @@ private fun CategoryList() {
         )
         photoTools(stage).forEach { tool ->
             val description=when(tool) {
+                PhotoTool.SCAN->"Позитив без бумаги: Lab Scan / Digital Reference / Auto Levels, операторские поправки, тон, цвет и детализация."
+                PhotoTool.SPECTRAL_SCAN->"Исходная оптика сканера и XYZ-коррекция Spektrafilm; цифровой Lab Scan имеет отдельную панель."
                 PhotoTool.OUTPUT->"Выбор фотобумаги, Digital Reference, Auto Levels, Lab Scan или негатива на просвет."
                 PhotoTool.PREP->"Подготовка фотографии до виртуальной плёнки: тон, детали и независимая экспозиция."
                 PhotoTool.PROFILE->"Восстановление настроек зерна и DIR выбранного материала."

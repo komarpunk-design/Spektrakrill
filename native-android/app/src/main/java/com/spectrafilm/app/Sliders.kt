@@ -26,10 +26,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
@@ -531,7 +534,10 @@ internal fun NumericEntryDialog(
     onDismiss: () -> Unit,
     onConfirm: (Float) -> Unit,
 ) {
-    var text by remember { mutableStateOf(initial) }
+    // The state-based field avoids the legacy TextLayoutResultProxy remeasure loop
+    // when this dialog opens from a scrolled tool panel. It also saves in-progress text.
+    val input = rememberTextFieldState(initialText = initial)
+    val text = input.text.toString()
     val parsed = parseSliderInput(text, range, step)
     // [parsed] clamps out-of-range input (Set still works, landing on the bound), so the range
     // hint is flagged as an error both for unparseable text and for a typed value outside the
@@ -550,30 +556,25 @@ internal fun NumericEntryDialog(
         title = { Text(label, modifier = Modifier.semantics { heading() }) },
         text = {
             Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = text,
-                        onValueChange = { text = it },
-                        singleLine = true,
-                        label = { Text(stringResource(R.string.widget_numeric_entry_field_label)) },
-                        isError = isError,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (range.start < 0f) {
-                        Spacer(Modifier.width(8.dp))
-                        OutlinedButton(
+                OutlinedTextField(
+                    state = input,
+                    lineLimits = TextFieldLineLimits.SingleLine,
+                    label = { Text(stringResource(R.string.widget_numeric_entry_field_label)) },
+                    isError = isError,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = if (range.start < 0f) ({
+                        IconButton(
                             onClick = {
-                                text = when {
-                                    text.startsWith("-") -> text.removePrefix("-")
-                                    text.isBlank() -> "-"
-                                    else -> "-$text"
+                                input.edit {
+                                    if (length > 0 && charAt(0) == '-') replace(0, 1, "")
+                                    else replace(0, 0, "-")
                                 }
                             },
                             modifier = Modifier.semantics { contentDescription = signDescription },
                         ) { Text("±") }
-                    }
-                }
+                    }) else null,
+                )
                 Spacer(Modifier.height(6.dp))
                 Text(
                     rangeHint,

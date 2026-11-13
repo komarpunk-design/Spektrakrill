@@ -34,11 +34,33 @@ inline RGB finish(RGB rgb,double strength=1,bool chromatic=true,double floor=0){
  double ll=std::pow(L+.3963377774*a+.2158037573*B,3),mm=std::pow(L-.1055613458*a-.0638541728*B,3),ss=std::pow(L-.0894841775*a-1.291485548*B,3);
  return {4.0767416621*ll-3.3077115913*mm+.2309699292*ss,-1.2684380046*ll+2.6097574011*mm-.3413193965*ss,-.0041960863*ll-.7034186147*mm+1.707614701*ss};
 }
-struct Params {std::string mode="paper";bool automatic=true;double exposure=0,look=1;RGB keys={0,0,0};};
+struct Params {std::string mode="paper";bool automatic=true;double exposure=0,look=1;RGB keys={0,0,0};double contrast=1,black=0,white=1;};
 inline Params read_params(const char* text){Params p;if(!text||!*text)return p;auto j=json::parse(text);if(!j->has("outputModel"))return p;auto& o=j->at("outputModel");if(!o.is_object())return p;
  if(o.has("mode")){auto s=o.at("mode").as_string();if(s!="paper"&&s!="negative"&&s!="digital"&&s!="auto-levels"&&s!="lab-scan")throw std::runtime_error("Unknown output model");p.mode=s;}
  auto num=[&](const char* key,double fallback,double low,double high){if(!o.has(key))return fallback;double v=o.at(key).as_number();if(!std::isfinite(v))throw std::runtime_error("Nonfinite output control");return clamp(v,low,high);};
- p.exposure=num("exposure",0,-6,6);p.look=num("look",1,0,1);p.keys={num("cyan",0,-1,1),num("magenta",0,-1,1),num("yellow",0,-1,1)};if(o.has("autoSetup")&&o.at("autoSetup").type==json::Type::Bool)p.automatic=o.at("autoSetup").boolean;return p;}
+ p.exposure=num("exposure",0,-6,6);p.look=num("look",1,0,1);p.keys={num("cyan",0,-1,1),num("magenta",0,-1,1),num("yellow",0,-1,1)};if(o.has("autoSetup")&&o.at("autoSetup").type==json::Type::Bool)p.automatic=o.at("autoSetup").boolean;
+ p.contrast=num("contrast",1,.5,2);p.black=num("blackPoint",0,-.05,.1);p.white=num("whitePoint",1,.5,1.5);return p;}
+
+/** Operator tone AFTER receiver inversion/finish and BEFORE scanner optics/output
+ * conversion. A monotonic S-curve pivots at 18% linear luminance and retains
+ * neutral black/white endpoints, scaling all channels together. Endpoint
+ * controls have disjoint bounds, so white never crosses black.
+ * Defaults are an exact bypass, retaining all existing recipe pixels. */
+inline RGB operator_tone(RGB value,const Params& p) {
+ if(p.contrast==1 && p.black==0 && p.white==1)return value;
+ if(p.contrast!=1) {
+  const double Y=.2126*value[0]+.7152*value[1]+.0722*value[2];
+  if(Y>1e-12 && Y<1-1e-12) {
+   const double pivot=std::log(.18/.82);
+   const double logit=p.contrast*std::log(Y/(1-Y))+(1-p.contrast)*pivot;
+   const double target=1/(1+std::exp(-logit));
+   const double gain=target/Y;
+   for(double& c:value)c*=gain;
+  }
+ }
+ if(p.black!=0 || p.white!=1)for(double& c:value)c=(c-p.black)/(p.white-p.black);
+ return value;
+}
 inline double density_at(const Profile& f,double x,int c,double gamma){x*=gamma;auto& axis=f.log_exposure;if(axis.empty())throw std::runtime_error("No receiver calibration curve");auto it=std::upper_bound(axis.begin(),axis.end(),x);if(it==axis.begin())return f.density_curves[c];if(it==axis.end())return f.density_curves[(axis.size()-1)*3+c];int hi=it-axis.begin(),lo=hi-1;double a=(x-axis[lo])/(axis[hi]-axis[lo]);return f.density_curves[lo*3+c]*(1-a)+f.density_curves[hi*3+c]*a;}
 /** Read CMY densities through Fotufilm's 630/545/465 nm LED receiver, then invert
  * using its softplus scan curve. Calibration/timing is adapted to Spektrafilm. */
@@ -53,7 +75,7 @@ inline bool scan(const Profile& f,const Params& p,const float* density,int w,int
  std::vector<double> stats;int stride=std::max(1,count/16384);for(int i=0;i<count;i+=stride)stats.push_back((result[i*3]+result[i*3+1]+result[i*3+2])/3.);std::sort(stats.begin(),stats.end());
  double median=stats[stats.size()/2],highValue=stats[std::min(stats.size()-1,size_t(stats.size()*.995))],middle=inverse(-std::log10(.18));bool automatic=p.mode=="auto-levels"||(p.mode=="lab-scan"&&p.automatic);
  double scale=automatic?clamp(1.2/std::max(.8,highValue-median),1,1.5):1,shift=automatic?std::min({0.,-median*.5,(middle-inverse(.08))-highValue*scale}):0;
- parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){RGB value;for(int c=0;c<3;c++)value[c]=std::pow(10.,-curve(middle-(result[i*3+c]*scale+shift+p.exposure*std::log10(2.)-p.keys[c]*.5)));if(p.mode=="lab-scan")value=finish(value,p.look,!f.monochrome);double gray=(value[0]+value[1]+value[2])/3;for(int c=0;c<3;c++)result[i*3+c]=f.monochrome?gray:value[c];}});
+ parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){RGB value;for(int c=0;c<3;c++)value[c]=std::pow(10.,-curve(middle-(result[i*3+c]*scale+shift+p.exposure*std::log10(2.)-p.keys[c]*.5)));if(p.mode=="lab-scan")value=finish(value,p.look,!f.monochrome);value=operator_tone(value,p);double gray=(value[0]+value[1]+value[2])/3;for(int c=0;c<3;c++)result[i*3+c]=f.monochrome?gray:value[c];}});
  if(blur>0)gaussian_blur(result,w,h,3,blur);if(usmSigma>0&&usmAmount>0){std::vector<float> blurred(result,result+count*3);gaussian_blur(blurred.data(),w,h,3,usmSigma);for(int i=0;i<count*3;i++)result[i]+=usmAmount*(result[i]-blurred[i]);}
  // sRGB D65 -> XYZ D50, then the engine's own output-space matrix and transfer.
  const double toXYZ[]={.4360657428,.3851514688,.1430784544,.2224931918,.7168870538,.0606197905,.0139239045,.0970812857,.7140993584};
