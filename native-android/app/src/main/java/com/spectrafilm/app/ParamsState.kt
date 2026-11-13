@@ -549,11 +549,9 @@ class ParamsState {
     fun toParams(
         previewMaxSizeOverride: Int? = null,
         filmFormatMmOverride: Float? = null,
-        // Interactive-preview optimisation (Lightroom-style "grain at 100%"): drop the per-pixel
-        // grain + the spatial halation/diffusion branch — the dominant preview cost, ~invisible at
-        // fit/draft resolution. The live draft AND the full fit settle set this; the 100% zoom ROI,
-        // the magnifier and EXPORT do NOT, so grain/halation still render where they're visible.
-        // Preview-only — never set on the export path, so parity is unaffected. Couplers stay on.
+        // Temporary draft/thumbnail optimisation: omit grain + halation while dragging.
+        // A settled fit preview, zoom/magnifier and export retain the complete effects.
+        // Couplers remain enabled even in the temporary draft.
         skipGrainHalation: Boolean = false,
         // Stock-preview tiles render a candidate film or paper as a tap would apply it. The
         // paper-dependent fields (grade filtration, exposure, database lookup) and the

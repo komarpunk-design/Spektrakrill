@@ -233,3 +233,7 @@ target_link_libraries(test_binomial_shortcircuit PRIVATE spektra_host Threads::T
 add_executable(custom_profile_probe custom_profile_probe.cpp)
 target_include_directories(custom_profile_probe PRIVATE ${ROOT})
 target_link_libraries(custom_profile_probe PRIVATE spektra_host)
+
+add_executable(preview_export_probe preview_export_probe.cpp)
+target_include_directories(preview_export_probe PRIVATE ${ROOT})
+target_link_libraries(preview_export_probe PRIVATE spektra_host Threads::Threads)

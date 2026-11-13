@@ -61,12 +61,17 @@ internal data class InteractiveRenderSnapshot(
 /** Must be called on the UI thread that owns [ParamsState]. */
 internal fun ParamsState.captureInteractiveRenderSnapshot(
     renderKey: Int,
+    params: SpektraParams = toParams(),
 ): InteractiveRenderSnapshot = InteractiveRenderSnapshot(
     renderKey = renderKey,
-    params = toParams(),
+    params = params,
     cctfEncoded = savingCctfEncoding,
     saturation = saturation,
     vibrance = vibrance,
     gamutCompress = gamutCompress,
     localAdjustments = localAdjustments.toList(),
 )
+
+/** Final fit view is a complete render; only the drag draft may omit film effects. */
+internal fun ParamsState.settledPreviewParams(cropOpen: Boolean = false): SpektraParams =
+    toParams().let { if (cropOpen) it.withoutCrop() else it }

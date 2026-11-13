@@ -229,6 +229,7 @@ internal suspend fun CoroutineScope.runFinalPreviewPass(
         // Key built on MAIN (reads Compose state); the same snapshot renders below,
         // so the key and the render can never disagree.
         val cacheKey = gradeCacheKey(fullEdge)
+        val frame = state.captureInteractiveRenderSnapshot(0, cacheKey.engineParams)
         val cacheStoreTicket = gradeCache.beginStore(cacheKey)
         val cached = gradeCache.lookup(cacheKey)
         val prevBefore = beforePreview
@@ -254,9 +255,9 @@ internal suspend fun CoroutineScope.runFinalPreviewPass(
                         try {
                             val rendered = cached.withScratch { scratch ->
                                 gradeBufferToBitmap(scratch, cached.width,
-                                    cached.height, cached.colorSpace, state.savingCctfEncoding,
-                                    state.saturation, state.vibrance, state.gamutCompress,
-                                    state.localAdjustments.withSkinField(cacheKey.engineParams.io))
+                                    cached.height, cached.colorSpace, frame.cctfEncoded,
+                                    frame.saturation, frame.vibrance, frame.gamutCompress,
+                                    frame.localAdjustments.withSkinField(cacheKey.engineParams.io))
                             }
                             after = rendered
                             val submission = Triple(prevBefore, rendered, false)
@@ -282,9 +283,9 @@ internal suspend fun CoroutineScope.runFinalPreviewPass(
                                 // Cut to the engine's crop box so compare/peek register (#254).
                                 val ownedBefore = beforeFrameBitmap(lease.image, cacheKey.engineParams)
                                 before = ownedBefore
-                                // Fit preview skips grain/halation (the user's "grain at 100%" choice): they
-                                // are rendered by the zoom ROI, the magnifier and export, never the fit settle.
-                                // Render with cacheKey.engineParams — the exact snapshot the key hashed.
+                                // A settled preview includes all enabled effects, just like export.
+                                // Only the temporary draft may omit expensive spatial effects.
+                                // Render and grade one immutable generation, matching the cache key.
                                 val ownedAfter = runCancellableNative(
                                     onLateResult = { late ->
                                         late.reportOutcome(AppRenderOutcome.SUPERSEDED)
@@ -316,11 +317,11 @@ internal suspend fun CoroutineScope.runFinalPreviewPass(
                                     }
                                     val rendered = simResultToBitmapGraded(
                                         res,
-                                        state.savingCctfEncoding,
-                                        state.saturation,
-                                        state.vibrance,
-                                        state.gamutCompress,
-                                        state.localAdjustments.withSkinField(cacheKey.engineParams.io),
+                                        frame.cctfEncoded,
+                                        frame.saturation,
+                                        frame.vibrance,
+                                        frame.gamutCompress,
+                                        frame.localAdjustments.withSkinField(cacheKey.engineParams.io),
                                     ).also { bitmap -> after = bitmap }
                                     // The test seam is exactly the completed native settle's
                                     // production completion-before-publication boundary. The

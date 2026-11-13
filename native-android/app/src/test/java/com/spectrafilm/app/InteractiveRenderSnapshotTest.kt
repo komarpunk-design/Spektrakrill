@@ -3,7 +3,7 @@
  */
 package com.spectrafilm.app
 
-import org.junit.Assert.assertEquals
+import org.junit.Assert.*
 import org.junit.Test
 
 class InteractiveRenderSnapshotTest {
@@ -51,4 +51,44 @@ class InteractiveRenderSnapshotTest {
         assertEquals(true, crop.printRender.contrastMask.active)
         assertEquals(0.12f, crop.printRender.contrastMask.scale, 1e-6f)
     }
+    @Test fun settledPreviewRetainsTheSameEffectsAsExport() {
+        val state = ParamsState().apply {
+            grainActive = true; halationActive = true; couplersActive = true
+            grainParticleAreaUm2 = .7f; halHalationAmount = 1.4f
+            cameraLensBlurUm = 4f; crop = true
+            setLab("outputModel.mode", "lab-scan")
+            setLab("layeredTransport.model", "layered")
+        }
+        val preview = state.settledPreviewParams()
+        assertTrue(preview.filmRender.grain.active)
+        assertTrue(preview.filmRender.halation.active)
+        assertTrue(preview.filmRender.dirCouplers.active)
+        assertEquals(.7f, preview.filmRender.grain.agxParticleAreaUm2, 0f)
+        assertEquals(1.4f, preview.filmRender.halation.halationAmount, 0f)
+        assertEquals(4f, preview.camera.lensBlurUm, 0f)
+        assertTrue(preview.io.crop)
+        assertEquals(state.toParams(), preview)
+        assertTrue(preview.experimentalJson.contains("lab-scan"))
+    }
+
+    @Test fun openingCropDoesNotDisableFilmEffectsOrChangeOutputRoute() {
+        val state = ParamsState().apply { crop = true; grainActive = true; halationActive = true; setLab("outputModel.mode", "digital") }
+        val preview = state.settledPreviewParams(cropOpen = true)
+        assertFalse(preview.io.crop)
+        assertTrue(preview.filmRender.grain.active)
+        assertTrue(preview.filmRender.halation.active)
+        assertTrue(preview.experimentalJson.contains("digital"))
+        assertEquals(state.toParams().withoutCrop(), preview)
+    }
+
+    @Test fun settledGradeUsesTheSameGenerationAsItsCachedEngineOutput() {
+        val state = ParamsState().apply { saturation=.2f; vibrance=.3f; gamutCompress=.4f; savingCctfEncoding=false }
+        val cachedParams = state.settledPreviewParams(cropOpen = true)
+        val frame = state.captureInteractiveRenderSnapshot(11, cachedParams)
+        state.saturation=.9f; state.vibrance=.8f; state.gamutCompress=.7f; state.savingCctfEncoding=true
+        assertSame(cachedParams, frame.params)
+        assertEquals(.2f,frame.saturation,0f); assertEquals(.3f,frame.vibrance,0f); assertEquals(.4f,frame.gamutCompress,0f)
+        assertFalse(frame.cctfEncoded)
+    }
+
 }

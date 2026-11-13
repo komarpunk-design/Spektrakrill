@@ -96,9 +96,9 @@ internal fun EditorPreviewEffects(
         // The Crop tab renders the whole frame (CropTool.kt): its crop frame sits on the photo,
         // so the engine must not have cut it already. Part of the key, so the cropped and the
         // crop-free renders are cached apart.
-        val params = state.toParams(skipGrainHalation = true)
+        val params = state.settledPreviewParams(toolVm.current.cropOpen)
         return GradeCache.Key(
-            engineParams = if (toolVm.current.cropOpen) params.withoutCrop() else params,
+            engineParams = params,
             decode = GradeCache.DecodeKey(
                 uri = sourceUri?.toString(), kind = sourceKind.name,
                 whiteBalance = state.rawWhiteBalance, temperature = state.rawTemperature,

@@ -5005,37 +5005,16 @@ spk_status spk_simulate_preview_cancellable(spk_engine* eng, const spk_image* in
     // prime core's max frequency sits far enough above the performance cluster
     // that the 0.80 cutoff keeps only the prime core, and the whole frame then
     // runs single-threaded. All cores are faster there; export was already unpinned.
-    // Proxy-approximate / export-exact (docs/PERF_ROADMAP.md): the interactive preview
-    // runs the approximate LUT fast-path (the scanner density->log_xyz spectral integral
-    // is PCHIP-interpolated through a 3D LUT instead of evaluated per pixel; error is
-    // profile/domain dependent — see runtime/stages/scanning.h). spk_simulate keeps the
-    // caller's explicit setting; the app's exact-export route keeps it off. We copy the
-    // caller's params and force the LUT on for the preview only.
+    // Preview and export use the same processing contract. Downscaling the input
+    // is the preview optimisation; do not silently enable spectral LUTs that the
+    // caller disabled, or select a different GPU grain/glare realisation.
+    // Explicit LUT settings remain supported on both routes.
     spk_params pp = *p;
-    // Force BOTH spectral LUTs on for the interactive preview (proxy-approximate / export-exact):
-    // the scanner density->log_xyz integral AND the enlarger print-expose integral are the two
-    // per-pixel hotspots, so PCHIP-interpolating both through their 3D LUTs roughly halves
-    // the preview render on the print route. Scanner error is profile/domain dependent;
-    // the enlarger gate remains ~1e-4 vs direct. The app's exact export keeps both LUTs off,
-    // and the bit-exact parity goldens do not call simulate_preview. The enlarger LUT is
-    // inert on the scan_film route.
-    if (pp.use_scanner_lut == 0) pp.use_scanner_lut = 1;
-    if (pp.use_enlarger_lut == 0) pp.use_enlarger_lut = 1;
-    if (pp.lut_resolution < 2) pp.lut_resolution = 17;
-    // GPU preview fast-path latch (#146): ONLY this preview entry translates the
-    // user's gpu_preview toggle into allow_gpu_scan. No in-tree caller sets the
-    // INTERNAL field anywhere else, spk_simulate_tap and spk_bake_cube_lut
-    // hard-zero it defensively, and the JNI marshaller starts from
-    // spk_default_params' memset — spk_simulate itself cannot clamp it because
-    // this preview entry funnels through it, so for direct C callers of
-    // spk_simulate the field's keep-0 contract is documented, not enforced
-    // (law revision #149: preview-only until option-B ships). When scan() engages the GPU it skips the scanner LUT forced on
-    // above entirely (the fp32 direct integral is tighter than the LUT).
-    if (pp.gpu_preview != 0) pp.allow_gpu_scan = 1;
-    // The preview funnels through spk_simulate, whose gpu_export latch must NOT
-    // fire here — preview GPU use is governed solely by gpu_preview above. Clear
-    // gpu_export on the preview copy so the two toggles stay independent.
-    pp.gpu_export = 0;
+    // Match export's availability guard. Setting this latch without a GPU still
+    // selected the CPU fast-noise generator, changing grain in fallback previews.
+    if (pp.gpu_preview != 0 && spk::gpu::available()) pp.allow_gpu_scan = 1;
+    // Keep gpu_export: the app owns this quality/backend choice and sends the
+    // same value to preview and export. Clearing it changed stochastic effects.
     p = &pp;
     int max_size = p->preview_max_size > 0 ? p->preview_max_size : 640;
     int longest = in->width > in->height ? in->width : in->height;
