@@ -52,6 +52,7 @@ internal data class SourceDecodeResult(
     val usedPlatformFallback: Boolean,
     /** The RAW OOM ladder returned a smaller decode than requested (#288: never persist it). */
     val memoryDegraded: Boolean = false,
+    val rawFallback: RawFallbackInfo? = null,
 )
 
 /**
@@ -175,6 +176,7 @@ internal suspend fun decodeSourceRequest(
     }
     var applyExifBaseline = request.kind != SourceKind.RAW
     var usedPlatformFallback = false
+    var rawFallback: RawFallbackInfo? = null
     val rawMemoryDegraded = java.util.concurrent.atomic.AtomicBoolean(false)
     val image = when (request.kind) {
         SourceKind.RAW -> try {
@@ -227,6 +229,8 @@ internal suspend fun decodeSourceRequest(
             // does not carry: mark it degraded so the platform image is never cached.
             if (memoryFallback) rawMemoryDegraded.set(true)
             usedPlatformFallback = true
+            rawFallback = RawFallbackInfo.from(failure)
+            Diag.w("RAW native decode refused: status=${failure.status} libraw=${failure.librawCode}: ${failure.message}")
             applyExifBaseline = true
             decodeViaPlatform(
                 request.context,
@@ -309,7 +313,7 @@ internal suspend fun decodeSourceRequest(
             )
             throw ExportSourceDegradedException(usedPlatformFallback, rotated.width, rotated.height)
         }
-        val decoded = SourceDecodeResult(rotated, usedPlatformFallback, rawMemoryDegraded.get())
+        val decoded = SourceDecodeResult(rotated, usedPlatformFallback, rawMemoryDegraded.get(), rawFallback)
         ownedImage = null
         decoded
     } catch (failure: Throwable) {
@@ -352,7 +356,9 @@ internal suspend fun decodeSourceRequestDiskCached(
             // Blocking and non-throwing: no cancellation point between the decode and return.
             // A memory-degraded RAW decode is smaller than its key promises; storing it would
             // pin the low-resolution proxy for every later open, so it is used but not kept.
-            if (key != null && !decoded.memoryDegraded) {
+            // A platform fallback is not a native RAW success either: retry LibRaw next time
+            // and retain the current refusal reason rather than a cached generic DNG message.
+            if (key != null && rawProxyCanPersist(decoded.usedPlatformFallback, decoded.memoryDegraded)) {
                 ProxyDiskCache.write(ctx, key, decoded.image, decoded.usedPlatformFallback)
             }
             decoded

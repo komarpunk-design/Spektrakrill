@@ -9,6 +9,7 @@
 package com.spectrafilm.app
 
 import java.util.Locale
+import com.spectrafilm.libraw.RawFormats
 
 /**
  * Compressed still-image types that are positively NOT camera RAW. DNG is deliberately excluded —
@@ -32,9 +33,10 @@ private val NON_RAW_IMAGE_MIME_TYPES =
  * default to the RAW path.
  */
 internal fun isNonRawImage(name: String, mimeType: String?): Boolean {
+    if (RawFormats.isRawFileName(name)) return false
     val ext = name.substringAfterLast('.', missingDelimiterValue = "").lowercase(Locale.ROOT)
     if (ext in NON_RAW_IMAGE_EXTENSIONS) return true
-    val mime = mimeType?.lowercase(Locale.ROOT) ?: return false
+    val mime = mimeType?.substringBefore(';')?.trim()?.lowercase(Locale.ROOT) ?: return false
     return mime in NON_RAW_IMAGE_MIME_TYPES
 }
 
@@ -56,9 +58,9 @@ internal enum class SourceFileKind { PHOTO, RAW, VIDEO, MCRAW }
  * The single routing decision for a picked/shared file, in priority order:
  *
  *  1. `.mcraw` — MotionCam RAW video, its own container and its own decoder.
- *  2. video — by extension or by a `video/` MIME type.
- *  3. positively-known still photo — [isNonRawImage].
- *  4. everything else, including anything ambiguous — RAW.
+ *  2. Video extension, then a known camera RAW extension, then `video/` MIME.
+ *  3. Positively-known still photo — [isNonRawImage].
+ *  4. Everything else, including anything ambiguous — RAW.
  *
  * Rule 4 is the pre-existing deliberate default (a genuine DNG arrives as an extension-less content
  * URI reported as `image/tiff`, so unknown must mean RAW). Video is checked BEFORE it precisely
@@ -69,7 +71,11 @@ internal fun detectSourceKind(name: String, mimeType: String?): SourceFileKind {
     if (McrawContainer.isMcrawFileName(name)) return SourceFileKind.MCRAW
     val ext = name.substringAfterLast('.', missingDelimiterValue = "").lowercase(Locale.ROOT)
     val mime = mimeType?.lowercase(Locale.ROOT)
-    if (ext in VIDEO_EXTENSIONS || mime?.startsWith("video/") == true) return SourceFileKind.VIDEO
+    if (ext in VIDEO_EXTENSIONS) return SourceFileKind.VIDEO
+    // A provider may describe the embedded JPEG instead of the actual camera RAW.
+    // A known camera extension takes priority over that generic MIME description.
+    if (RawFormats.isRawFileName(name)) return SourceFileKind.RAW
+    if (mime?.startsWith("video/") == true) return SourceFileKind.VIDEO
     return if (isNonRawImage(name, mimeType)) SourceFileKind.PHOTO else SourceFileKind.RAW
 }
 

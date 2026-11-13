@@ -46,6 +46,23 @@ class SourceDetectTest {
         assertFalse(isNonRawImage("raw", null))
     }
 
+    @Test
+    fun aCameraRawNameWinsOverTheProvidersThumbnailMime() {
+        for (ext in listOf("CR2", "CR3", "NEF", "NRW", "ARW", "RAF", "ORF", "RW2", "DNG")) {
+            for (mime in listOf("image/jpeg", "image/png", "video/mp4")) {
+                val file = "DSC_0012.$ext"
+                assertFalse("$file with $mime", isNonRawImage(file, mime))
+                assertEquals("$file with $mime", SourceFileKind.RAW, detectSourceKind(file, mime))
+            }
+        }
+    }
+
+    @Test
+    fun ordinaryPhotoMimeParametersStillRouteToThePhotoDecoder() {
+        assertTrue(isNonRawImage("document:42", "image/jpeg; charset=binary"))
+        assertEquals(SourceFileKind.PHOTO, detectSourceKind("document:42", " IMAGE/JPEG ; charset=binary"))
+    }
+
     // --- detectSourceKind: the one routing decision -------------------------------------------
 
     @Test

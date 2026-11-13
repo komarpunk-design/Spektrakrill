@@ -31,12 +31,12 @@ internal class EditorSourceLoader(
     private val zoomSourceCache: DecodedSourceCache,
     private val previewDecodeFlight: SingleFlight<Unit>,
     private val zoomDecodeFlight: SingleFlight<Unit>,
-    dngFallbackNoticeState: MutableState<Boolean>,
+    rawFallbackNoticeState: MutableState<RawFallbackInfo?>,
 ) {
     private val sourceUri: Uri? get() = sourceUriState.value
     private val sourceKind: SourceKind get() = sourceKindState.value
     private val rotation: SourceRotation get() = rotationState.value
-    private var dngFallbackNotice by dngFallbackNoticeState
+    private var rawFallbackNotice by rawFallbackNoticeState
 
     // Decode the current source to a LinearImage capped to [maxEdge], applying the
     // EXIF orientation baseline THEN the user's manual rotate steps so imports appear
@@ -130,7 +130,7 @@ internal class EditorSourceLoader(
                 val accepted = cache.publish(ticket, decoded.image)
                 if (accepted && decoded.usedPlatformFallback) {
                     withContext(dispatchers.mainImmediate) {
-                        if (cache.isCurrent(ticket)) dngFallbackNotice = true
+                        if (cache.isCurrent(ticket)) rawFallbackNotice = (decoded.rawFallback ?: RawFallbackInfo.cached()).copy(sourceUri = snapshot.decode.uri?.toString())
                     }
                 }
             }

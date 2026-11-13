@@ -1,0 +1,38 @@
+{
+  "source": "https://raw.pixls.us/",
+  "purpose": "External camera RAW regression samples; files are not bundled with the app or repository",
+  "files": [
+    {
+      "maker": "Canon",
+      "camera": "EOS 5D Mark II",
+      "mode": "RAW (3:2)",
+      "url": "https://raw.pixls.us/getfile.php/1182/nice/Canon - EOS 5D Mark II - RAW (3:2).CR2",
+      "sha256": "81c5ee6da45c4e22584c5344807ac32e2c9ba82ad274486ba64745ef8dd4f69c",
+      "name": "1182.CR2"
+    },
+    {
+      "maker": "Nikon",
+      "camera": "D700",
+      "mode": "14bit 14bit compressed (Lossless) (3:2)",
+      "url": "https://raw.pixls.us/getfile.php/2249/nice/Nikon - D700 - 14bit 14bit compressed (Lossless) (3:2).NEF",
+      "sha256": "00c3314f2ccf92aff17644943e6149e8793b517c24bb2c38a15ec41f3af109cb",
+      "name": "2249.NEF"
+    },
+    {
+      "maker": "Sony",
+      "camera": "ILCE-7M3",
+      "mode": "14bit 14bit compressed (3:2)",
+      "url": "https://raw.pixls.us/getfile.php/2414/nice/Sony - ILCE-7M3 - 14bit 14bit compressed (3:2).ARW",
+      "sha256": "250784580ea527442c09004417bb0eead484f2bf3ee8f9121a776ac65bb50d0f",
+      "name": "2414.ARW"
+    },
+    {
+      "maker": "Fujifilm",
+      "camera": "X-T2",
+      "mode": "14bit 14bit compressed (3:2)",
+      "url": "https://raw.pixls.us/getfile.php/865/nice/Fujifilm - X-T2 - 14bit 14bit compressed (3:2).RAF",
+      "sha256": "f756ad5be551a8b3e1b503a8a6f7e8e637fba519c0b0f8c79dd58e94b0287602",
+      "name": "865.RAF"
+    }
+  ]
+}

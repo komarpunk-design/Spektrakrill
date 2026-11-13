@@ -21,6 +21,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -281,8 +282,8 @@ internal fun EditorScreen(
     val photoSwipe = photoBrowse.photoSwipe
     val folderStrip = photoBrowse.folderStrip
 
-    val dngFallbackNoticeState = screen.dngFallbackNoticeState
-    var dngFallbackNotice by dngFallbackNoticeState
+    val rawFallbackNoticeState = screen.rawFallbackNoticeState
+    var rawFallbackNotice by rawFallbackNoticeState
 
     // LUT export
     val bakingLutState = screen.bakingLutState
@@ -713,16 +714,35 @@ internal fun EditorScreen(
         )
     }
 
-    // One-shot snackbar when a compressed DNG fell back to the system decoder.
-    LaunchedEffect(dngFallbackNotice) {
-        if (dngFallbackNotice) {
-            snackbarHost.currentSnackbarData?.dismiss()
-            snackbarHost.showSnackbar(
-                message = ctx.getString(R.string.editor_snack_dng_fallback),
-                withDismissAction = true,
-            )
-            dngFallbackNotice = false
+    var rawFallbackDetails by remember { mutableStateOf<RawFallbackInfo?>(null) }
+    LaunchedEffect(rawFallbackNotice, sourceUri) {
+        val notice = rawFallbackNotice ?: return@LaunchedEffect
+        if (notice.sourceUri != sourceUri?.toString()) {
+            rawFallbackNotice = null
+            return@LaunchedEffect
         }
+        snackbarHost.currentSnackbarData?.dismiss()
+        val result = snackbarHost.showSnackbar(
+            message = "RAW: показан запасной предпросмотр. ${notice.reason}",
+            actionLabel = "Причина",
+            duration = SnackbarDuration.Long,
+            withDismissAction = true,
+        )
+        if (result == SnackbarResult.ActionPerformed) rawFallbackDetails = notice
+        rawFallbackNotice = null
+    }
+    LaunchedEffect(sourceUri) { rawFallbackDetails = null }
+    rawFallbackDetails?.let { notice ->
+        AlertDialog(
+            onDismissRequest = { rawFallbackDetails = null },
+            title = { Text("Почему RAW открыт запасным способом") },
+            text = { Column(Modifier.heightIn(max = 420.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(notice.reason)
+                Text("Сейчас показано изображение системного декодера, а не линейные данные сенсора. При экспорте приложение повторно читает исходный RAW и не подменяет его встроенной картинкой.")
+                Text(notice.details, style = MaterialTheme.typography.bodySmall)
+            } },
+            confirmButton = { TextButton(onClick = { rawFallbackDetails = null }) { Text("Понятно") } },
+        )
     }
 
     // Media-location, notification and legacy-storage asks around an export
@@ -930,7 +950,7 @@ internal fun EditorScreen(
         zoomSourceCache = zoomSourceCache,
         previewDecodeFlight = previewDecodeFlight,
         zoomDecodeFlight = zoomDecodeFlight,
-        dngFallbackNoticeState = dngFallbackNoticeState,
+        rawFallbackNoticeState = rawFallbackNoticeState,
     )
     fun currentSourceDecodeRequest(): SourceDecodeRequest = sourceLoader.currentSourceDecodeRequest()
     suspend fun cachedSourceDecodeRequest(cache: DecodedSourceCache, maxEdge: Int): CachedSourceDecodeRequest =

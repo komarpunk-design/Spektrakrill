@@ -75,9 +75,8 @@ internal class EditorScreenState {
     val renderErrState: MutableState<String?> = mutableStateOf(null)
     val previewTickState: MutableIntState = mutableIntStateOf(0)
 
-    // Set by loadSource when a compressed (lossy/JPEG-XL) DNG fell back to the platform
-    // ImageDecoder. Drives a one-shot snackbar (a render path can't show UI directly).
-    val dngFallbackNoticeState: MutableState<Boolean> = mutableStateOf(false)
+    // A refused native RAW decode still has a bounded preview; keep the actual reason.
+    val rawFallbackNoticeState: MutableState<RawFallbackInfo?> = mutableStateOf(null)
 
     // LUT export
     val bakingLutState: MutableState<Boolean> = mutableStateOf(false)
