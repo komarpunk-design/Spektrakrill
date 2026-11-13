@@ -1,5 +1,5 @@
 /*
- * Spektrafilm for Android — memory admission for full-size RAW export decodes. GPLv3.
+ * Spektrafilm for Android — memory admission for RAW decodes. GPLv3.
  * Film modeling powered by spektrafilm.
  */
 package com.spectrafilm.app
@@ -11,7 +11,7 @@ import com.spectrafilm.engine.SpektraEngine
 import org.json.JSONObject
 
 /**
- * Bytes a full-size RAW export decode may use: what the system can give without dropping below
+ * Bytes a RAW decode may use: what the system can give without dropping below
  * its own low-memory threshold (plus a margin), and what the process MemoryBudget has free.
  * The native decoder turns them into a pixel limit at its measured peak bytes per pixel
  * (raw_decode_budget.h), instead of the fixed free-memory tiers that refused 41-48 MP
@@ -37,6 +37,18 @@ internal class RawDecodeAdmission(val bytes: Long, private val reservation: Auto
 internal fun admitRawExportDecode(
     context: Context,
     reserve: (Long) -> AutoCloseable = { JvmMemoryReservation.acquire(it, MemoryBudgetStage.DECODE) },
+): RawDecodeAdmission = admitRawDecode(context, "export", reserve)
+
+/** The preview retry uses the same measured reservation as export, with its proxy size cap. */
+internal fun admitRawPreviewDecode(
+    context: Context,
+    reserve: (Long) -> AutoCloseable = { JvmMemoryReservation.acquire(it, MemoryBudgetStage.DECODE) },
+): RawDecodeAdmission = admitRawDecode(context, "preview", reserve)
+
+private fun admitRawDecode(
+    context: Context,
+    purpose: String,
+    reserve: (Long) -> AutoCloseable,
 ): RawDecodeAdmission {
     val info = ActivityManager.MemoryInfo()
     context.applicationContext.getSystemService(ActivityManager::class.java)?.getMemoryInfo(info)
@@ -45,14 +57,14 @@ internal fun admitRawExportDecode(
         val held = runCatching { reserve(bytes) }.getOrNull()
         if (held != null) {
             Diag.i(
-                "raw export decode admitted ${bytes / MIB} MiB (avail=${info.availMem / MIB} MiB " +
+                "raw $purpose decode admitted ${bytes / MIB} MiB (avail=${info.availMem / MIB} MiB " +
                     "threshold=${info.threshold / MIB} MiB)",
             )
             return RawDecodeAdmission(bytes, held)
         }
         bytes /= 2
     }
-    Diag.w("raw export decode admission below ${RAW_ADMISSION_MIN_BYTES / MIB} MiB; decoder tiers apply")
+    Diag.w("raw $purpose decode admission below ${RAW_ADMISSION_MIN_BYTES / MIB} MiB; decoder tiers apply")
     return RawDecodeAdmission(0L, null)
 }
 

@@ -13,6 +13,15 @@ class RawFallbackInfoTest {
             assertTrue(info.reason.contains("RAW"))
         }
     }
+    @Test fun aGeometryBudgetRefusalDoesNotClaimAnActualAllocationFailure() {
+        val info = RawFallbackInfo.from(RawDecodeException(
+            "RAW geometry exceeds 24 MiPixel in-memory safety limit for available device RAM",
+            DecodeStatus.NO_MEMORY.code, 0,
+        ))
+        assertTrue(info.reason.contains("бюджет"))
+        assertFalse(info.reason.contains("Не хватило памяти"))
+        assertTrue(info.details.contains("24 MiPixel"))
+    }
     @Test fun theActualNativeVerdictReachesTheDetails() {
         val info = RawFallbackInfo.from(RawDecodeException("RAW black-level metadata rejected", DecodeStatus.PRECISION_METADATA.code, -100))
         assertEquals(DecodeStatus.PRECISION_METADATA, info.status)

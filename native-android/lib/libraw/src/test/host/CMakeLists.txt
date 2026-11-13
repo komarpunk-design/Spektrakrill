@@ -436,3 +436,24 @@ if(SFRAW_HOST_BUILD_FUZZER)
   target_link_options(sfraw_dng_sniffer_fuzzer PRIVATE -fsanitize=fuzzer)
   add_dependencies(sfraw_dng_sniffer_fuzzer sfraw_libraw_fuzz_corpus)
 endif()
+
+# Real 26 MP camera RAW: optional external CC0 fixture, never bundled in the APK.
+# cmake --build <build> --target sfraw_camera_preview_memory_test
+# <build>/sfraw_camera_preview_memory_test /path/to/raw.pixls.us-2783.RAF
+add_executable(sfraw_camera_preview_memory_test EXCLUDE_FROM_ALL
+               test_camera_preview_admission.cpp
+               "${CMAKE_CURRENT_LIST_DIR}/../../main/cpp/raw_decoder.cpp")
+target_include_directories(sfraw_camera_preview_memory_test PRIVATE
+                           "${CMAKE_CURRENT_LIST_DIR}/../../main/cpp")
+target_compile_definitions(sfraw_camera_preview_memory_test PRIVATE
+                           SFRAW_TESTING=1 USE_ZLIB=1 USE_JPEG=1)
+target_link_libraries(sfraw_camera_preview_memory_test PRIVATE sfraw_public_api_test_support)
+set(SFRAW_CAMERA_ADMISSION_SAMPLE "" CACHE FILEPATH "CC0 X-T3 RAF from raw.pixls.us #2783")
+if(SFRAW_CAMERA_ADMISSION_SAMPLE)
+    file(SHA256 "${SFRAW_CAMERA_ADMISSION_SAMPLE}" _camera_sample_sha)
+    if(NOT _camera_sample_sha STREQUAL "95b33021160b239ceb1a09d46a1b29cb60cb7dd47581feb126b337c219091754")
+        message(FATAL_ERROR "Unexpected camera admission fixture: expected raw.pixls.us #2783")
+    endif()
+    add_test(NAME sfraw.camera.preview-memory
+             COMMAND sfraw_camera_preview_memory_test "${SFRAW_CAMERA_ADMISSION_SAMPLE}")
+endif()

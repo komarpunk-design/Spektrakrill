@@ -200,7 +200,13 @@ internal suspend fun decodeSourceRequest(
                     )
                 }
             if (!export) {
-                decodeRaw(0L)
+                // The coarse RAM tier can reject a camera RAW that fits the actual free
+                // budget (e.g. 26 MP X-Trans at the 24 MiPixel tier). Try the native proxy
+                // once more with held admission before considering a platform preview.
+                decodeRawPreviewWithMemoryAdmission(
+                    admit = { admitRawPreviewDecode(request.context) },
+                    decode = ::decodeRaw,
+                )
             } else {
                 // A full-size export decode is admitted against free memory and the process
                 // budget; a refusal releases the editor's idle GPU caches and retries once.

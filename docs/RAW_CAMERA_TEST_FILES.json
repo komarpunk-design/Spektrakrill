@@ -33,6 +33,14 @@
       "url": "https://raw.pixls.us/getfile.php/865/nice/Fujifilm - X-T2 - 14bit 14bit compressed (3:2).RAF",
       "sha256": "f756ad5be551a8b3e1b503a8a6f7e8e637fba519c0b0f8c79dd58e94b0287602",
       "name": "865.RAF"
+    },
+    {
+      "maker": "Fujifilm",
+      "camera": "X-T3",
+      "mode": "14bit 14bit compressed (3:2)",
+      "url": "https://raw.pixls.us/getfile.php/2783/nice/Fujifilm - X-T3 - 14bit 14bit compressed (3:2).RAF",
+      "sha256": "95b33021160b239ceb1a09d46a1b29cb60cb7dd47581feb126b337c219091754",
+      "name": "2783.RAF"
     }
   ]
 }

@@ -12,7 +12,9 @@ internal data class RawFallbackInfo(
     val sourceUri: String? = null,
 ) {
     val reason: String get() = when (status) {
-        DecodeStatus.NO_MEMORY -> "Не хватило памяти для RAW-декодирования."
+        DecodeStatus.NO_MEMORY -> if (nativeMessage.startsWith("RAW geometry exceeds "))
+            "Размер RAW превышает доступный бюджет декодирования."
+        else "Не хватило памяти для RAW-декодирования."
         DecodeStatus.FILE_UNSUPPORTED -> "LibRaw не распознал этот вариант RAW."
         DecodeStatus.PRECISION_METADATA -> "Не удалось безопасно сопоставить метаданные RAW."
         DecodeStatus.DEFLATE_DNG -> "Не поддерживается этот способ хранения данных DNG."

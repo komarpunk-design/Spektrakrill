@@ -8,6 +8,7 @@ import com.spectrafilm.libraw.DecodeStatus
 import com.spectrafilm.libraw.RawDecodeException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 
@@ -24,6 +25,16 @@ class RawDecodeAdmissionTest {
         assertEquals(2_048L * mib, rawExportAdmissionBytes(2_900L * mib, 200L * mib, 2_048L * mib))
         // A busy budget bounds it instead.
         assertEquals(700L * mib, rawExportAdmissionBytes(4_000L * mib, 200L * mib, 700L * mib))
+    }
+
+    @Test
+    fun previewRetryFits26MpWithinTheActual768MiBBudget() {
+        // A 6 GB device with 2.25 GiB available selects the native 24 MiPixel tier,
+        // but its process budget can reserve 768 MiB: enough for the tested X-T3 RAF.
+        val admitted = rawExportAdmissionBytes(2_304L * mib, 128L * mib, 768L * mib)
+        assertEquals(768L * mib, admitted)
+        assertTrue(admitted >= 6_288L * 4_164L * 28L)
+        assertTrue(admitted <= 2_304L * mib - 128L * mib - RAW_ADMISSION_SAFETY_BYTES)
     }
 
     @Test
