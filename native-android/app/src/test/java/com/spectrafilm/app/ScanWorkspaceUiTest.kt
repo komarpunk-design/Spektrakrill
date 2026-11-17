@@ -113,4 +113,30 @@ class ScanWorkspaceUiTest {
         compose.onNodeWithText("Детализация").performScrollTo().performClick()
         compose.onNodeWithText("Нерезкая маска").performScrollTo().assertIsDisplayed()
     }
+    @Test fun noritsuExplainsScopeAndOffersItsActiveControls() {
+        s.chooseScanReceiver("noritsu-ls600"); show()
+        compose.onNodeWithText("Noritsu LS-600 · реконструкция").assertExists()
+        compose.onNodeWithText("Автоподбор адаптера").assertExists()
+        compose.onNodeWithText("Частичная реконструкция LS-600", substring=true).assertExists()
+        compose.onNodeWithText("Характер минилаба").assertDoesNotExist()
+        compose.onNodeWithText("Автоподбор адаптера").performClick()
+        compose.runOnIdle { assertFalse(s.labBoolean("outputModel.autoSetup")) }
+        compose.onNodeWithText("Тон и уровни").performScrollTo().performClick()
+        compose.onNodeWithTag("scan-control-blackPoint").assertExists()
+    }
+    @Test @Config(sdk=[35],qualifiers="w320dp-h640dp") fun noritsuDetailAndResetRemainReachableOnSmallPhone() {
+        s.chooseScanReceiver("noritsu-ls600"); s.setLab("outputModel.exposure", .5); show()
+        compose.onNodeWithText("Детализация").performScrollTo().performClick()
+        compose.onNodeWithText("Нерезкая маска").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Сбросить поправки скана").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals("noritsu-ls600",s.labString("outputModel.mode")); assertFalse(s.scanCorrectionsChanged()) }
+    }
+    @Test fun noritsuBwFallbackIsVisibleAndCanBeReplacedWithLabScan() {
+        s.filmProfile="negs_ilford_hp5_plus_6p5min"; s.chooseScanReceiver("noritsu-ls600"); show()
+        compose.onNodeWithText("Для ч/б сейчас работает Digital Reference",substring=true).assertExists()
+        compose.onNodeWithText("Автоподбор адаптера").assertDoesNotExist()
+        compose.onNodeWithText("Использовать Lab Scan для ч/б").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals("lab-scan",s.labString("outputModel.mode")) }
+    }
+
 }

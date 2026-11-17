@@ -105,3 +105,14 @@ unchanged engine describe versions 9.41–9.56, not the new native base.
 The original repository's publicly distributed debug keystore is retained solely
 for reproducible debug builds. Release signing uses an external, uncommitted key.
 See docs/NATIVE_UPSTREAM_MIGRATION.md and docs/upstream/native-v1/source-manifest.json.
+
+## Partial Noritsu LS-600 reconstruction (version 9.65)
+
+Recovered numeric tables and original Python reference kernels from
+https://github.com/rohanpandula/negative-universal/tree/9c9298644c21baa0f086778ff64e0515c9207c63/noritsu-tool,
+MIT License, Copyright (c) 2026 noritsu-tool contributors. The copied sources,
+license and pinned file hashes are in `docs/upstream/noritsu/`. The APK includes
+`assets/licenses/NORITSU_TOOL_MIT.txt` and attribution in its accessible project
+notices. Input receiver, normalization and frame adaptation are additions by
+Spektrafilm Lab; no complete OEM equivalence or physical scanner validation is
+claimed. See `docs/NORITSU_RECONSTRUCTION.md`.

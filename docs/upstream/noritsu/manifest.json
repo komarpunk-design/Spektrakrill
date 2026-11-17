@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/rohanpandula/negative-universal",
+  "commit": "9c9298644c21baa0f086778ff64e0515c9207c63",
+  "source": "noritsu-tool/noritsu/tables/vendor_nega_135.json",
+  "selection": "g0_t1 / NEGA_135_COL",
+  "files": {
+    "LICENSE": "45a353efaf116ece44df548208141118e636ab2f5dae73a6f45c47f1150f514b",
+    "vendor_nega_135.json": "1185a47efd8764c3f2b7345ac29405aa39de294fe41102cd32fef39a6f92beae",
+    "vendor.py": "c624759cbdab47ca93d492204f4924c893b211f230431220f652bb9d60924133"
+  }
+}

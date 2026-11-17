@@ -199,3 +199,14 @@ and Layered Transport integrations retain their licences and provenance in the
 source repository under docs/upstream/ and THIRD_PARTY_NOTICES.md.
 The original notices and complete additional licence texts are bundled in
 assets/legal/lab/ and distributed alongside the GPLv3 source.
+
+## Partial Noritsu LS-600 reconstruction (9.65)
+
+Recovered numeric FilmLUT and CommonCalcPara tables and reference kernels:
+negative-universal / noritsu-tool, MIT License, Copyright (c) 2026
+noritsu-tool contributors, commit 9c9298644c21baa0f086778ff64e0515c9207c63.
+Source: https://github.com/rohanpandula/negative-universal/tree/9c9298644c21baa0f086778ff64e0515c9207c63/noritsu-tool
+The complete MIT license is bundled at assets/licenses/NORITSU_TOOL_MIT.txt.
+The spectral receiver, normalization and frame adaptation are Spektrafilm Lab
+adaptations, not a measured LS-600 device profile or complete OEM pipeline.
+No vendor executable payloads are included. No affiliation with Noritsu is claimed.

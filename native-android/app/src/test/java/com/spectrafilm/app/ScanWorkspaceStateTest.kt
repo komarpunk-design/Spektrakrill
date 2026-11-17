@@ -118,4 +118,19 @@ class ScanWorkspaceStateTest {
         assertThrows(IllegalArgumentException::class.java) { s.chooseScanReceiver("paper") }
         assertEquals(before, s.toParams())
     }
+    @Test fun noritsuRecipeRestoresTheExactEngineRouteAndControls() {
+        val s = ParamsState().apply {
+            chooseScanReceiver("noritsu-ls600"); setLab("outputModel.autoSetup", false)
+            setLab("outputModel.exposure", -.375); setLab("outputModel.yellow", .027)
+        }
+        val saved = Presets.encode(s)
+        val restored = ParamsState(); Presets.decode(saved, restored)
+        assertEquals(s.toParams(), restored.toParams())
+        assertTrue(restored.toParams().io.scanFilm)
+        assertEquals("noritsu-ls600", restored.labString("outputModel.mode"))
+        PhotoTool.SCAN.reset(restored)
+        assertEquals("noritsu-ls600", restored.labString("outputModel.mode"))
+        assertFalse(PhotoTool.SCAN.changed(restored))
+    }
+
 }

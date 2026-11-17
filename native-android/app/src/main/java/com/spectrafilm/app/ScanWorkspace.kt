@@ -11,7 +11,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 
-internal val SCAN_RECEIVER_MODES = listOf("lab-scan", "digital", "auto-levels")
+internal val SCAN_RECEIVER_MODES = listOf("lab-scan", "noritsu-ls600", "digital", "auto-levels")
 internal val SCAN_CORRECTION_DEFAULTS: Map<String, Any> = linkedMapOf(
     "autoSetup" to true, "look" to 1.0, "exposure" to 0.0,
     "cyan" to 0.0, "magenta" to 0.0, "yellow" to 0.0,
@@ -89,10 +89,13 @@ internal fun ScanWorkspace(s: ParamsState) {
     val navigate = LocalPhotoNavigate.current
     val workflow = s.labString("workflow", "normal")
     val mode = s.labString("outputModel.mode", "paper")
+    val noritsu = mode == "noritsu-ls600"
+    val monochrome = stock?.optBoolean("monochrome") == true
     val automatic = s.labValue("outputModel.autoSetup") as? Boolean ?: true
     val reversal = StockCatalog.isReversalFilm(ctx, s.filmProfile) || stock?.optString("type") == "positive"
     val modes = listOf(
         "lab-scan" to "Lab Scan · характер минилаба",
+        "noritsu-ls600" to "Noritsu LS-600 · реконструкция",
         "digital" to "Digital Reference · фиксированный",
         "auto-levels" to "Auto Levels · автоподбор кадра",
     )
@@ -105,7 +108,7 @@ internal fun ScanWorkspace(s: ParamsState) {
             return@Column
         }
         if (reversal) {
-            LabNote("Выбран слайд: Lab Scan и его операторские поправки предназначены для инверсии негативной плёнки. Слайд просматривается напрямую через соседний «Спектральный скан».")
+            LabNote("Выбран слайд: цифровые приёмники и их операторские поправки предназначены для инверсии негативной плёнки. Слайд просматривается напрямую через соседний «Спектральный скан».")
             OutlinedButton(onClick = { navigate(PhotoTool.FILMS) }) { Text("Выбрать негативную плёнку") }
             return@Column
         }
@@ -122,12 +125,18 @@ internal fun ScanWorkspace(s: ParamsState) {
         }
         Dropdown("Режим сканирования", mode, modes.map { it.first }, { key -> modes.first { it.first == key }.second }, { s.chooseScanReceiver(it) })
         ScanSlider(s, "exposure", "Яркость скана · EV")
-        if (mode == "lab-scan") {
-            SwitchRow("Автоподбор кадра", automatic, { s.setLab("outputModel.autoSetup", it) },
-                if (automatic) "Подбор плотности и контраста для каждого кадра. Выключите для серии."
+        if (mode == "lab-scan" || (noritsu && !monochrome)) {
+            SwitchRow(if (noritsu) "Автоподбор адаптера" else "Автоподбор кадра", automatic, { s.setLab("outputModel.autoSetup", it) },
+                if (noritsu) "Медиана и запас светов. Выключите для серии; автоэкспозиция камеры независима."
+                else if (automatic) "Подбор плотности и контраста для каждого кадра. Выключите для серии."
                 else "Фиксированный сканер для серии. Автоэкспозиция камеры настраивается независимо.")
-        } else LabNote(if (mode == "digital") "Фиксированный нейтральный приёмник. Автоподбора и характера минилаба здесь нет; ручные поправки ниже работают."
+        } else LabNote(if (noritsu && monochrome) "Для ч/б сейчас работает Digital Reference: восстановлены только цветные таблицы NEGA135. Автоподбор Noritsu не применяется."
+            else if (mode == "digital") "Фиксированный нейтральный приёмник. Автоподбора и характера минилаба здесь нет; ручные поправки ниже работают."
             else "Автоподбор включён в этом режиме всегда. Для фиксированной серии выберите Digital Reference или выключите автоподбор в Lab Scan.")
+        if (noritsu) {
+            LabNote("Частичная реконструкция LS-600: таблицы Noritsu; приёмник и автоподбор — наша адаптация.")
+            if (monochrome) OutlinedButton(onClick = { s.chooseScanReceiver("lab-scan") }) { Text("Использовать Lab Scan для ч/б") }
+        }
         ScanGroup("tone", "Тон и уровни", toneKeys.any { s.scanValueChanged(it) }) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 toneKeys.forEach { ScanSlider(s, it) }
@@ -162,8 +171,11 @@ internal fun ScanWorkspace(s: ParamsState) {
                 TextButton(onClick = { s.scanLensBlur = PARAM_DEFAULTS.scanLensBlur; s.scanUnsharpMask = PARAM_DEFAULTS.scanUnsharpMask }) { Text("Сбросить детализацию") }
             }
         }
+        if (noritsu) ScanGroup("noritsu-info", "О реконструкции Noritsu", false) {
+            LabNote("FilmLUT и CommonCalcPara NEGA135 взяты из открытого noritsu-tool (MIT). Согласование с виртуальной плёнкой, нормализация и автоподбор — Spektrafilm Lab. Полный OEM-тракт и ICE не восстановлены; точное совпадение с физическим LS-600 не проверено. Таблицы предназначены для цветного негатива.")
+        }
         LabNote("Нажмите число для точного ввода; двойное нажатие сбрасывает изменённое значение.")
-        if (mode != "lab-scan" && (s.scanValueChanged("look") || s.scanValueChanged("autoSetup")))
+        if (mode != "lab-scan" && (s.scanValueChanged("look") || (!noritsu && s.scanValueChanged("autoSetup"))))
             LabNote("Сохранены отдельные настройки Lab Scan. Они возобновятся при возврате в этот режим.")
         OutlinedButton(onClick = { s.resetScanCorrections() }, enabled = s.scanCorrectionsChanged(), modifier = Modifier.fillMaxWidth()) {
             Text("Сбросить поправки скана")

@@ -18,7 +18,7 @@ int main(int argc,char** argv) try {
     spk_image input{pixels.data(),w,h,SPK_CS_PROPHOTO};
     int checks=0,failures=0;
     for(auto film:{"kodak_gold_200","kodak_portra_400","negs_ilford_hp5_plus_6p5min","fujifilm_velvia_100"})
-    for(auto route:{"legacy","paper","digital","auto-levels","lab-scan"})
+    for(auto route:{"legacy","paper","digital","auto-levels","lab-scan","noritsu-ls600"})
     for(int lut=0;lut<2;++lut)
     for(int gpu=0;gpu<2;++gpu) {
         spk_params p{};spk_default_params(&p);p.film_profile=film;p.print_profile="kodak_portra_endura";

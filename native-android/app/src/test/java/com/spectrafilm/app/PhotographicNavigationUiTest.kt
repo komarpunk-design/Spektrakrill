@@ -116,4 +116,20 @@ class PhotographicNavigationUiTest {
  @Test @Config(sdk=[35],qualifiers="w1000dp-h700dp") fun widePaneUsesSameWorkflowRoutes(){
   show(wide=true);stage("PRINT");compose.onNodeWithText("Page: output").assertIsDisplayed()
  }
+ @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun noritsuCanBeSelectedFromTheActualWorkspace(){
+  show();stage("SCAN");compose.onNodeWithText("Включить Lab Scan без бумаги").performScrollTo().performClick()
+  compose.onNodeWithText("Режим сканирования").performScrollTo().performClick()
+  compose.onNodeWithText("Noritsu LS-600 · реконструкция").performClick()
+  compose.runOnIdle{assertEquals("noritsu-ls600",state.labString("outputModel.mode"));assertTrue(state.toParams().io.scanFilm)}
+  compose.onNodeWithTag("preview").assertExists()
+  System.getenv("NORITSU_CAPTURE_DIR")?.let { path ->
+   val directory=java.io.File(path);directory.mkdirs()
+   java.io.File(directory,"noritsu-phone.png").outputStream().use { assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)) }
+   val close=RuntimeEnvironment.getApplication().getString(R.string.editor_close_panel_named,"Скан · Скан без бумаги")
+   val actions=compose.onNodeWithContentDescription(close).fetchSemanticsNode().config[SemanticsActions.CustomActions]
+   compose.runOnIdle { actions.first { it.label=="Make panel taller" }.action() };compose.waitForIdle()
+   java.io.File(directory,"noritsu-phone-tall.png").outputStream().use { assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)) }
+  }
+ }
+
 }
