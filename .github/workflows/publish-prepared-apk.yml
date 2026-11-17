@@ -1,0 +1,28 @@
+name: Publish native Spektrafilm Lab APK
+on:
+  push:
+    branches: [apk-delivery-native-9-65-590c090]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify, publish and download the complete APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '5e87ca130cfc525e42d099d5f7abe6dd866a71e783fbd58f5b565f93eab50caf  release-payload/Spektrafilm-v9.65.0.apk' | sha256sum --check
+          if ! gh release view v9.65.0 >/dev/null 2>&1; then
+            gh release create v9.65.0 --target 590c09061bedb36800883f43c4df79108332fbc4 --prerelease --title 'Spektrafilm Lab 9.65 — Noritsu LS-600 · частичная реконструкция · ARM64' --notes-file release-payload/notes.md
+          fi
+          if ! gh release view v9.65.0 --json assets --jq '.assets[].name' | grep -Fxq 'Spektrafilm-v9.65.0.apk'; then
+            gh release upload v9.65.0 release-payload/Spektrafilm-v9.65.0.apk
+          fi
+          mkdir downloaded
+          gh release download v9.65.0 --pattern Spektrafilm-v9.65.0.apk --dir downloaded
+          echo '5e87ca130cfc525e42d099d5f7abe6dd866a71e783fbd58f5b565f93eab50caf  downloaded/Spektrafilm-v9.65.0.apk' | sha256sum --check
