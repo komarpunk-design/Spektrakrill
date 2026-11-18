@@ -87,7 +87,11 @@
       "noritsuRed": 1,
       "noritsuGreen": 1,
       "noritsuBlue": 1,
-      "noritsuUo": 0
+      "noritsuUo": 0,
+      "noritsuJobEnabled": false,
+      "noritsuLocalContrast": false,
+      "noritsuFilmSharp": false,
+      "noritsuHueSat": false
     }
   },
   "controls": [
@@ -892,6 +896,50 @@
       "max": 3,
       "step": 1,
       "help": "Выбор исходной таблицы U/O 0…3. Коррекция нижней части кривой, без переключения экспозиции и автоподбора."
+    },
+    {
+      "path": "outputModel.noritsuJobEnabled",
+      "group": "output",
+      "label": "Цветовой тракт RGB ↔ YCC",
+      "kind": "switch",
+      "default": false,
+      "min": 0,
+      "max": 0,
+      "step": 0,
+      "help": "Параметризованная стадия noritsu-tool. Для включения нужен проверенный комплект исходных таблиц задания."
+    },
+    {
+      "path": "outputModel.noritsuLocalContrast",
+      "group": "output",
+      "label": "Local Auto Contrast",
+      "kind": "switch",
+      "default": false,
+      "min": 0,
+      "max": 0,
+      "step": 0,
+      "help": "Параметризованная стадия noritsu-tool. Для включения нужен проверенный комплект исходных таблиц задания."
+    },
+    {
+      "path": "outputModel.noritsuFilmSharp",
+      "group": "output",
+      "label": "Film Sharp",
+      "kind": "switch",
+      "default": false,
+      "min": 0,
+      "max": 0,
+      "step": 0,
+      "help": "Параметризованная стадия noritsu-tool. Для включения нужен проверенный комплект исходных таблиц задания."
+    },
+    {
+      "path": "outputModel.noritsuHueSat",
+      "group": "output",
+      "label": "Hue/Saturation S0",
+      "kind": "switch",
+      "default": false,
+      "min": 0,
+      "max": 0,
+      "step": 0,
+      "help": "Параметризованная стадия noritsu-tool. Для включения нужен проверенный комплект исходных таблиц задания."
     }
   ]
 }

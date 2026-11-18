@@ -145,4 +145,22 @@ class PhotographicNavigationUiTest {
   }
  }
 
+ @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(sdk=[35],qualifiers="w320dp-h640dp") fun jobStagesRemainReachableInTheActualSmallPhoneWorkspace(){
+  state.chooseScanReceiver("noritsu-ls600");show();stage("SCAN")
+  compose.onNodeWithText("Профильные стадии Noritsu").performScrollTo().performClick()
+  compose.onNodeWithTag("noritsu-job-import").performScrollTo().assertIsDisplayed()
+  System.getenv("NORITSU_CAPTURE_DIR")?.let { path ->
+   val file=java.io.File(path,"noritsu-job-missing-small.png");file.parentFile?.mkdirs()
+   file.outputStream().use { assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)) }
+  }
+  compose.runOnIdle { state.installNoritsuJob(javaClass.getResource("/noritsu/synthetic-job.json")!!.readText());state.setLab("outputModel.noritsuJobEnabled",true) }
+  compose.onNodeWithText("Film Sharp").performScrollTo().assertIsDisplayed().performClick()
+  compose.onNodeWithText("Hue/Saturation S0").performScrollTo().assertIsDisplayed().performClick()
+  compose.runOnIdle { assertTrue(state.labBoolean("outputModel.noritsuFilmSharp"));assertTrue(state.labBoolean("outputModel.noritsuHueSat")) }
+  compose.onNodeWithTag("preview").assertExists()
+  System.getenv("NORITSU_CAPTURE_DIR")?.let { path ->
+   java.io.File(path,"noritsu-job-loaded-small.png").outputStream().use { assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)) }
+  }
+ }
+
 }

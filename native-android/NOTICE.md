@@ -218,3 +218,17 @@ pcb_MakeGammaCurve2 / pcb_makeNegaTone2 and original U/O tables; render.py
 white_balance, gamma_curve and adjust_saturation. The operator job uses an
 identity code curve and neutral 0x5f00 anchors as a Spektrafilm adapter, not
 a captured OEM calibration. The illustrative synthetic S-curve is not used.
+
+## Noritsu job-dependent stages (9.67)
+
+Additional C++ transcriptions from the same pinned MIT noritsu-tool vendor.py:
+RGB-to-YCC S1, AutoContrast S0, full FilmSharp, YCC correction builders/worker,
+Hue/Saturation S0 and variant-1 fused YCC-to-RGB/gamma. Original pcb.py decodes
+external final-PCB/COM captures in the development packer. Original vendor.py,
+pcb.py and test_vendor.py are preserved with SHA-256 in docs/upstream/noritsu/.
+The existing FilmLUT density-code receiver feeds these stages. Output encoding
+and depth are explicitly declared by the importer; this is an application
+adapter, not a verified complete physical-scanner reconstruction.
+Runtime capture/calibration bundles are NOT included. Synthetic oracle fixtures
+live only in unit-test resources, are visibly labelled as test data, and are
+excluded from APK assets. No invented default lattice or FilmSharp job is used.

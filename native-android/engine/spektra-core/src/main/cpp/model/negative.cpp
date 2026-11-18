@@ -4,6 +4,7 @@
 #include "model/experimental_illuminants.h"
 #include "model/spectral.h"
 #include "profiles/json_min.h"
+#include "model/lab_json.h"
 #include "kernels/parallel.h"
 #include <cmath>
 #include <algorithm>
@@ -28,8 +29,8 @@ const NamedScanSpectrum& illuminant(const NegativeSettings& settings){
 }
 }
 NegativeSettings negative_settings(const char* text){
- NegativeSettings s;if(!text||!*text)return s;if(std::strlen(text)>16384)throw std::runtime_error("experimental parameters too large");
- auto j=json::parse(text);if(!j->is_object())throw std::runtime_error("experimental parameters must be an object");
+ NegativeSettings s;if(!text||!*text)return s;
+ auto j=parse_lab_json(text);if(!j->is_object())throw std::runtime_error("experimental parameters must be an object");
  if(j->has("workflow"))s.workflow=j->at("workflow").as_string();
  if(s.workflow!="normal"&&s.workflow!="negative-print"&&s.workflow!="negative-scan"&&s.workflow!="negative-clear")throw std::runtime_error("Unknown negative workflow");
  if(j->has("scanIlluminant"))s.illuminant=j->at("scanIlluminant").as_string();

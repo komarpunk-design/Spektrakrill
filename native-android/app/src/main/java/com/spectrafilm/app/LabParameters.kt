@@ -42,7 +42,15 @@ private fun JSONObject.pruneEmpty(): JSONObject {
     return this
 }
 internal fun ParamsState.labObject() = if (labJson.isBlank()) JSONObject() else JSONObject(labJson)
-internal fun ParamsState.labValue(path: String): Any? = labObject().valueAt(path) ?: LabCatalog.default(path)
+private data class LabReadSnapshot(val text: String,val json: JSONObject)
+private val labReadSnapshot = ThreadLocal<LabReadSnapshot>()
+internal fun ParamsState.labOverrideValue(path: String): Any? {
+    val text=labJson;val old=labReadSnapshot.get()
+    val root=if(old?.text==text)old.json else (if(text.isBlank())JSONObject()else JSONObject(text)).also { labReadSnapshot.set(LabReadSnapshot(text,it)) }
+    // Never expose mutable cached containers to callers.
+    return when(val value=root.valueAt(path)) { is JSONObject -> JSONObject(value.toString());is JSONArray -> JSONArray(value.toString());else -> value }
+}
+internal fun ParamsState.labValue(path: String): Any? = labOverrideValue(path) ?: LabCatalog.default(path)
 internal fun ParamsState.labNumber(path: String) = (labValue(path) as? Number)?.toFloat() ?: 0f
 internal fun ParamsState.labBoolean(path: String) = labValue(path) as? Boolean ?: false
 internal fun ParamsState.labString(path: String, default: String = "") = labValue(path) as? String ?: default
@@ -90,16 +98,21 @@ internal fun ParamsState.labScanFilm(): Boolean = when (labString("workflow","no
 /** Reject malformed imported extensions before they can partly update a live recipe. */
 internal fun validateLabJson(text: String): String {
     if (text.isBlank()) return ""
-    require(text.length <= 32768) { "Lab settings exceed 32 KB" }
+    require(text.length <= NORITSU_JOB_LIMIT) { "Lab settings exceed 512 KB" }
     val j=JSONObject(text)
+    if(j.has("noritsuJob"))validateNoritsuJob(j.getJSONObject("noritsuJob"))
+    else require(text.length<=32768) { "Lab settings exceed 32 KB" }
     fun check(o: JSONObject, depth: Int) {
         require(depth <= 4 && o.length() <= 128) { "Lab settings are too deeply nested" }
-        for (key in o.keys()) when (val v=o.get(key)) {
+        for (key in o.keys()) {
+            if(depth==0 && key=="noritsuJob")continue
+            when (val v=o.get(key)) {
             is JSONObject -> check(v,depth+1)
             is Number -> require(v.toDouble().isFinite()) { "$key must be finite" }
             is String -> require(v.length <= 512) { "$key is too long" }
             is Boolean -> Unit
             else -> throw IllegalArgumentException("Unsupported Lab setting: $key")
+            }
         }
     }
     check(j,0)
@@ -113,6 +126,11 @@ internal fun validateLabJson(text: String): String {
                 require(if (baseline is Number) value is Number else value is Boolean) { "Неверный тип параметра outputModel.$key" }
             }
         }
+    }
+    val output=j.optJSONObject("outputModel")
+    if(output?.opt("noritsuJobEnabled")==true) {
+        val job=j.optJSONObject("noritsuJob");require(job!=null) { "Для цветового тракта Noritsu нужен профиль задания" }
+        listOf("noritsuLocalContrast" to "autoContrast","noritsuFilmSharp" to "filmSharpHex","noritsuHueSat" to "hueLatticeHex").forEach { (flag,section) -> require(output.opt(flag)!=true || job.has(section)) { "Для $flag нет исходных данных в профиле" } }
     }
     require(j.optString("workflow","normal") in listOf("normal","negative-print","negative-scan","negative-clear"))
     return j.toString()

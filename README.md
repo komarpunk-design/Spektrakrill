@@ -1,15 +1,19 @@
 # Spektrafilm Lab · Spektrakrill
 
-Текущая нативная версия: **9.66 / 136**, ARM64, Android 7.0 и выше.
+Текущая нативная версия: **9.67 / 137**, ARM64, Android 7.0 и выше.
 
-[Скачать APK 9.66](https://github.com/komarpunk-design/Spektrakrill/releases/download/v9.66.0/Spektrafilm-v9.66.0.apk) · [Расположение инструментов](docs/NATIVE_WORKSPACE_956.md).
+[Скачать APK 9.67](https://github.com/komarpunk-design/Spektrakrill/releases/download/v9.67.0/Spektrafilm-v9.67.0.apk) · [Расположение инструментов](docs/NATIVE_WORKSPACE_956.md).
 
 Основное приложение находится в `native-android/`. Оно построено на полном исходном коде
 [Spektrafilm for Android v1.0.0](https://github.com/thetechgeekko/Spektrafilm-android/tree/v1.0.0):
 Compose UI, движок C++, LibRaw, просмотр, маски, библиотека и экспорт. В эту основу
 перенесены дополнительные материалы и модели Spektrafilm Lab.
 
-[Операторские инструменты скана 9.66](docs/SCAN_CONTROLS_966.md).
+[Профильные стадии Noritsu 9.67](docs/NORITSU_ADVANCED_967.md): Local Auto Contrast,
+полный Film Sharp и Hue/Saturation S0. **Требуют внешнего комплекта таблиц задания**;
+этот комплект не опубликован в исходном проекте и не поставляется в APK.
+Обычный режим Noritsu и [операторские инструменты 9.66](docs/SCAN_CONTROLS_966.md)
+работают без него.
 
 [Noritsu LS-600 · частичная реконструкция 9.65](docs/NORITSU_RECONSTRUCTION.md).
 

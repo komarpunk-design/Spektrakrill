@@ -250,3 +250,11 @@ set_source_files_properties(${ROOT}/model/noritsu_operators.cpp PROPERTIES COMPI
 add_executable(noritsu_operator_probe noritsu_operator_probe.cpp)
 target_include_directories(noritsu_operator_probe PRIVATE ${ROOT})
 target_link_libraries(noritsu_operator_probe PRIVATE spektra_host)
+
+set_source_files_properties(${ROOT}/model/noritsu_advanced.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
+add_executable(noritsu_advanced_probe noritsu_advanced_probe.cpp)
+target_include_directories(noritsu_advanced_probe PRIVATE ${ROOT})
+target_link_libraries(noritsu_advanced_probe PRIVATE spektra_host)
+add_executable(noritsu_job_engine_probe noritsu_job_engine_probe.cpp)
+target_include_directories(noritsu_job_engine_probe PRIVATE ${ROOT})
+target_link_libraries(noritsu_job_engine_probe PRIVATE spektra_host)

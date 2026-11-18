@@ -2,6 +2,7 @@
  * This operates on local profile copies; the immutable asset cache is unchanged. */
 #include "model/experimental.h"
 #include "profiles/json_min.h"
+#include "model/lab_json.h"
 #include "model/experimental_filters.h"
 #include "kernels/gaussian.h"
 #include "model/experimental_projection.h"
@@ -21,8 +22,8 @@ namespace {
 using J=json::Value;
 json::ValuePtr tree(const char* text) {
     if(!text||!*text)return {};
-    if(std::strlen(text)>16384)throw std::runtime_error("experimental parameters too large");
-    auto p=json::parse(text);if(!p->is_object())throw std::runtime_error("experimental parameters must be an object");return p;
+
+    auto p=parse_lab_json(text);if(!p->is_object())throw std::runtime_error("experimental parameters must be an object");return p;
 }
 bool flag(const J& j,const char* key) {return j.has(key)&&j.at(key).type==json::Type::Bool&&j.at(key).boolean;}
 double number(const J& j,const char* key,double fallback,double low,double high) {

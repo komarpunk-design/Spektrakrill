@@ -166,4 +166,24 @@ class ScanWorkspaceUiTest {
         compose.onNode(hasText("12") and hasAnyAncestor(hasTestTag("scan-control-noritsuHigh"))).assertExists()
     }
 
+    @Test fun profileToolsExplainMissingDataInsteadOfPretendingToBeEnabled() {
+        s.chooseScanReceiver("noritsu-ls600");show()
+        compose.onNodeWithText("Профильные стадии Noritsu").performScrollTo().performClick()
+        compose.onNodeWithTag("noritsu-job-import").performScrollTo().assertIsEnabled()
+        compose.onNodeWithText("Цветовой тракт RGB ↔ YCC · нужен профиль").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Local Auto Contrast · нужны параметры пространственного фильтра",substring=true).assertExists()
+    }
+    @Test fun importedProfileEnablesActualStageSwitchesAndExplainsSharpeningDependency() {
+        s.chooseScanReceiver("noritsu-ls600");s.installNoritsuJob(javaClass.getResource("/noritsu/synthetic-job.json")!!.readText());show()
+        compose.onNodeWithText("Профильные стадии Noritsu").performScrollTo().performClick()
+        compose.onNodeWithText("Цветовой тракт RGB ↔ YCC").performScrollTo().performClick()
+        compose.onNodeWithText("Local Auto Contrast").performScrollTo().performClick()
+        compose.onNodeWithText("Film Sharp").performScrollTo().performClick()
+        compose.onNodeWithText("Hue/Saturation S0").performScrollTo().performClick()
+        compose.runOnIdle { NORITSU_JOB_KEYS.forEach { assertTrue(s.labBoolean("outputModel.$it")) } }
+        compose.onNodeWithText("Детализация").performScrollTo().performClick()
+        compose.onNodeWithText("Film Sharp включён",substring=true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Нерезкая маска").assertDoesNotExist()
+    }
+
 }

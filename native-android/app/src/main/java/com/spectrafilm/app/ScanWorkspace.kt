@@ -15,7 +15,7 @@ internal val SCAN_RECEIVER_MODES = listOf("lab-scan", "noritsu-ls600", "digital"
 internal val NORITSU_GRADATION_KEYS = listOf("noritsuGamma", "noritsuLow", "noritsuMid", "noritsuHigh", "noritsuUo")
 internal val NORITSU_INTEGER_KEYS = setOf("noritsuLow", "noritsuMid", "noritsuHigh", "noritsuUo")
 internal val NORITSU_COLOUR_KEYS = listOf("noritsuSaturation", "noritsuRed", "noritsuGreen", "noritsuBlue")
-internal val NORITSU_CORRECTION_KEYS = NORITSU_GRADATION_KEYS + NORITSU_COLOUR_KEYS
+internal val NORITSU_CORRECTION_KEYS = NORITSU_GRADATION_KEYS + NORITSU_COLOUR_KEYS + NORITSU_JOB_KEYS
 internal val SCAN_CORRECTION_DEFAULTS: Map<String, Any> = linkedMapOf(
     "autoSetup" to true, "look" to 1.0, "exposure" to 0.0,
     "cyan" to 0.0, "magenta" to 0.0, "yellow" to 0.0,
@@ -23,6 +23,7 @@ internal val SCAN_CORRECTION_DEFAULTS: Map<String, Any> = linkedMapOf(
     "noritsuGamma" to 1.0, "noritsuSaturation" to 1.0,
     "noritsuRed" to 1.0, "noritsuGreen" to 1.0, "noritsuBlue" to 1.0,
     "noritsuLow" to 100, "noritsuMid" to 100, "noritsuHigh" to 100, "noritsuUo" to 0,
+    "noritsuJobEnabled" to false, "noritsuLocalContrast" to false, "noritsuFilmSharp" to false, "noritsuHueSat" to false,
 )
 private val toneKeys = listOf("contrast", "blackPoint", "whitePoint")
 private val colourKeys = listOf("cyan", "magenta", "yellow")
@@ -48,7 +49,7 @@ internal fun ParamsState.resetScanCorrections() {
 }
 
 private fun ParamsState.scanValueChanged(key: String): Boolean {
-    val value = labObject().valueAt("outputModel.$key") ?: return false
+    val value = labOverrideValue("outputModel.$key") ?: return false
     val baseline = SCAN_CORRECTION_DEFAULTS.getValue(key)
     val tolerance = if (key in NORITSU_COLOUR_KEYS) 1e-4 else 1e-7
     return if (value is Number && baseline is Number) abs((if (key in NORITSU_INTEGER_KEYS) value.toInt().toDouble() else value.toDouble())-baseline.toDouble()) > tolerance
@@ -99,6 +100,7 @@ internal fun ScanWorkspace(s: ParamsState) {
     val workflow = s.labString("workflow", "normal")
     val mode = s.labString("outputModel.mode", "paper")
     val noritsu = mode == "noritsu-ls600"
+    val profileActive = noritsu && stock?.optBoolean("monochrome") != true && s.labBoolean("outputModel.noritsuJobEnabled")
     val monochrome = stock?.optBoolean("monochrome") == true
     val automatic = s.labValue("outputModel.autoSetup") as? Boolean ?: true
     val reversal = StockCatalog.isReversalFilm(ctx, s.filmProfile) || stock?.optString("type") == "positive"
@@ -134,7 +136,8 @@ internal fun ScanWorkspace(s: ParamsState) {
         }
         Dropdown("Режим сканирования", mode, modes.map { it.first }, { key -> modes.first { it.first == key }.second }, { s.chooseScanReceiver(it) })
         ScanSlider(s, "exposure", "Яркость скана · EV")
-        if (mode == "lab-scan" || (noritsu && !monochrome)) {
+        if (profileActive) LabNote("Используется цветовой тракт задания. Старый автоподбор адаптера сохранён, но не применяется. EV и CMY здесь работают после выхода из профильного RGB.")
+        else if (mode == "lab-scan" || (noritsu && !monochrome)) {
             SwitchRow(if (noritsu) "Автоподбор адаптера" else "Автоподбор кадра", automatic, { s.setLab("outputModel.autoSetup", it) },
                 if (noritsu) "Медиана и запас светов. Выключите для серии; автоэкспозиция камеры независима."
                 else if (automatic) "Подбор плотности и контраста для каждого кадра. Выключите для серии."
@@ -146,6 +149,7 @@ internal fun ScanWorkspace(s: ParamsState) {
             LabNote("Частичная реконструкция LS-600: таблицы Noritsu; приёмник и автоподбор — наша адаптация.")
             if (monochrome) OutlinedButton(onClick = { s.chooseScanReceiver("lab-scan") }) { Text("Использовать Lab Scan для ч/б") }
         }
+        if (noritsu && !monochrome) ScanGroup("noritsu-job", "Профильные стадии Noritsu", NORITSU_JOB_KEYS.any { s.scanValueChanged(it) }) { NoritsuJobControls(s) }
         ScanGroup("tone", "Тон и уровни", toneKeys.any { s.scanValueChanged(it) }) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 toneKeys.forEach { ScanSlider(s, it) }
@@ -177,7 +181,7 @@ internal fun ScanWorkspace(s: ParamsState) {
             }
             ScanGroup("noritsu-colour", "Цвет Noritsu", NORITSU_COLOUR_KEYS.any { s.scanValueChanged(it) }) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    LabNote("RGB-множители меняют цвет готового позитива; CMY выше изменяет приёмник до тональной кривой. Поправки применяются последовательно.")
+                    LabNote(if(profileActive) "EV, CMY и RGB-множители правят результат после цветового тракта задания. Эти операторские поправки не меняют импортированные таблицы." else "RGB-множители меняют цвет готового позитива; CMY выше изменяет приёмник до тональной кривой. Поправки применяются последовательно.")
                     NORITSU_COLOUR_KEYS.forEach { ScanSlider(s, it) }
                     TextButton(onClick = { s.clearScanValues(NORITSU_COLOUR_KEYS) }) { Text("Сбросить цвет Noritsu") }
                 }
@@ -196,7 +200,8 @@ internal fun ScanWorkspace(s: ParamsState) {
                 EnhancedSlider("Размытие сканера · px", s.scanLensBlur, 0f..20f, { s.scanLensBlur = it },
                     step = .05f, default = PARAM_DEFAULTS.scanLensBlur,
                     tooltip = "Оптическая мягкость после получения позитива. Не меняет размытие объектива камеры.")
-                PairSlider("Нерезкая маска", s.scanUnsharpMask, 0f..5f, { s.scanUnsharpMask = it },
+                if(profileActive && s.labBoolean("outputModel.noritsuFilmSharp")) LabNote("Film Sharp включён: обычная нерезкая маска обходится. Её значения сохранены и вернутся при отключении Film Sharp.")
+                else PairSlider("Нерезкая маска", s.scanUnsharpMask, 0f..5f, { s.scanUnsharpMask = it },
                     step = .05f, decimals = 2, componentLabels = "Радиус" to "Сила", default = PARAM_DEFAULTS.scanUnsharpMask,
                     tooltip = "Повышает локальную резкость готового скана. Сила 0 выключает эффект; разрешение изображения при этом не увеличивается.")
                 TextButton(onClick = { s.scanLensBlur = PARAM_DEFAULTS.scanLensBlur; s.scanUnsharpMask = PARAM_DEFAULTS.scanUnsharpMask }) { Text("Сбросить детализацию") }

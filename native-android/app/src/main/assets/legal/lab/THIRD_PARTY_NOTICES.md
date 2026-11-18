@@ -105,3 +105,15 @@ unchanged engine describe versions 9.41–9.56, not the new native base.
 The original repository's publicly distributed debug keystore is retained solely
 for reproducible debug builds. Release signing uses an external, uncommitted key.
 See docs/NATIVE_UPSTREAM_MIGRATION.md and docs/upstream/native-v1/source-manifest.json.
+
+## Noritsu job-dependent stages (version 9.67)
+
+Local Auto Contrast S0, full FilmSharp, Hue/Saturation S0, RGB/YCC transforms,
+YCC correction and fused output gamma are transcribed from noritsu-tool,
+MIT, Copyright (c) 2026 noritsu-tool contributors, at commit
+9c9298644c21baa0f086778ff64e0515c9207c63 of
+https://github.com/rohanpandula/negative-universal .
+The original source and hashes are retained in docs/upstream/noritsu/; the full
+MIT licence is bundled as licenses/NORITSU_TOOL_MIT.txt. Runtime capture tables
+remain external data, not shipped calibration. Test-only synthetic profiles are
+excluded from APK assets. See docs/NORITSU_ADVANCED_967.md for adaptation limits.

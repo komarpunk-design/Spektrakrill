@@ -49,6 +49,7 @@ add_library(spektra SHARED
         # LUT/asset loaders:
         io/npy_lut.cpp                       # .npy / .lut binary loaders (M3)
         # Model (photographic math):
+        model/noritsu_advanced.cpp
         model/noritsu_operators.cpp
         model/experimental.cpp
         model/negative.cpp
@@ -238,3 +239,5 @@ target_link_options(spektra PRIVATE "-Wl,-z,max-page-size=16384")
 
 # Keep source operator truncation and float32 stores faithful to the Python oracle.
 set_source_files_properties(model/noritsu_operators.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
+
+set_source_files_properties(model/noritsu_advanced.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
