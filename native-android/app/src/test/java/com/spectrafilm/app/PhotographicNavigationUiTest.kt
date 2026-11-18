@@ -132,4 +132,17 @@ class PhotographicNavigationUiTest {
   }
  }
 
+ @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(sdk=[35],qualifiers="w320dp-h640dp") fun sourceOperatorGroupsFitTheNativePhoneWorkspace(){
+  state.chooseScanReceiver("noritsu-ls600");show();stage("SCAN")
+  compose.onNodeWithText("Градация Noritsu").performScrollTo().performClick()
+  compose.onNodeWithText("Таблица U/O").performScrollTo().assertIsDisplayed()
+  compose.onNodeWithText("Цвет Noritsu").performScrollTo().performClick()
+  compose.onNodeWithText("Синий · множитель").performScrollTo().assertIsDisplayed()
+  compose.onNodeWithTag("preview").assertExists()
+  System.getenv("NORITSU_CAPTURE_DIR")?.let { path ->
+   val directory=java.io.File(path);directory.mkdirs()
+   java.io.File(directory,"noritsu-small-controls.png").outputStream().use { assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)) }
+  }
+ }
+
 }

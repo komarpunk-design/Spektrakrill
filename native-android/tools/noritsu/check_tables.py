@@ -25,6 +25,18 @@ for dtype, name, width, rows in arrays:
 text = header.read_text(); begin = text.index('inline constexpr'); end = text.index('// Exact lane lookup:')
 if args.generate: header.write_text(text[:begin] + data + '\n' + text[end:])
 else: assert text[begin:end] == data + '\n', 'Run --generate to refresh header'
+# U/O tables are literal data in the original vendor module.
+import ast
+nodes = {n.targets[0].id: n.value for n in ast.parse((source/'vendor.py').read_text()).body
+         if isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name)}
+ux = ast.literal_eval(nodes['UO_RAW_X'])
+uy = [ux if isinstance(row, ast.Name) else ast.literal_eval(row) for row in nodes['UO_RAW_Y'].elts]
+uo_text = "/* MIT (c) 2026 noritsu-tool contributors. Generated from vendor.py, pinned in manifest.json. */\n#pragma once\n#include <cstdint>\nnamespace spk::noritsu {\n"
+uo_text += 'inline constexpr int64_t uo_x[47] = {' + ','.join(map(str, ux)) + '};\n'
+uo_text += 'inline constexpr int64_t uo_y[4][47] = {\n' + ',\n'.join(' {'+','.join(map(str,row))+'}' for row in uy) + '\n};\n}\n'
+uo_header = header.with_name('noritsu_uo_tables.h')
+if args.generate: uo_header.write_text(uo_text)
+else: assert uo_header.read_text() == uo_text, 'Regenerate U/O tables'
 if args.goldens:
     import numpy as np
     spec = importlib.util.spec_from_file_location('noritsu_vendor',source/'vendor.py')

@@ -12,10 +12,17 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 
 internal val SCAN_RECEIVER_MODES = listOf("lab-scan", "noritsu-ls600", "digital", "auto-levels")
+internal val NORITSU_GRADATION_KEYS = listOf("noritsuGamma", "noritsuLow", "noritsuMid", "noritsuHigh", "noritsuUo")
+internal val NORITSU_INTEGER_KEYS = setOf("noritsuLow", "noritsuMid", "noritsuHigh", "noritsuUo")
+internal val NORITSU_COLOUR_KEYS = listOf("noritsuSaturation", "noritsuRed", "noritsuGreen", "noritsuBlue")
+internal val NORITSU_CORRECTION_KEYS = NORITSU_GRADATION_KEYS + NORITSU_COLOUR_KEYS
 internal val SCAN_CORRECTION_DEFAULTS: Map<String, Any> = linkedMapOf(
     "autoSetup" to true, "look" to 1.0, "exposure" to 0.0,
     "cyan" to 0.0, "magenta" to 0.0, "yellow" to 0.0,
     "contrast" to 1.0, "blackPoint" to 0.0, "whitePoint" to 1.0,
+    "noritsuGamma" to 1.0, "noritsuSaturation" to 1.0,
+    "noritsuRed" to 1.0, "noritsuGreen" to 1.0, "noritsuBlue" to 1.0,
+    "noritsuLow" to 100, "noritsuMid" to 100, "noritsuHigh" to 100, "noritsuUo" to 0,
 )
 private val toneKeys = listOf("contrast", "blackPoint", "whitePoint")
 private val colourKeys = listOf("cyan", "magenta", "yellow")
@@ -43,7 +50,8 @@ internal fun ParamsState.resetScanCorrections() {
 private fun ParamsState.scanValueChanged(key: String): Boolean {
     val value = labObject().valueAt("outputModel.$key") ?: return false
     val baseline = SCAN_CORRECTION_DEFAULTS.getValue(key)
-    return if (value is Number && baseline is Number) abs(value.toDouble()-baseline.toDouble()) > 1e-7
+    val tolerance = if (key in NORITSU_COLOUR_KEYS) 1e-4 else 1e-7
+    return if (value is Number && baseline is Number) abs((if (key in NORITSU_INTEGER_KEYS) value.toInt().toDouble() else value.toDouble())-baseline.toDouble()) > tolerance
         else value != baseline
 }
 
@@ -58,11 +66,12 @@ private fun ScanSlider(s: ParamsState, key: String, label: String? = null) {
     val step = row.getDouble("step").toFloat()
     val neutral = row.getDouble("default").toFloat()
     val limits = row.getDouble("min").toFloat()..row.getDouble("max").toFloat()
+    val current = s.labNumber("outputModel.$key").coerceIn(limits).let { if (step >= 1f) it.toInt().toFloat() else it }
     EnhancedSlider(
-        label ?: row.getString("label"), s.labNumber("outputModel.$key").coerceIn(limits),
+        label ?: row.getString("label"), current,
         limits,
-        { s.setLab("outputModel.$key", if (abs(it-neutral) < step/100f) neutral else it) }, step = step,
-        decimals = if (step < .01f) 3 else 2,
+        { s.setLab("outputModel.$key", if (step >= 1f) it.toInt() else if (abs(it-neutral) < step/100f) neutral else it) }, step = step,
+        decimals = if (step >= 1f) 0 else if (step < .01f) 3 else 2,
         tooltip = row.getString("help"), default = row.getDouble("default").toFloat(),
         modifier = Modifier.testTag("scan-control-$key"),
     )
@@ -154,6 +163,28 @@ internal fun ScanWorkspace(s: ParamsState) {
                 TextButton(onClick = { s.clearScanValues(colourKeys) }) { Text("Сбросить цветовой баланс") }
             }
         }
+        if (noritsu && !monochrome) {
+            ScanGroup("noritsu-gradation", "Градация Noritsu", NORITSU_GRADATION_KEYS.any { s.scanValueChanged(it) }) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    LabNote("Три участка кривой регулируются независимо. 100% сохраняет наклон; гамма меняет полутона. Это правки готового позитива — параметры проявки сохраняются.")
+                    ScanSlider(s, "noritsuGamma")
+                    listOf("noritsuLow", "noritsuMid", "noritsuHigh").forEach { ScanSlider(s, it) }
+                    val uo = s.labNumber("outputModel.noritsuUo").coerceIn(0f, 3f).toInt()
+                    Dropdown("Таблица U/O", uo, listOf(0,1,2,3), { if (it == 0) "Выключена" else "Исходная таблица $it" }, { s.setLab("outputModel.noritsuUo", it) })
+                    LabNote("U/O изменяет нижнюю часть кривой. Автоподбор кадра и экспозицию плёнки не переключает.")
+                    TextButton(onClick = { s.clearScanValues(NORITSU_GRADATION_KEYS) }) { Text("Сбросить градацию Noritsu") }
+                }
+            }
+            ScanGroup("noritsu-colour", "Цвет Noritsu", NORITSU_COLOUR_KEYS.any { s.scanValueChanged(it) }) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    LabNote("RGB-множители меняют цвет готового позитива; CMY выше изменяет приёмник до тональной кривой. Поправки применяются последовательно.")
+                    NORITSU_COLOUR_KEYS.forEach { ScanSlider(s, it) }
+                    TextButton(onClick = { s.clearScanValues(NORITSU_COLOUR_KEYS) }) { Text("Сбросить цвет Noritsu") }
+                }
+            }
+        } else if (NORITSU_CORRECTION_KEYS.any { s.scanValueChanged(it) }) {
+            LabNote("Сохранены поправки Noritsu. Они применятся при выборе Noritsu с цветным негативом; текущий приёмник их не использует.")
+        }
         if (mode == "lab-scan") ScanGroup("character", "Характер минилаба", s.scanValueChanged("look")) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 LabNote("Глубокий чёрный, прохладные нейтральные тени и характерные смещения оттенков. Ноль выключает эту отделку, сохраняя автоподбор и ручные поправки.")
@@ -172,7 +203,7 @@ internal fun ScanWorkspace(s: ParamsState) {
             }
         }
         if (noritsu) ScanGroup("noritsu-info", "О реконструкции Noritsu", false) {
-            LabNote("FilmLUT и CommonCalcPara NEGA135 взяты из открытого noritsu-tool (MIT). Согласование с виртуальной плёнкой, нормализация и автоподбор — Spektrafilm Lab. Полный OEM-тракт и ICE не восстановлены; точное совпадение с физическим LS-600 не проверено. Таблицы предназначены для цветного негатива.")
+            LabNote("FilmLUT и CommonCalcPara NEGA135 взяты из открытого noritsu-tool (MIT). Согласование с виртуальной плёнкой, нормализация и автоподбор — Spektrafilm Lab. Полный OEM-тракт и ICE не восстановлены; точное совпадение с физическим LS-600 не проверено. Таблицы предназначены для цветного негатива. Градация и U/O перенесены из make_nega_tone2 / make_gamma_curve2; RGB, гамма и насыщенность — из render.py того же проекта. Для операторской градации используется нейтральная кривая, а не калибровка аппаратного задания.")
         }
         LabNote("Нажмите число для точного ввода; двойное нажатие сбрасывает изменённое значение.")
         if (mode != "lab-scan" && (s.scanValueChanged("look") || (!noritsu && s.scanValueChanged("autoSetup"))))

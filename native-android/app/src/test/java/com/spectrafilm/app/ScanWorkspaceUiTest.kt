@@ -139,4 +139,31 @@ class ScanWorkspaceUiTest {
         compose.runOnIdle { assertEquals("lab-scan",s.labString("outputModel.mode")) }
     }
 
+    @Test fun sourceGradationAndColourAreReachableAndResetByGroup() {
+        s.chooseScanReceiver("noritsu-ls600"); s.setLab("outputModel.noritsuGamma", .8); s.setLab("outputModel.noritsuRed", 1.2); show()
+        compose.onNodeWithText("Градация Noritsu",substring=true).performScrollTo().performClick()
+        compose.onNodeWithText("Верхний диапазон · %").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Таблица U/O").performScrollTo().performClick()
+        compose.onNodeWithText("Исходная таблица 2").performClick()
+        compose.runOnIdle { assertEquals(2f,s.labNumber("outputModel.noritsuUo"),0f) }
+        compose.onNodeWithText("Сбросить градацию Noritsu").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(1f,s.labNumber("outputModel.noritsuGamma"),0f);assertEquals(1.2f,s.labNumber("outputModel.noritsuRed"),1e-6f) }
+        compose.onNodeWithText("Цвет Noritsu",substring=true).performScrollTo().performClick()
+        compose.onNodeWithText("Синий · множитель").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Сбросить цвет Noritsu").performScrollTo().performClick()
+        compose.runOnIdle { assertFalse(s.scanCorrectionsChanged());assertEquals("noritsu-ls600",s.labString("outputModel.mode")) }
+    }
+    @Test fun otherReceiversExplainSavedSourceEditsWithoutOfferingInertControls() {
+        s.chooseScanReceiver("digital");s.setLab("outputModel.noritsuGamma",.8);show()
+        compose.onNodeWithText("Сохранены поправки Noritsu",substring=true).assertExists()
+        compose.onNodeWithText("Градация Noritsu").assertDoesNotExist()
+        compose.onNodeWithText("Цвет Noritsu").assertDoesNotExist()
+    }
+
+    @Test fun importedFractionalPercentShowsTheSameIntegerAsTheEngine() {
+        s.chooseScanReceiver("noritsu-ls600");s.setLab("outputModel.noritsuHigh",12.9);show()
+        compose.onNodeWithText("Градация Noritsu",substring=true).performScrollTo().performClick()
+        compose.onNode(hasText("12") and hasAnyAncestor(hasTestTag("scan-control-noritsuHigh"))).assertExists()
+    }
+
 }

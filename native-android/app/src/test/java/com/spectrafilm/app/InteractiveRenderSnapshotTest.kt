@@ -91,4 +91,12 @@ class InteractiveRenderSnapshotTest {
         assertFalse(frame.cctfEncoded)
     }
 
+    @Test fun sourceScannerControlsStayInOneImmutablePreviewAndExportSnapshot() {
+        val state=ParamsState().apply { setLab("outputModel.mode","noritsu-ls600");setLab("outputModel.noritsuGamma",.8);setLab("outputModel.noritsuUo",2);setLab("outputModel.noritsuSaturation",1.3) }
+        val params=state.settledPreviewParams();val snapshot=state.captureInteractiveRenderSnapshot(42,params)
+        state.setLab("outputModel.noritsuGamma",1.4)
+        assertEquals(params.experimentalJson,snapshot.paramsForCrop(cropFraction=.5f).experimentalJson)
+        assertTrue(snapshot.params.experimentalJson.contains("0.8"));assertFalse(snapshot.params.experimentalJson.contains("1.4"))
+    }
+
 }

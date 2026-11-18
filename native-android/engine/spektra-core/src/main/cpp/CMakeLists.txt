@@ -49,6 +49,7 @@ add_library(spektra SHARED
         # LUT/asset loaders:
         io/npy_lut.cpp                       # .npy / .lut binary loaders (M3)
         # Model (photographic math):
+        model/noritsu_operators.cpp
         model/experimental.cpp
         model/negative.cpp
         model/negative_calibration.cpp
@@ -234,3 +235,6 @@ target_link_options(spektra PRIVATE "-Wl,-z,max-page-size=16384")
 # Being statistical, neither can see an element-wise change in the samplers, so
 # kernels/stats.cpp's degenerate-CDF short-circuit is gated separately and
 # element-wise by tests/test_binomial_shortcircuit.cpp.
+
+# Keep source operator truncation and float32 stores faithful to the Python oracle.
+set_source_files_properties(model/noritsu_operators.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")

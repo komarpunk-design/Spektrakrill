@@ -31,6 +31,25 @@ int main(int argc,char**argv)try{
   check(base==render(prefix+",\"contrast\":1,\"blackPoint\":0,\"whitePoint\":1}}"),"neutral controls preserve pixels");
  }
  p.film_profile="kodak_portra_400";
+ auto nbase=render(prefix+"}}");
+ check(nbase==render(prefix+",\"noritsuRed\":1.00001,\"noritsuSaturation\":0.99999}}"),"source epsilon bypass preserves exact baseline pixels");
+ for(auto control:{",\"noritsuLow\":50",",\"noritsuMid\":150",",\"noritsuHigh\":50",",\"noritsuUo\":1",",\"noritsuUo\":2",",\"noritsuUo\":3",",\"noritsuGamma\":0.7",",\"noritsuSaturation\":0.5",",\"noritsuRed\":1.3",",\"noritsuGreen\":1.3",",\"noritsuBlue\":1.3"}) {
+  const auto edit=prefix+control+"}}";check(nbase!=render(edit),("active source operator reaches engine: "+std::string(control)).c_str());
+  check(render(edit)==render(edit,true),"source operator preview/export match");
+ }
+ const std::string corrections=",\"noritsuLow\":50,\"noritsuMid\":150,\"noritsuHigh\":70,\"noritsuUo\":2,\"noritsuGamma\":0.8,\"noritsuSaturation\":0.7,\"noritsuRed\":1.1,\"noritsuGreen\":0.9,\"noritsuBlue\":1.2";
+ for(auto mode:{"digital","auto-levels","lab-scan"}){
+  const auto before=std::string("{\"outputModel\":{\"mode\":\"")+mode+"\"";
+  check(render(before+"}}")==render(before+corrections+"}}"),"inactive Noritsu controls do not leak into another receiver");
+ }
+ const auto neutral=prefix+",\"noritsuLow\":100,\"noritsuMid\":100,\"noritsuHigh\":100,\"noritsuUo\":0,\"noritsuGamma\":1,\"noritsuSaturation\":1,\"noritsuRed\":1,\"noritsuGreen\":1,\"noritsuBlue\":1}}";
+ check(nbase==render(neutral),"explicit operator defaults restore 9.65 pixels");
+ p.film_profile="negs_ilford_hp5_plus_6p5min";
+ check(render(prefix+corrections+"}}")==render(R"({"outputModel":{"mode":"digital"}})"),"BW fallback ignores all unavailable color Noritsu controls");
+ p.film_profile="kodak_portra_400";
+ const auto bounded=read_params(R"({"outputModel":{"noritsuLow":-9,"noritsuMid":900,"noritsuHigh":12.9,"noritsuUo":99,"noritsuGamma":0,"noritsuSaturation":99,"noritsuRed":0,"noritsuGreen":99}})");
+ check(bounded.noritsu.low==0&&bounded.noritsu.mid==300&&bounded.noritsu.high==12&&bounded.noritsu.uo==3&&bounded.noritsu.gamma==.2&&bounded.noritsu.saturation==2&&bounded.noritsu.gains[0]==.25&&bounded.noritsu.gains[1]==4,"all new ranges and integer coercion enforced");
+ p.film_profile="kodak_portra_400";
  for(auto cs:{SPK_CS_SRGB,SPK_CS_ADOBE_RGB,SPK_CS_PROPHOTO,SPK_CS_REC2020,SPK_CS_LINEAR_SRGB}){p.output_color_space=cs;check(render(prefix+"}}")==render(prefix+"}}",true),"Noritsu color-space output is finite and preview/export identical");}p.output_color_space=SPK_CS_SRGB;
  const auto fixed=prefix+",\"autoSetup\":false}}";
  auto before=render(fixed);auto savedSource=source;

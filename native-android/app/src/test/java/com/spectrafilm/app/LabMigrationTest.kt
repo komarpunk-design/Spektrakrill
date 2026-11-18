@@ -44,4 +44,15 @@ class LabMigrationTest {
   assertThrows(IllegalArgumentException::class.java){validateLabJson("{\"workflow\":\"unknown\"}")}
   assertThrows(IllegalArgumentException::class.java){validateLabJson("{\"x\":[1,2,3]}")}
  }
+ @Test fun knownOutputSettingsRejectWrongTypesAndUnknownModes(){
+  for(text in listOf("{\"outputModel\":{\"noritsuGamma\":\"0.8\"}}","{\"outputModel\":{\"autoSetup\":\"false\"}}","{\"outputModel\":{\"mode\":\"unknown\"}}","{\"outputModel\":7}"))
+   assertThrows(IllegalArgumentException::class.java){validateLabJson(text)}
+ }
+ @Test fun malformedScanRecipeCannotPartlyMutateLiveFilmOrSettings(){
+  val s=ParamsState();val before=Presets.encode(s).toString()
+  val bad=JSONObject().put("filmProfile","kodak_gold_200").put("spektrafilmLab",JSONObject("{\"outputModel\":{\"noritsuRed\":\"bad\"}}"))
+  assertThrows(IllegalArgumentException::class.java){Presets.decode(bad,s)}
+  assertEquals(before,Presets.encode(s).toString())
+ }
+
 }

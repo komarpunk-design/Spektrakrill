@@ -133,4 +133,45 @@ class ScanWorkspaceStateTest {
         assertFalse(PhotoTool.SCAN.changed(restored))
     }
 
+    @Test fun everySourceOperatorRoundTripsAndResetsIndependently() {
+        val s = ParamsState().apply { chooseScanReceiver("noritsu-ls600"); setLab("outputModel.cyan", .2); setLab("outputModel.autoSetup", false) }
+        val values = mapOf("noritsuGamma" to .73, "noritsuSaturation" to 1.37, "noritsuRed" to 1.21, "noritsuGreen" to .92, "noritsuBlue" to 1.18, "noritsuLow" to 67, "noritsuMid" to 123, "noritsuHigh" to 81, "noritsuUo" to 2)
+        values.forEach { (k,v) -> s.setLab("outputModel.$k", v) }
+        val restored = ParamsState(); Presets.decode(Presets.encode(s), restored)
+        assertEquals(s.toParams(), restored.toParams())
+        values.forEach { (k,v) -> assertEquals(v.toDouble(), (restored.labObject().valueAt("outputModel.$k") as Number).toDouble(), 1e-7) }
+        restored.clearScanValues(NORITSU_GRADATION_KEYS)
+        NORITSU_GRADATION_KEYS.forEach { k -> assertEquals((SCAN_CORRECTION_DEFAULTS.getValue(k) as Number).toFloat(), restored.labNumber("outputModel.$k"), 0f) }
+        assertEquals(1.37f, restored.labNumber("outputModel.noritsuSaturation"), 1e-6f)
+        PhotoTool.SCAN.reset(restored)
+        assertEquals("noritsu-ls600",restored.labString("outputModel.mode")); assertFalse(PhotoTool.SCAN.changed(restored))
+    }
+
+    @Test fun outputCatalogMatchesEveryScannerResetDefaultAndRange() {
+        val rows = LabCatalog.controls(RuntimeEnvironment.getApplication(), "output").associateBy { it.getString("path").removePrefix("outputModel.") }
+        assertEquals(SCAN_CORRECTION_DEFAULTS.keys, rows.keys)
+        SCAN_CORRECTION_DEFAULTS.forEach { (key, default) ->
+            val row = rows.getValue(key)
+            if (default is Number) {
+                assertEquals(default.toDouble(), row.getDouble("default"), 0.0)
+                assertTrue(row.getDouble("min") <= default.toDouble()); assertTrue(row.getDouble("max") >= default.toDouble())
+                assertTrue(row.getDouble("step") > 0)
+                assertTrue(row.getString("help").isNotBlank())
+            }
+        }
+        assertEquals(NORITSU_CORRECTION_KEYS.toSet(), rows.keys.filter { it.startsWith("noritsu") }.toSet())
+    }
+
+    @Test fun dirtyIndicatorsUseTheSameIntegerCoercionAsTheSourceKernel() {
+        val s=ParamsState().apply { chooseScanReceiver("noritsu-ls600");setLab("outputModel.noritsuLow",100.9);setLab("outputModel.noritsuUo",.9) }
+        assertFalse(s.scanCorrectionsChanged())
+        s.setLab("outputModel.noritsuMid",101.1);assertTrue(s.scanCorrectionsChanged())
+    }
+
+    @Test fun sourceColourToleranceDoesNotReportInactiveEditsAsChanged() {
+        val s=ParamsState().apply { chooseScanReceiver("noritsu-ls600");setLab("outputModel.noritsuRed",1.00001);setLab("outputModel.noritsuSaturation",.99999) }
+        assertFalse(s.scanCorrectionsChanged())
+        s.setLab("outputModel.noritsuRed",1.001);assertTrue(s.scanCorrectionsChanged())
+    }
+
 }

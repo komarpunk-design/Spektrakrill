@@ -116,3 +116,8 @@ license and pinned file hashes are in `docs/upstream/noritsu/`. The APK includes
 notices. Input receiver, normalization and frame adaptation are additions by
 Spektrafilm Lab; no complete OEM equivalence or physical scanner validation is
 claimed. See `docs/NORITSU_RECONSTRUCTION.md`.
+
+Version 9.66 additionally ports noritsu-tool vendor.make_nega_tone2 /
+make_gamma_curve2 with original U/O tables, and render.white_balance /
+gamma_curve / adjust_saturation. The identity operator-job bridge is an
+explicit Spektrafilm adaptation. See docs/SCAN_CONTROLS_966.md.

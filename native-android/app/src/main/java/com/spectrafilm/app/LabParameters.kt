@@ -103,6 +103,17 @@ internal fun validateLabJson(text: String): String {
         }
     }
     check(j,0)
+    if (j.has("outputModel")) {
+        val output = j.optJSONObject("outputModel")
+        require(output != null) { "outputModel должен быть объектом настроек" }
+        if (output.has("mode")) require(output.opt("mode") is String && output.getString("mode") in SCAN_RECEIVER_MODES + listOf("paper", "negative")) { "Неизвестный режим вывода" }
+        SCAN_CORRECTION_DEFAULTS.forEach { (key, baseline) ->
+            if (output.has(key)) {
+                val value = output.get(key)
+                require(if (baseline is Number) value is Number else value is Boolean) { "Неверный тип параметра outputModel.$key" }
+            }
+        }
+    }
     require(j.optString("workflow","normal") in listOf("normal","negative-print","negative-scan","negative-clear"))
     return j.toString()
 }

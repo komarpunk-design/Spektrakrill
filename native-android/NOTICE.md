@@ -210,3 +210,11 @@ The complete MIT license is bundled at assets/licenses/NORITSU_TOOL_MIT.txt.
 The spectral receiver, normalization and frame adaptation are Spektrafilm Lab
 adaptations, not a measured LS-600 device profile or complete OEM pipeline.
 No vendor executable payloads are included. No affiliation with Noritsu is claimed.
+
+## Noritsu operator tools (9.66)
+
+Additional ports from the same pinned MIT noritsu-tool source: vendor.py
+pcb_MakeGammaCurve2 / pcb_makeNegaTone2 and original U/O tables; render.py
+white_balance, gamma_curve and adjust_saturation. The operator job uses an
+identity code curve and neutral 0x5f00 anchors as a Spektrafilm adapter, not
+a captured OEM calibration. The illustrative synthetic S-curve is not used.

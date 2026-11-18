@@ -25,7 +25,7 @@ int main(int argc,char** argv) try {
         p.auto_exposure=0;p.preview_max_size=64;p.scan_film=std::strcmp(route,"paper")!=0&&std::strcmp(route,"legacy")!=0;
         p.use_scanner_lut=lut;p.use_enlarger_lut=lut;p.gpu_preview=gpu;p.gpu_export=gpu;
         p.grain_active=0;p.halation_active=0;p.glare_active=0;
-        const std::string lab=std::string("{\"outputModel\":{\"mode\":\"")+route+"\",\"look\":0.6}}";
+        const std::string lab=std::string("{\"outputModel\":{\"mode\":\"")+route+"\",\"look\":0.6,\"noritsuLow\":70,\"noritsuMid\":130,\"noritsuHigh\":70,\"noritsuUo\":2,\"noritsuGamma\":0.8,\"noritsuSaturation\":1.2,\"noritsuRed\":0.9,\"noritsuGreen\":1.1,\"noritsuBlue\":1.15}}";
         p.experimental_json=std::strcmp(route,"legacy")==0?nullptr:lab.c_str();
         for(int spatial=0;spatial<2;++spatial) {
             p.grain_active=spatial;p.halation_active=spatial;

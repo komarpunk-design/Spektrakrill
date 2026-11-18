@@ -245,3 +245,8 @@ target_link_libraries(scan_workstation_probe PRIVATE spektra_host)
 add_executable(noritsu_probe noritsu_probe.cpp)
 target_include_directories(noritsu_probe PRIVATE ${ROOT})
 target_link_libraries(noritsu_probe PRIVATE spektra_host)
+
+set_source_files_properties(${ROOT}/model/noritsu_operators.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
+add_executable(noritsu_operator_probe noritsu_operator_probe.cpp)
+target_include_directories(noritsu_operator_probe PRIVATE ${ROOT})
+target_link_libraries(noritsu_operator_probe PRIVATE spektra_host)

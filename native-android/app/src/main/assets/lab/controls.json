@@ -78,7 +78,16 @@
       "look": 1,
       "contrast": 1,
       "blackPoint": 0,
-      "whitePoint": 1
+      "whitePoint": 1,
+      "noritsuLow": 100,
+      "noritsuMid": 100,
+      "noritsuHigh": 100,
+      "noritsuGamma": 1,
+      "noritsuSaturation": 1,
+      "noritsuRed": 1,
+      "noritsuGreen": 1,
+      "noritsuBlue": 1,
+      "noritsuUo": 0
     }
   },
   "controls": [
@@ -784,6 +793,105 @@
       "kind": "switch",
       "default": true,
       "help": "Использует вычислительную таблицу для скорости. Экспорт сохраняет прямой расчёт плотностей."
+    },
+    {
+      "path": "outputModel.noritsuLow",
+      "group": "output",
+      "label": "Нижний диапазон · %",
+      "kind": "slider",
+      "default": 100,
+      "min": 0,
+      "max": 300,
+      "step": 1,
+      "help": "Наклон нижней части кривой. Меньше 100% — мягче, больше 100% — круче; опорная точка сохраняется. Проявку плёнки не меняет."
+    },
+    {
+      "path": "outputModel.noritsuMid",
+      "group": "output",
+      "label": "Средний диапазон · %",
+      "kind": "slider",
+      "default": 100,
+      "min": 0,
+      "max": 300,
+      "step": 1,
+      "help": "Наклон средней части кривой: меньше 100% смягчает её, больше 100% усиливает. Нижний и верхний участки задаются независимо."
+    },
+    {
+      "path": "outputModel.noritsuHigh",
+      "group": "output",
+      "label": "Верхний диапазон · %",
+      "kind": "slider",
+      "default": 100,
+      "min": 0,
+      "max": 300,
+      "step": 1,
+      "help": "Наклон верхней части кривой. Изменение виднее на самых ярких участках; 100% сохраняет исходный наклон."
+    },
+    {
+      "path": "outputModel.noritsuGamma",
+      "group": "output",
+      "label": "Гамма скана",
+      "kind": "slider",
+      "default": 1,
+      "min": 0.2,
+      "max": 3,
+      "step": 0.01,
+      "help": "Степенная кривая готового позитива. Меньше 1 осветляет полутона, больше 1 затемняет. Гамму проявки не меняет."
+    },
+    {
+      "path": "outputModel.noritsuSaturation",
+      "group": "output",
+      "label": "Насыщенность скана",
+      "kind": "slider",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "step": 0.01,
+      "help": "Цветность относительно яркости: 0 — серый, 1 — исходная насыщенность, 2 — усиленная."
+    },
+    {
+      "path": "outputModel.noritsuRed",
+      "group": "output",
+      "label": "Красный · множитель",
+      "kind": "slider",
+      "default": 1,
+      "min": 0.25,
+      "max": 4,
+      "step": 0.01,
+      "help": "Множитель красного канала после инверсии; 1 — без поправки. При отсечении светов уменьшите множитель или яркость скана."
+    },
+    {
+      "path": "outputModel.noritsuGreen",
+      "group": "output",
+      "label": "Зелёный · множитель",
+      "kind": "slider",
+      "default": 1,
+      "min": 0.25,
+      "max": 4,
+      "step": 0.01,
+      "help": "Множитель зелёного канала после инверсии; 1 — без поправки."
+    },
+    {
+      "path": "outputModel.noritsuBlue",
+      "group": "output",
+      "label": "Синий · множитель",
+      "kind": "slider",
+      "default": 1,
+      "min": 0.25,
+      "max": 4,
+      "step": 0.01,
+      "help": "Множитель синего канала после инверсии; 1 — без поправки."
+    },
+    {
+      "path": "outputModel.noritsuUo",
+      "group": "output",
+      "label": "Таблица U/O",
+      "kind": "slider",
+      "default": 0,
+      "min": 0,
+      "max": 3,
+      "step": 1,
+      "help": "Выбор исходной таблицы U/O 0…3. Коррекция нижней части кривой, без переключения экспозиции и автоподбора."
     }
   ]
 }
