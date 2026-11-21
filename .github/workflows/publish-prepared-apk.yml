@@ -1,0 +1,28 @@
+name: Publish native Spektrafilm Lab APK
+on:
+  push:
+    branches: [apk-delivery-native-9-70-553e9f6]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify, publish and download the complete APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '72eadc1b7dcf21e972b7869b8092cbd4f96f281d864f2ad8adf7542fe3bbfc25  release-payload/Spektrafilm-v9.70.0.apk' | sha256sum --check
+          if ! gh release view v9.70.0 >/dev/null 2>&1; then
+            gh release create v9.70.0 --target 553e9f624912b78d3639786cecbc43fb74a79e96 --prerelease --title 'Spektrafilm Lab 9.70 — Компактный интерфейс · ARM64' --notes-file release-payload/notes.md
+          fi
+          if ! gh release view v9.70.0 --json assets --jq '.assets[].name' | grep -Fxq 'Spektrafilm-v9.70.0.apk'; then
+            gh release upload v9.70.0 release-payload/Spektrafilm-v9.70.0.apk
+          fi
+          mkdir downloaded
+          gh release download v9.70.0 --pattern Spektrafilm-v9.70.0.apk --dir downloaded
+          echo '72eadc1b7dcf21e972b7869b8092cbd4f96f281d864f2ad8adf7542fe3bbfc25  downloaded/Spektrafilm-v9.70.0.apk' | sha256sum --check
