@@ -2302,6 +2302,7 @@ version = "0.18.0"
 dependencies = [
  "anyhow",
  "image",
+ "negs-library",
  "rayon",
  "serde",
  "serde_json",

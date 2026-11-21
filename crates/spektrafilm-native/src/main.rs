@@ -1,5 +1,5 @@
-//! Private, serial JSON-lines protocol for the native macOS client.
-//! stdout is protocol-only; diagnostics go to stderr. EOF releases all caches.
+// Private, serial JSON-lines protocol for the native macOS client.
+// stdout is protocol-only; diagnostics go to stderr. EOF releases all caches.
 use anyhow::{Context, Result, bail, ensure};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -1950,7 +1950,7 @@ mod tests {
         let mut source = ImageBuf::new(4, 2);
         for y in 0..2 {
             for x in 0..4 {
-                source.set(x, y, [x as f32 / 8.0, y as f32 / 8.0, 0.0]);
+                source.set(x, y, [x as f32 / 8.0, y as f32 / 8.0, 0.0].map(spektrafilm_math::precision::from_f32));
             }
         }
         let mut session = Session {

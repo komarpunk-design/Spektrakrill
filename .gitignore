@@ -24,3 +24,14 @@ AGENTS.md
 # SwiftPM local build and IDE state
 macos/.build/
 macos/.swiftpm/
+
+# Android local/build artifacts
+android/.gradle/
+android/**/build/
+android/local.properties
+android/app/src/main/jniLibs/
+android/app/src/main/assets/data/
+android/app/src/main/assets/controls.json
+android/app/src/main/assets/*LICENSE*
+android/app/src/main/assets/OFL-*.txt
+android/app/src/main/assets/assets-version.txt
