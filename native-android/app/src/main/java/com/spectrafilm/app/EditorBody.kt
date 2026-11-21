@@ -124,8 +124,10 @@ internal fun ColumnScope.EditorBody(
         val panelContent: @Composable ColumnScope.() -> Unit = {
             CompositionLocalProvider(LocalSliderInteraction provides sliderInteraction, LocalPhotoTool provides page,
                 LocalPhotoExport provides PhotoExportAction(exportVisible && !exportInFlight, onExport),
-                LocalPhotoNavigate provides chooseTool) {
+                LocalPhotoNavigate provides chooseTool, LocalQuietEditor provides true) {
                 key(page.id) {
+                    val parameterFocus=rememberSaveable(saver=ParameterFocus.saver) { ParameterFocus() }
+                    CompositionLocalProvider(LocalParameterFocus provides parameterFocus) {
                     page.bypassReason(state)?.let { LabNote(it) }
                     if(page.lockedByNegative(state)) {
                         LabNote("Проявка зафиксирована. Чтобы изменить исходник, плёнку или съёмочные параметры, вернитесь к проявке. Варианты сканирования сохранятся.")
@@ -134,11 +136,15 @@ internal fun ColumnScope.EditorBody(
                         }
                     } else if (page == PhotoTool.RAW_CLEANUP && !toolShown(Category.RAW_CLEANUP)) {
                         LabNote("Очистка сенсора доступна для RAW/DNG. Откройте RAW через Камера → Исходник.")
-                    } else for (tool in page.categories) toolContent(tool)
+                    } else for (tool in page.categories) {
+                        CompositionLocalProvider(LocalQuietSectionChanged provides (tool in dirty)) { toolContent(tool) }
+                    }
+                    }
                 }
             }
         }
-        val workflowTabs: @Composable () -> Unit = { PhotoToolTabs(page, workflowDirty, chooseTool) }
+        val resetActiveCategory: (() -> Unit)? = if (page in workflowDirty && !page.lockedByNegative(state)) ({ page.reset(state); onParamsChanged() }) else null
+        val workflowTabs: @Composable () -> Unit = { PhotoToolTabs(page, workflowDirty, resetActiveCategory, chooseTool) }
         val workflowNavigation: @Composable (Boolean) -> Unit = { isWide ->
             PhotoStageNavigation(page, activeCategory != null || cropOpen, workflowDirty, isWide,
                 chooseStage, chooseTool, exportVisible, exportInFlight, onExport, onShare)
@@ -167,7 +173,6 @@ internal fun ColumnScope.EditorBody(
         val panelInset by animateDpAsState(panelTarget, label = "previewPanelInset")
         // In Edit each stacked tool carries its own reset (ToolHeader); elsewhere the
         // panel offers one for the open tool.
-        val resetActiveCategory: (() -> Unit)? = if (page in workflowDirty && !page.lockedByNegative(state)) ({ page.reset(state); onParamsChanged() }) else null
         val imageWorkspace: @Composable () -> Unit = {
             Column(Modifier.fillMaxSize()) {
                 if(!chromeHidden && !cropOpen) NegativeCanvasToolbar(state) { chooseTool(PhotoTool.SCAN) }

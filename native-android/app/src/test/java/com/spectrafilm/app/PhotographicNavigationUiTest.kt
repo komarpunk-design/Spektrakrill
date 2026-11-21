@@ -56,7 +56,7 @@ class PhotographicNavigationUiTest {
   compose.waitForIdle()
  }
  private fun stage(id:String){compose.onNodeWithTag("workflow-stage-$id").performScrollTo().performClick();compose.waitForIdle()}
- private fun tool(id:String){compose.onNodeWithTag("workflow-tool-$id").performClick();compose.waitForIdle()}
+ private fun tool(id:String){compose.onNodeWithTag("tool-directory-open").performClick();compose.onNodeWithTag("tool-directory-list").performScrollToNode(hasTestTag("workflow-tool-$id"));compose.onNodeWithTag("workflow-tool-$id").performClick();compose.waitForIdle()}
  @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun labScanOpensDirectlyFromPrintAndChangesActualEngineParameters(){
   show()
   for(stage in PhotoStage.entries) {
@@ -148,7 +148,7 @@ class PhotographicNavigationUiTest {
  @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(sdk=[35],qualifiers="w320dp-h640dp") fun jobStagesRemainReachableInTheActualSmallPhoneWorkspace(){
   state.chooseScanReceiver("noritsu-ls600");show();stage("SCAN")
   compose.onNodeWithText("Профильные стадии Noritsu").performScrollTo().performClick()
-  compose.onNodeWithTag("noritsu-job-import").performScrollTo().assertIsDisplayed()
+  compose.onNodeWithTag("noritsu-factory-profile").performScrollTo().assertIsDisplayed()
   System.getenv("NORITSU_CAPTURE_DIR")?.let { path ->
    val file=java.io.File(path,"noritsu-job-missing-small.png");file.parentFile?.mkdirs()
    file.outputStream().use { assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)) }
@@ -161,6 +161,27 @@ class PhotographicNavigationUiTest {
   System.getenv("NORITSU_CAPTURE_DIR")?.let { path ->
    java.io.File(path,"noritsu-job-loaded-small.png").outputStream().use { assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)) }
   }
+ }
+
+ @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(sdk=[35],qualifiers="w320dp-h640dp") fun quietWorkspaceKeepsThePhotoAndWorkingScannerOnScreen(){
+  state.chooseScanReceiver("noritsu-ls600");state.useBuiltinFactoryNoritsuJob();show();stage("SCAN")
+  compose.onNodeWithTag("preview").assertIsDisplayed()
+  System.getenv("QUIET_CAPTURE_DIR")?.let { path ->
+   val file=java.io.File(path,"workspace-phone.png");file.parentFile?.mkdirs()
+   file.outputStream().use { assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)) }
+  }
+  compose.onNodeWithTag("tool-directory-open").performClick()
+  compose.onNodeWithTag("tool-directory-list").performScrollToNode(hasTestTag("workflow-tool-negative"))
+  compose.onNodeWithTag("workflow-tool-negative").performClick()
+  compose.onNodeWithText("Page: negative").assertExists()
+  compose.runOnIdle{assertEquals(NORITSU_FACTORY_ID,state.labString("noritsuJobId"));assertTrue(state.labBoolean("outputModel.noritsuJobEnabled"))}
+ }
+
+ @Test fun compactResetUsesTheExistingToolScope(){
+  state.chooseScanReceiver("noritsu-ls600");state.useBuiltinFactoryNoritsuJob();state.setLab("outputModel.contrast",1.4);state.exposureCompensationEv=.75f
+  show();stage("SCAN")
+  compose.onNodeWithTag("tool-reset").assertIsEnabled().performClick()
+  compose.runOnIdle{assertEquals(1f,state.labNumber("outputModel.contrast"),0f);assertFalse(state.labBoolean("outputModel.noritsuJobEnabled"));assertEquals(NORITSU_FACTORY_ID,state.labString("noritsuJobId"));assertEquals(.75f,state.exposureCompensationEv,0f)}
  }
 
 }

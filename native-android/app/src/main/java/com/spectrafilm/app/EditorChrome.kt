@@ -521,7 +521,7 @@ internal fun AdjustmentPanel(
                             .clip(RoundedCornerShape(2.dp))
                             .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
                     )
-                    if (tabs.size > 1 || sections.size > 1) {
+                    if (workflowTabs != null || tabs.size > 1 || sections.size > 1) {
                         // The tabs name the open group; a title here would repeat it.
                         Spacer(Modifier.height(8.dp))
                     } else {
@@ -566,7 +566,7 @@ internal fun AdjustmentPanel(
                 // Deliberately here and not in the drag-handle header above: that header is
                 // one merged semantics node carrying its own "close panel" click action, and
                 // a nested button inside it would be unreachable to TalkBack.
-                if (onResetCategory != null) {
+                if (onResetCategory != null && workflowTabs == null) {
                     TextButton(
                         onClick = onResetCategory,
                         modifier = Modifier.align(Alignment.End),
@@ -701,7 +701,7 @@ internal fun SidePanel(
                     .padding(bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                if (onResetCategory != null) {
+                if (onResetCategory != null && workflowTabs == null) {
                     TextButton(
                         onClick = onResetCategory,
                         modifier = Modifier.align(Alignment.End),

@@ -1,12 +1,15 @@
 /* Navigation order from Lab 9.56; original native Material controls/theme. GPLv3. */
 package com.spectrafilm.app
 
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -65,18 +68,23 @@ import androidx.compose.ui.unit.sp
     }
 }
 
-@Composable internal fun PhotoToolTabs(page:PhotoTool,dirty:Set<PhotoTool>,onSelect:(PhotoTool)->Unit) {
-    if(page.stage==null)return
-    val tools=photoTools(page.stage)
-    PrimaryScrollableTabRow(
-        selectedTabIndex=tools.indexOf(page).coerceAtLeast(0),
-        containerColor=MaterialTheme.colorScheme.surfaceContainer,
-        edgePadding=12.dp,divider={},modifier=Modifier.fillMaxWidth(),
-    ) {
-        for(tool in tools)Tab(
-            selected=tool==page,onClick={onSelect(tool)},
-            modifier=Modifier.testTag("workflow-tool-${tool.id}"),
-            text={BadgedBox(badge={if(tool in dirty)Badge(Modifier.size(6.dp))}){Text(tool.title,maxLines=1)}},
-        )
+@Composable internal fun PhotoToolTabs(page:PhotoTool,dirty:Set<PhotoTool>,onReset:(()->Unit)?=null,onSelect:(PhotoTool)->Unit) {
+    var directory by rememberSaveable { mutableStateOf<Boolean?>(null) }
+    Row(Modifier.fillMaxWidth().padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically) {
+        Row(Modifier.weight(1f).heightIn(min=56.dp).testTag("tool-directory-open")
+            .clickable(role=Role.Button){directory=false}.padding(horizontal=4.dp),verticalAlignment=Alignment.CenterVertically) {
+            Column(Modifier.weight(1f),horizontalAlignment=Alignment.Start) {
+                Text("Инструменты · ${page.stage?.title?:"Рабочая среда"}",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=1,overflow=TextOverflow.Ellipsis)
+                Text(page.title,style=MaterialTheme.typography.titleSmall,color=MaterialTheme.colorScheme.primary,maxLines=1,overflow=TextOverflow.Ellipsis)
+            }
+            Icon(SpectraIcons.ChevronDown,null)
+        }
+        IconButton(onClick={onReset?.invoke()},enabled=onReset!=null,modifier=Modifier.testTag("tool-reset")) {
+            Icon(SpectraIcons.Reset,"Сбросить инструмент: ${page.title}")
+        }
+        IconButton(onClick={directory=true},modifier=Modifier.testTag("tool-directory-global")) {
+            Icon(SpectraIcons.Search,"Найти любой инструмент")
+        }
     }
+    directory?.let { global->ToolDirectory(page,dirty,global,{directory=null},onSelect) }
 }

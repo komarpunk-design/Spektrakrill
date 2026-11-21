@@ -16,20 +16,51 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.json.JSONArray
 
-@Composable internal fun LabNote(text: String) { Text(text, style=MaterialTheme.typography.bodySmall, color=MaterialTheme.colorScheme.onSurfaceVariant) }
+@Composable internal fun LabNote(text: String) {
+    if(LocalQuietEditor.current)QuietNote(text)
+    else Text(text, style=MaterialTheme.typography.bodySmall, color=MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+internal fun labParameterBuckets(group:String,values:List<JSONObject>):List<Pair<String,List<JSONObject>>> {
+    val groups=when(group) {
+                "grain"->listOf("Гранулярность RMS" to values.filter{it.getString("path").startsWith("grainRms")},
+                    "Равномерность и плотность" to values.filter{it.getString("path").startsWith("grainUniformity")||it.getString("path").startsWith("grainFloor")},
+                    "Частицы и резкость" to values.filter{it.getString("path").startsWith("grainScale")||it.getString("path").startsWith("grainUsm")})
+                "chemistry"->listOf("Слои эмульсии" to values.filter{it.getString("path") in listOf("filmFast","filmSlow")},
+                    "Цветовые каналы" to values.filter{it.getString("path") in listOf("filmRed","filmGreen","filmBlue")},
+                    "Проявитель" to values.filter{it.getString("path")=="filmExhaustion"})
+                else->listOf("Свет и тени" to values.take(3),"Тон и контраст" to values.drop(3).take(3),"Цвет и детали" to values.drop(6))
+            }
+    val assigned=groups.flatMap{it.second}.map{it.getString("path")}.toSet()
+    val rest=values.filter{it.getString("path") !in assigned}
+    return groups + if(rest.isEmpty())emptyList() else listOf("Другие параметры" to rest)
+}
 @Composable internal fun LabGroup(s: ParamsState, group: String) {
     val ctx=LocalContext.current
     val rows=remember(group) { LabCatalog.controls(ctx,group) }
     val monochrome=LabCatalog.stock(s.filmProfile)?.optBoolean("monochrome")==true
     Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
-        for(row in rows) {
+        @Composable fun renderRow(row:JSONObject) {
             val path=row.getString("path")
-            if(monochrome && group=="grain" && (path.endsWith("Green")||path.endsWith("Blue")))continue
-            if(group=="dir" && (if(LabCatalog.stock(s.filmProfile)?.optString("type")=="positive") path.startsWith("dirDonor") else path.startsWith("dirReceiver")))continue
+            if(monochrome && group=="grain" && (path.endsWith("Green")||path.endsWith("Blue")))return
+            if(group=="dir" && (if(LabCatalog.stock(s.filmProfile)?.optString("type")=="positive") path.startsWith("dirDonor") else path.startsWith("dirReceiver")))return
             val label=row.getString("label")
             if(row.getString("kind")=="switch") SwitchRow(label,s.labBoolean(path),{s.setLab(path,it)},row.optString("help").ifBlank { null })
             else EnhancedSlider(label,s.labNumber(path),row.getDouble("min").toFloat()..row.getDouble("max").toFloat(),{s.setLab(path,it)},step=row.getDouble("step").toFloat(),decimals=if(row.getDouble("step")<.01)3 else if(row.getDouble("step")<1)2 else 0,tooltip=row.optString("help").ifBlank { null },default=row.getDouble("default").toFloat())
         }
+        if(LocalQuietEditor.current && group in listOf("grain","chemistry","prep")) {
+            val visible=rows.filterNot{monochrome && group=="grain" && (it.getString("path").endsWith("Green")||it.getString("path").endsWith("Blue"))}
+            visible.filter{it.getString("kind")=="switch"}.forEach{renderRow(it)}
+            val values=visible.filter{it.getString("kind")!="switch"}
+            val groups=labParameterBuckets(group,values)
+            groups.filter{it.second.isNotEmpty()}.forEachIndexed { index,(title,controls)->
+                if(index==0)controls.forEach{renderRow(it)}
+                else QuietParameterGroup("lab-$group-$index",title,controls.joinToString(" · "){it.getString("label")},
+                    changed=controls.any{row->s.labOverrideValue(row.getString("path"))!=null}) {
+                    controls.forEach{renderRow(it)}
+                }
+            }
+        } else rows.forEach{renderRow(it)}
         TextButton(onClick={s.resetLab(ctx,group)}) { Text("Сбросить параметры этой группы") }
     }
 }

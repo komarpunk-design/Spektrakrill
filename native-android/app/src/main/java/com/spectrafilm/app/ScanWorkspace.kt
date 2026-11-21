@@ -81,6 +81,19 @@ private fun ScanSlider(s: ParamsState, key: String, label: String? = null) {
 
 @Composable
 private fun ScanGroup(id: String, title: String, changed: Boolean, content: @Composable () -> Unit) {
+    if(LocalQuietEditor.current) {
+        QuietParameterGroup("scan-$id",title,summary=when(id){
+            "noritsu-job"->"Заводской профиль · Film Sharp · Auto Contrast · Hue/Saturation"
+            "tone"->"Контраст · чёрная и белая точки"
+            "colour"->"Устранение цветного оттенка"
+            "noritsu-gradation"->"Гамма · тени · средние тона · света"
+            "noritsu-colour"->"Насыщенность и усиление RGB"
+            "character"->"Сила характера минилаба"
+            "detail"->"Оптическая мягкость и резкость"
+            else->"Происхождение алгоритмов и ограничения"
+        },changed=changed,content=content)
+        return
+    }
     var expanded by rememberSaveable(id) { mutableStateOf(false) }
     // These are peer groups, not an outer tool wrapper. Preserve their collapsible
     // headers inside the native panel's otherwise flat section presentation.
@@ -113,7 +126,7 @@ internal fun ScanWorkspace(s: ParamsState) {
     )
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if(workflow == "normal" && !reversal) {
-            NegativeWorkspaceControls(s)
+            if(!LocalQuietEditor.current||mode=="negative")NegativeWorkspaceControls(s)
             if(mode == "negative" && s.negativeWorkspaceJson.isNotBlank()) {
                 LabNote("Негатив на просвет. При сохранении будет выведен этот негатив; для позитива нажмите «Готовый скан». Режим настоящего негатива включать не нужно.")
                 return@Column
@@ -140,6 +153,7 @@ internal fun ScanWorkspace(s: ParamsState) {
                 Text("Включить Lab Scan без бумаги")
             }
             LabNote("Сохранятся плёнка, проявка и параметры бумаги. Сменить маршрут обратно можно в Печать → Вывод.")
+            if(LocalQuietEditor.current&&workflow=="normal")NegativeWorkspaceControls(s)
             return@Column
         }
         Dropdown("Режим сканирования", mode, modes.map { it.first }, { key -> modes.first { it.first == key }.second }, { s.chooseScanReceiver(it) })
@@ -224,6 +238,7 @@ internal fun ScanWorkspace(s: ParamsState) {
         OutlinedButton(onClick = { s.resetScanCorrections() }, enabled = s.scanCorrectionsChanged(), modifier = Modifier.fillMaxWidth()) {
             Text("Сбросить поправки скана")
         }
+        if(LocalQuietEditor.current&&workflow=="normal")NegativeWorkspaceControls(s)
         TextButton(onClick = { navigate(PhotoTool.FILE) }, modifier = Modifier.fillMaxWidth()) { Text("Перейти к сохранению") }
     }
 }

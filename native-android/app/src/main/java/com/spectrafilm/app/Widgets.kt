@@ -39,6 +39,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -313,6 +314,14 @@ private fun FlatSection(
     onHelp: () -> Unit,
     content: @Composable () -> Unit,
 ) {
+    if(LocalQuietEditor.current && (LocalPhotoTool.current?.categories?.size?:0)>1) {
+        QuietParameterGroup("native-$title",title,summary=if(enabledSwitch==null)"" else if(enabledSwitch)"Включено" else "Выключено",changed=LocalQuietSectionChanged.current) {
+            if(enabledSwitch!=null&&onEnabledChange!=null)SwitchRow(title,enabledSwitch,onEnabledChange)
+            if(help!=null)TextButton(onClick=onHelp){Text("О параметрах этой группы")}
+            CompositionLocalProvider(LocalFlatSections provides false){content()}
+        }
+        return
+    }
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -499,13 +508,18 @@ fun SwitchRow(
     ) {
         Column(Modifier.weight(1f)) {
             Text(label, style = MaterialTheme.typography.bodyLarge)
-            if (tooltip != null) {
+            if (tooltip != null && !LocalQuietEditor.current) {
                 Text(
                     tooltip,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+        if(tooltip!=null && LocalQuietEditor.current) {
+            var help by remember { mutableStateOf(false) }
+            IconButton(onClick={help=true}){Icon(SpectraIcons.Info,"Пояснение: $label")}
+            if(help)androidx.compose.material3.AlertDialog(onDismissRequest={help=false},title={Text(label)},text={Text(tooltip,Modifier.verticalScroll(rememberScrollState()))},confirmButton={TextButton(onClick={help=false}){Text("Понятно")}})
         }
         Switch(checked = checked, onCheckedChange = null)
     }

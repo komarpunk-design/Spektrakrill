@@ -49,6 +49,17 @@ internal fun NegativeCanvasToolbar(s: ParamsState, onOpenScans: () -> Unit) {
 @Composable
 internal fun NegativeWorkspaceControls(s: ParamsState) {
     val work = s.negativeWorkspace()
+    if(LocalQuietEditor.current) {
+        QuietParameterGroup("virtual-negative","Виртуальный негатив и варианты",
+            if(work.length()==0)"Зафиксировать проявку и сравнивать варианты скана" else if(s.negativeIsFrozen())"Проявка зафиксирована · варианты сканирования" else "Проявка и варианты сканирования",
+            changed=work.length()>0) {
+            if(work.length()==0) {
+                OutlinedButton(onClick={s.startNegativeWorkspace()},modifier=Modifier.fillMaxWidth().testTag("negative-start")){Text("Работать с виртуальным негативом")}
+                LabNote("Сравнивайте сканы одного негатива без сохранения и повторного импорта фотографии.")
+            } else NegativeWorkspaceDetails(s)
+        }
+        return
+    }
     if(work.length() == 0) {
         OutlinedButton(onClick = { s.startNegativeWorkspace() }, modifier = Modifier.fillMaxWidth().testTag("negative-start")) {
             Text("Работать с виртуальным негативом")

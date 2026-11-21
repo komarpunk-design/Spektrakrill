@@ -155,12 +155,18 @@ internal fun NoritsuJobControls(s: ParamsState) {
         val text=job?.toString()
         if(uri!=null&&text!=null)scope.launch {try { withContext(Dispatchers.IO){writeVerifiedNewDocument(ctx,uri,text.toByteArray(Charsets.UTF_8),NORITSU_JOB_LIMIT)};message="Профиль сохранён" }catch(e:CancellationException){throw e}catch(e:Exception){message="Ошибка сохранения: ${e.message}"} }
     }
-    Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
+    @Composable fun factoryButton() {
         OutlinedButton(enabled=!busy,onClick={busy=true;scope.launch {try {
             val text=withContext(Dispatchers.IO){ctx.assets.open("lab/noritsu-factory-experimental.json").bufferedReader().use{it.readText()}}
             val valid=withContext(Dispatchers.Default){validateNoritsuJob(JSONObject(text))}
             factoryJob=valid;s.useBuiltinFactoryNoritsuJob();message="Заводские блоки включены: цвет, Local Auto Contrast, Film Sharp и Hue/Saturation. Используется постоянный нейтральный опорный контекст, а не захваченное задание физического сканера."
         }catch(e:CancellationException){throw e}catch(e:Exception){message="Не удалось включить профиль: ${e.message}"}finally{busy=false}}},modifier=Modifier.fillMaxWidth().testTag("noritsu-factory-profile")) {Text("Включить заводской профиль · эксперимент")}
+    }
+    Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
+        if(!builtin||!enabled)factoryButton()
+        else Text("Заводской профиль · эксперимент · включён",style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.primary)
+        @Composable fun profileInfo() {
+        if(builtin&&enabled)factoryButton()
         if(job==null)LabNote("Заводской экспериментальный профиль уже встроен: цветовой тракт, Local Auto Contrast, Film Sharp и Hue/Saturation. Можно также импортировать собственный комплект задания.")
         else {
             Text(job.optString("name"),style=MaterialTheme.typography.titleSmall)
@@ -171,7 +177,13 @@ internal fun NoritsuJobControls(s: ParamsState) {
         }
         OutlinedButton(onClick={importer.launch(arrayOf("application/json","text/plain","application/octet-stream"))},enabled=!busy,modifier=Modifier.fillMaxWidth().testTag("noritsu-job-import")) { Text(if(busy)"Проверяю комплект…"else"Импортировать профиль задания") }
         if(job!=null)OutlinedButton(onClick={exporter.launch("Noritsu-job.json")},enabled=!busy) { Text("Экспортировать профиль") }
-        if(message.isNotBlank())Text(message,style=MaterialTheme.typography.bodySmall)
+        }
+        if(builtin&&job==null) {
+            Text("Загружаю данные встроенного профиля…",style=MaterialTheme.typography.bodySmall)
+            return@Column
+        }
+        if(!LocalQuietEditor.current)profileInfo()
+        if(message.isNotBlank())LabNote(message)
         if(job==null) {
             Text("Цветовой тракт RGB ↔ YCC · нужен профиль",style=MaterialTheme.typography.titleSmall)
             LabNote("Local Auto Contrast · нужны параметры пространственного фильтра\nFilm Sharp · нужен блок 0x154 байт\nHue/Saturation S0 · нужна исходная цветовая решётка")
@@ -185,5 +197,6 @@ internal fun NoritsuJobControls(s: ParamsState) {
             }
             TextButton(onClick={s.clearScanValues(NORITSU_JOB_KEYS)}) { Text("Отключить профильные стадии") }
         }
+        if(LocalQuietEditor.current)QuietParameterGroup("noritsu-profile-info","Данные профиля и файлы","Происхождение · совместимость · импорт и экспорт") { profileInfo() }
     }
 }
