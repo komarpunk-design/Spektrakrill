@@ -17,7 +17,14 @@ for mode in fast reference; do
  cargo build --release --target aarch64-linux-android -p spektrafilm-native --lib -j3 "${extra[@]}"
  "$tools/aarch64-linux-android26-clang" -shared -fPIC -O2 -Wl,-Bsymbolic -Wl,-z,max-page-size=16384 "${defs[@]}" \
   android/bridge.c target/aarch64-linux-android/release/libnegs_android.a \
-  -L"$ndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android" \
-  -lc++_static -lc++abi -ldl -lm -llog -landroid -o "android/app/src/main/jniLibs/arm64-v8a/lib${name}.so"
+  "$ndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a" \
+  "$ndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a" \
+  -ldl -lm -llog -landroid -o "android/app/src/main/jniLibs/arm64-v8a/lib${name}.so"
+ # Never add the generic NDK lib directory with -L: its libc.a shadows
+ # the API-specific libc.so stub and embeds a second Bionic into this DSO.
+ "$tools/llvm-readelf" -d "android/app/src/main/jniLibs/arm64-v8a/lib${name}.so" | grep -q 'Shared library: \[libc.so\]'
+ if "$tools/llvm-nm" --dynamic --defined-only "android/app/src/main/jniLibs/arm64-v8a/lib${name}.so" | grep -Eq ' T (malloc|free|pthread_create)$'; then
+  echo "Refusing a DSO with embedded Bionic" >&2;exit 1
+ fi
  "$tools/llvm-strip" "android/app/src/main/jniLibs/arm64-v8a/lib${name}.so"
 done
