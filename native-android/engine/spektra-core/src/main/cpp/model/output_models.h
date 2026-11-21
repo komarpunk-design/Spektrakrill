@@ -79,7 +79,7 @@ inline RGB operator_tone(RGB value,const Params& p) {
 inline double density_at(const Profile& f,double x,int c,double gamma){x*=gamma;auto& axis=f.log_exposure;if(axis.empty())throw std::runtime_error("No receiver calibration curve");auto it=std::upper_bound(axis.begin(),axis.end(),x);if(it==axis.begin())return f.density_curves[c];if(it==axis.end())return f.density_curves[(axis.size()-1)*3+c];int hi=it-axis.begin(),lo=hi-1;double a=(x-axis[lo])/(axis[hi]-axis[lo]);return f.density_curves[lo*3+c]*(1-a)+f.density_curves[hi*3+c]*a;}
 /** Read CMY densities through Fotufilm's 630/545/465 nm LED receiver, then invert
  * using its softplus scan curve. Calibration/timing is adapted to Spektrafilm. */
-inline bool scan(const Profile& f,const Params& p,const float* density,int w,int h,float* result,double gamma,spk_color_space cs,bool encoded,double blur,double usmSigma,double usmAmount,OutputGamutCompress gamut=OutputGamutCompress::kLegacyClip,double knee=0,double limit=1,double power=6){
+inline bool scan(const Profile& f,const Params& p,const float* density,int w,int h,float* result,double gamma,spk_color_space cs,bool encoded,double blur,double usmSigma,double usmAmount,OutputGamutCompress gamut=OutputGamutCompress::kLegacyClip,double knee=0,double limit=1,double power=6,const Profile* nominal=nullptr){
  if(p.mode=="paper"||p.mode=="negative"||f.is_positive())return false;
  int count=w*h,n=f.n_samples;if(n<1)return false;
  const bool useNoritsu=p.mode=="noritsu-ls600"&&!f.monochrome;
@@ -89,16 +89,55 @@ inline bool scan(const Profile& f,const Params& p,const float* density,int w,int
  const bool useNikon=p.mode=="nikon-scan"&&!f.monochrome;
  const bool useJob=useNoritsu&&p.jobEnabled;
  if(useNikon){
+  // Never use a manually edited film base/chemistry as the neutral reference:
+  // the calibration would otherwise remove the user's channel adjustments.
+  const Profile& anchor=nominal?*nominal:f;
+  std::vector<RGB> anchorBands(anchor.n_samples);RGB anchorSums{};
+  for(int i=0;i<anchor.n_samples;i++)for(int c=0;c<3;c++){
+   double value=std::exp(-.5*std::pow((anchor.wavelengths[i]-centers[c])/widths[c],2));
+   if(!std::isfinite(anchor.base_density[i])||!std::isfinite(anchor.channel_density[i*3])||!std::isfinite(anchor.channel_density[i*3+1])||!std::isfinite(anchor.channel_density[i*3+2]))value=0;
+   anchorBands[i][c]=value;anchorSums[c]+=value;
+  }
+  auto read_anchor=[&](RGB d){RGB energy{};for(int i=0;i<anchor.n_samples;i++){
+   if(anchorBands[i][0]+anchorBands[i][1]+anchorBands[i][2]==0)continue;
+   double od=anchor.base_density[i];for(int k=0;k<3;k++)od+=d[k]*anchor.channel_density[i*3+k];
+   const double light=std::pow(10.,-od);for(int c=0;c<3;c++)energy[c]+=anchorBands[i][c]*light;
+  }for(int c=0;c<3;c++)energy[c]=std::log10(std::max(energy[c]/std::max(anchorSums[c],1e-12),1e-12));return energy;};
   // The public estimator is trained on hardware RAW and must not grade virtual sensor RGB.
-  RGB mid,low,high;for(int c=0;c<3;c++){mid[c]=density_at(f,0,c,1);low[c]=density_at(f,-.15,c,1);high[c]=density_at(f,.15,c,1);}
-  const auto ref=read(mid),lower=read(low),upper=read(high);
+  RGB mid,low,high;for(int c=0;c<3;c++){mid[c]=density_at(anchor,0,c,1);low[c]=density_at(anchor,-.15,c,1);high[c]=density_at(anchor,.15,c,1);}
+  const auto ref=read_anchor(mid),lower=read_anchor(low),upper=read_anchor(high);
   const auto target=nikon::neutral_raw(.18),targetLo=nikon::neutral_raw(.18*std::pow(10.,-.15)),targetHi=nikon::neutral_raw(.18*std::pow(10.,.15));
   RGB slope,targetSlope;for(int c=0;c<3;c++){slope[c]=(upper[c]-lower[c])/.3;targetSlope[c]=std::log10(targetHi[c]/targetLo[c])/.3;if(!std::isfinite(slope[c])||std::abs(slope[c])<1e-8)throw std::runtime_error("Nikon: flat film reference");}
   parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto v=read({density[i*3],density[i*3+1],density[i*3+2]});for(int c=0;c<3;c++)result[i*3+c]=float((v[c]-ref[c])/slope[c]);}});
   double shift=0;
   if(p.automatic){std::vector<double> values;int step=std::max(1,count/16384);for(int i=0;i<count;i+=step)values.push_back((result[i*3]+result[i*3+1]+result[i*3+2])/3.);std::sort(values.begin(),values.end());shift=std::clamp(values[values.size()/2],-1.,1.);}
   const nikon::RGB gain={nikon::data::reference_gain[0],nikon::data::reference_gain[1],nikon::data::reference_gain[2]};
-  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){nikon::RGB raw;for(int c=0;c<3;c++)raw[c]=target[c]*std::pow(10.,std::clamp((result[i*3+c]-shift)*targetSlope[c],-12.,12.));auto v=nikon::apply(raw,gain);for(int c=0;c<3;c++)v[c]=std::pow(v[c],2.19921875)*std::pow(2.,p.exposure)*std::pow(10.,-p.keys[c]*.5);v=operator_tone(v,p);for(int c=0;c<3;c++)result[i*3+c]=float(v[c]);}});
+  auto source_linear=[&](RGB q,double timing){nikon::RGB raw;for(int c=0;c<3;c++)raw[c]=target[c]*std::pow(10.,std::clamp((q[c]-timing)*targetSlope[c],-12.,12.));auto v=nikon::apply(raw,gain);for(double&c:v)c=std::pow(c,2.19921875);return v;};
+  // The model consumes Coolscan RGB, not the virtual LED receiver's RGB.
+  // Calibrate the complete cross-channel basis; independent gains leave blue
+  // leaking into red through Layer B's matrix. This fixed calibration uses
+  // the model at nominal gray, never image statistics or operator edits.
+  const double adobeXYZ[]={.60892798724451913,.20905353854062689,.14621373920552333,.31010729610234972,.63117128488427909,.05871454523345384,.018905541977057749,.05148877417082514,.75473305413748026};
+  auto canonical=[&](RGB q){auto value=source_linear(q,0);RGB xyz{},rgb{};for(int c=0;c<3;c++)for(int k=0;k<3;k++)xyz[c]+=adobeXYZ[c*3+k]*value[k];for(int c=0;c<3;c++)for(int k=0;k<3;k++)rgb[c]+=kXYZ_to_RGB[SPK_CS_SRGB][c*3+k]*xyz[k];return rgb;};
+  nikon::Matrix jacobian;constexpr double delta=1e-4;
+  for(int k=0;k<3;k++){RGB lo{},hi{};lo[k]=-delta;hi[k]=delta;auto a=canonical(lo),b=canonical(hi);for(int c=0;c<3;c++)jacobian[c][k]=std::log10(std::max(b[c],1e-12)/std::max(a[c],1e-12))/(2*delta);}
+  const auto basis=nikon::virtual_color_basis(jacobian);
+  auto model_linear=[&](RGB q){RGB adapted{};for(int c=0;c<3;c++)for(int k=0;k<3;k++)adapted[c]+=basis[c][k]*q[k];return source_linear(adapted,shift);};
+  nikon::NeutralAxisBalance balance;
+  // Densities use nominal profile gamma, as does the fixed middle-gray anchor:
+  // edits to film development/contrast must not become a moving calibration.
+  constexpr int samples=1024;
+  for(int i=0;i<=samples;i++){
+   const double e=anchor.log_exposure.front()+(anchor.log_exposure.back()-anchor.log_exposure.front())*i/samples;
+   RGB d;for(int c=0;c<3;c++)d[c]=density_at(anchor,e,c,1);auto q=read_anchor(d);for(int c=0;c<3;c++)q[c]=(q[c]-ref[c])/slope[c];
+   balance.add((q[0]+q[1]+q[2])/3.,model_linear(q));
+  }
+  balance.prepare();
+  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){
+   RGB q={result[i*3],result[i*3+1],result[i*3+2]};auto v=balance.apply(model_linear(q),(q[0]+q[1]+q[2])/3.);
+   for(int c=0;c<3;c++)v[c]*=std::pow(2.,p.exposure)*std::pow(10.,-p.keys[c]*.5);
+   v=operator_tone(v,p);for(int c=0;c<3;c++)result[i*3+c]=float(v[c]);
+  }});
  }else if(useJob){
   if(!p.job)throw std::invalid_argument("Noritsu: missing job parameters");
   parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto value=read({density[i*3],density[i*3+1],density[i*3+2]});for(int c=0;c<3;c++)result[i*3+c]=noritsu::density_code(c,value[c]);}});

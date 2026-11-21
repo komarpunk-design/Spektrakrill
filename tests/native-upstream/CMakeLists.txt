@@ -283,3 +283,7 @@ target_link_libraries(prepared_gamut_probe PRIVATE spektra_host)
 add_executable(negative_route_probe negative_route_probe.cpp)
 target_include_directories(negative_route_probe PRIVATE ${ROOT})
 target_link_libraries(negative_route_probe PRIVATE spektra_host)
+
+add_executable(nikon_neutral_range_probe nikon_neutral_range_probe.cpp)
+target_include_directories(nikon_neutral_range_probe PRIVATE ${ROOT})
+target_link_libraries(nikon_neutral_range_probe PRIVATE spektra_host)

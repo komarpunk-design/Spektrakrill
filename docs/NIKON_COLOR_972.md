@@ -1,3 +1,5 @@
+> Updated in 9.74: full neutral-axis and cross-channel virtual-input calibration; see [NIKON_COLOR_974.md](NIKON_COLOR_974.md).
+
 # Nikon virtual-input color correction · 9.72
 
 The 9.71 integration fed three-band virtual transmittance directly into a model

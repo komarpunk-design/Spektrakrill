@@ -2341,11 +2341,13 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
 
     // 1) Load the film profile.
     spk::Profile film;
+    std::unique_ptr<spk::Profile> nikon_nominal;
     spk::NegativeSettings negative;
     std::unique_ptr<spk::NegativeConverter> converter;
     std::unique_ptr<spk::NegativeViewing> negative_viewing;
     try {
         film = load_engine_profile(eng, p->film_profile);
+        if(spk::outputs::read_params(p->experimental_json).mode=="nikon-scan"&&!film.monochrome&&!film.is_positive())nikon_nominal=std::make_unique<spk::Profile>(film);
         spk::prepare_experimental_profile(film, p->experimental_json, true, p->density_curve_gamma);
         negative=spk::negative_settings(p->experimental_json);
         if(!p->use_scanner_lut)negative.use_lut=false;
@@ -2697,7 +2699,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
 
     final_rgb->resize(static_cast<size_t>(npix) * 3);
     if(negative.workflow=="negative-clear")std::fill(film.base_density.begin(),film.base_density.end(),0);
-    if(!spk::outputs::scan(film, spk::outputs::read_params(p->experimental_json), density_cmy.data(), width, height, final_rgb->data(), g, p->output_color_space, p->output_cctf_encoding!=0, sparams.lens_blur, sparams.unsharp_sigma, sparams.unsharp_amount, sparams.output_gamut_compress, sparams.gamut_knee_threshold, sparams.gamut_knee_limit, sparams.gamut_knee_power))
+    if(!spk::outputs::scan(film, spk::outputs::read_params(p->experimental_json), density_cmy.data(), width, height, final_rgb->data(), g, p->output_color_space, p->output_cctf_encoding!=0, sparams.lens_blur, sparams.unsharp_sigma, sparams.unsharp_amount, sparams.output_gamut_compress, sparams.gamut_knee_threshold, sparams.gamut_knee_limit, sparams.gamut_knee_power, nikon_nominal.get()))
         spk::scan(film, sparams, density_cmy.data(), width, height, final_rgb->data());
     else if(sparams.tone_curve.active) {
         for(int i=0;i<npix;i++)for(int c=0;c<3;c++)(*final_rgb)[i*3+c]=sparams.tone_curve.apply(c,(*final_rgb)[i*3+c]);

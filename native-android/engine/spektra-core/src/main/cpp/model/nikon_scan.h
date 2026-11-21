@@ -29,7 +29,7 @@ inline RGB gains(const float* raw,int w,int h,bool automatic){
  return result;
 }
 inline double curve(double v,const double* x,const double* y){
- constexpr size_t n=257;if(v<=x[0])return y[0];if(v>=x[n-1])return y[n-1];
+ constexpr size_t n=257;if(std::isnan(v))return y[0];if(v<=x[0])return y[0];if(v>=x[n-1])return y[n-1];
  auto k=std::upper_bound(x,x+n,v)-x;double t=(v-x[k-1])/(x[k]-x[k-1]);return y[k-1]*(1-t)+y[k]*t;
 }
 /** Faithful Layer B, encoded Adobe-RGB-family output (no invented ICC). */
@@ -57,5 +57,55 @@ inline RGB neutral_raw(double linear) {
   for(int r=0;r<3;r++)if(r!=k){double v=a[r][k];for(int c=k;c<4;c++)a[r][c]-=v*a[k][c];}
  }
  RGB result;for(int c=0;c<3;c++){result[c]=a[c][3];if(!std::isfinite(result[c])||result[c]<=0)throw std::runtime_error("Nikon: unusable neutral calibration");}return result;
+}
+}
+
+namespace spk::nikon {
+// Profile-derived neutral-axis calibration for virtual negatives. Does not
+// change the learned bundle or its hardware gain estimator; reference neutral
+// luminance is retained while balancing its channels.
+// The source model has different channel floors/shoulders, so a single gray
+// anchor cannot balance its whole usable tonal range.
+class NeutralAxisBalance {
+ struct Entry {double score;RGB gain;};
+ std::vector<Entry> table;
+ public:
+ void add(double score,RGB neutral){
+  // Y coefficients of the same Adobe RGB -> XYZ D50 matrix as the receiver.
+  const double Y=.31010729610234972*neutral[0]+.63117128488427909*neutral[1]+.05871454523345384*neutral[2];
+  RGB gain;for(int c=0;c<3;c++)gain[c]=Y/std::max(neutral[c],1e-12);
+  table.push_back({score,gain});
+ }
+ void prepare(){std::stable_sort(table.begin(),table.end(),[](auto&a,auto&b){return a.score<b.score;});}
+ RGB apply(RGB value,double score)const{
+  if(!std::isfinite(score))return value;
+  const RGB* gain;RGB interpolated;
+  if(score<=table.front().score)gain=&table.front().gain;
+  else if(score>=table.back().score)gain=&table.back().gain;
+  else{
+   auto hi=std::upper_bound(table.begin(),table.end(),score,[](double v,const Entry&e){return v<e.score;});auto lo=hi-1;
+   double t=(score-lo->score)/std::max(hi->score-lo->score,1e-12);
+   for(int c=0;c<3;c++)interpolated[c]=lo->gain[c]*(1-t)+hi->gain[c]*t;gain=&interpolated;
+  }
+  for(int c=0;c<3;c++)value[c]*=(*gain)[c];return value;
+ }
+};
+}
+
+namespace spk::nikon {
+using Matrix=std::array<RGB,3>;
+// A source-derived change of virtual sensor basis. Normalize on the neutral
+// axis so scalar exposure is not turned into a three-channel white balance.
+inline Matrix virtual_color_basis(const Matrix& jacobian){
+ double a[3][6];RGB neutralSlope{};
+ for(int r=0;r<3;r++){for(int c=0;c<3;c++){a[r][c]=jacobian[r][c];a[r][c+3]=r==c?1:0;neutralSlope[r]+=jacobian[r][c];}}
+ for(int k=0;k<3;k++){
+  int row=k;for(int r=k+1;r<3;r++)if(std::abs(a[r][k])>std::abs(a[row][k]))row=r;
+  for(int c=0;c<6;c++)std::swap(a[k][c],a[row][c]);double d=a[k][k];
+  if(!std::isfinite(d)||std::abs(d)<1e-8)throw std::runtime_error("Nikon: singular virtual color basis");
+  for(int c=0;c<6;c++)a[k][c]/=d;
+  for(int r=0;r<3;r++)if(r!=k){double v=a[r][k];for(int c=0;c<6;c++)a[r][c]-=v*a[k][c];}
+ }
+ Matrix result;for(int r=0;r<3;r++)for(int c=0;c<3;c++)result[r][c]=a[r][c+3]*neutralSlope[c];return result;
 }
 }
