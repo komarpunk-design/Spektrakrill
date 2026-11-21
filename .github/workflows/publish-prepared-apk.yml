@@ -1,0 +1,28 @@
+name: Publish native Spektrafilm Lab APK
+on:
+  push:
+    branches: [apk-delivery-native-9-74-c38bb02]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify, publish and download the complete APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'f1b9a21be074ea9b2eb44ccd19f21e42c7ee65e713fdb500eef3243fe820b401  release-payload/Spektrafilm-v9.74.0.apk' | sha256sum --check
+          if ! gh release view v9.74.0 >/dev/null 2>&1; then
+            gh release create v9.74.0 --target c38bb024ade436c2651bd5c713bea5ffb588c943 --prerelease --title 'Spektrafilm Lab 9.74 — Nikon · исправление цвета · ARM64' --notes-file release-payload/notes.md
+          fi
+          if ! gh release view v9.74.0 --json assets --jq '.assets[].name' | grep -Fxq 'Spektrafilm-v9.74.0.apk'; then
+            gh release upload v9.74.0 release-payload/Spektrafilm-v9.74.0.apk
+          fi
+          mkdir downloaded
+          gh release download v9.74.0 --pattern Spektrafilm-v9.74.0.apk --dir downloaded
+          echo 'f1b9a21be074ea9b2eb44ccd19f21e42c7ee65e713fdb500eef3243fe820b401  downloaded/Spektrafilm-v9.74.0.apk' | sha256sum --check
