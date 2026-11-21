@@ -1,0 +1,28 @@
+name: Publish native Negs Android APK
+on:
+  push:
+    branches: [apk-delivery-negs-018-alpha3-508d4b9]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify, publish and download the complete APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '58e45738ba34c8e4cc5aaf9d7b1e8ad713b7d2f1e00e621f103b124f041833eb  release-payload/Negs-Android-v0.18.0-alpha.3-arm64.apk' | sha256sum --check
+          if ! gh release view negs-android-v0.18.0-alpha.3 >/dev/null 2>&1; then
+            gh release create negs-android-v0.18.0-alpha.3 --target 508d4b9060a1fcf8597cf5bb17fda7f1bc8fe9af --prerelease --title 'Negs Android 0.18.0 — alpha 3 · ARM64' --notes-file release-payload/notes.md
+          fi
+          if ! gh release view negs-android-v0.18.0-alpha.3 --json assets --jq '.assets[].name' | grep -Fxq 'Negs-Android-v0.18.0-alpha.3-arm64.apk'; then
+            gh release upload negs-android-v0.18.0-alpha.3 release-payload/Negs-Android-v0.18.0-alpha.3-arm64.apk
+          fi
+          mkdir downloaded
+          gh release download negs-android-v0.18.0-alpha.3 --pattern Negs-Android-v0.18.0-alpha.3-arm64.apk --dir downloaded
+          echo '58e45738ba34c8e4cc5aaf9d7b1e8ad713b7d2f1e00e621f103b124f041833eb  downloaded/Negs-Android-v0.18.0-alpha.3-arm64.apk' | sha256sum --check
