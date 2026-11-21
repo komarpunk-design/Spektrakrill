@@ -12,7 +12,9 @@ def source_module(name):
 def chunks(data):
     text=data.hex();return [text[i:i+4096] for i in range(0,len(text),4096)]
 def plain(d):return {k:(v.tolist() if hasattr(v,'tolist') else v)for k,v in d.items()}
-def pack(path,lattice,encoding,bits,name):
+def pack(path,lattice,encoding,bits,name,origin="capture",context=None):
+    if origin not in ("capture","factory-calculated","synthetic-test","user"):raise ValueError("Unknown data origin")
+    if context is not None and len(context)>512:raise ValueError("Context exceeds 512 characters")
     import numpy as np
     pcb=source_module('pcb');vendor=source_module('vendor');raw=Path(path).read_bytes()
     selectors=pcb.decode_effective_selectors(raw)
@@ -23,7 +25,7 @@ def pack(path,lattice,encoding,bits,name):
     build=vendor.build_fused_gamma_luts_bgr_u16 if bits==16 else vendor.build_fused_gamma_luts_bgr
     gamma=build(g['x_controls_rgb'],g['y_controls_rgb_u8'],g['counts_rgb'])
     if bits==8:gamma=gamma.astype(np.uint16)*257
-    job=dict(schema=1,name=name,origin='capture',sourceSha256=hashlib.sha256(raw).hexdigest(),encoding=encoding,outputBits=bits,
+    job=dict(schema=1,name=name,origin=origin,sourceSha256=hashlib.sha256(raw).hexdigest(),encoding=encoding,outputBits=bits,
       rgbToYcc=dict(matrix=f['matrix_q10000'].tolist(),offsets=f['input_offsets_rgb'].tolist(),counts=f['counts_rgb'].tolist(),x=f['x_controls_rgb'].tolist(),y=f['y_controls_rgb'].tolist()),
       inverseMatrix=g['matrix_q10000'].tolist(),gammaBgrHex=chunks(gamma[:,:4096].astype('<u2').tobytes()),
       yccCorrection=dict(yX=c['y_x_u16'].tolist(),y=c['y_values_q4_u16'].tolist(),yCount=c['y_count'],chromaX=c['chroma_x_u16'].tolist(),offsets=c['chroma_offsets_i16'].tolist(),scale=c['chroma_scale_u16'].tolist(),chromaCount=c['chroma_count']))
@@ -35,7 +37,8 @@ def pack(path,lattice,encoding,bits,name):
         job['autoContrast']=dict(factor=a['downsample_factor'],size=a['kernel_size'],strength=a['spatial_strength_u8'],clamp=a['clamp_radius_u16'],quadrant=a['kernel_quadrant_i8'].ravel().tolist(),x=x.tolist(),y=y.tolist(),blend=a['extrapolation_slopes_q9'].tolist())
     if lattice:
         h=pcb.decode_hue_saturation_s0_controls(raw);data=pcb.read_hue_saturation_lattice(lattice);job.update(hueLatticeHex=chunks(data.astype('<i2').tobytes()),saturation=h['saturation_u8'],balance=h['total_balance_i16'].tolist(),latticeSha256=hashlib.sha256(Path(lattice).read_bytes()).hexdigest())
+    if context is not None:job["context"]=context
     return job
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--pcb',required=True,type=Path);p.add_argument('--lattice',type=Path);p.add_argument('--encoding',required=True,choices=['linear','srgb']);p.add_argument('--output-bits',required=True,type=int,choices=[8,16]);p.add_argument('--name',required=True);p.add_argument('--output',required=True,type=Path);a=p.parse_args()
-    a.output.write_text(json.dumps(pack(a.pcb,a.lattice,a.encoding,a.output_bits,a.name),ensure_ascii=False,separators=(',',':'))+'\n');print(a.output)
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--pcb',required=True,type=Path);p.add_argument('--lattice',type=Path);p.add_argument('--encoding',required=True,choices=['linear','srgb']);p.add_argument('--output-bits',required=True,type=int,choices=[8,16]);p.add_argument('--name',required=True);p.add_argument('--output',required=True,type=Path);p.add_argument('--origin',choices=['capture','factory-calculated','synthetic-test','user'],default='capture');p.add_argument('--context');a=p.parse_args()
+    a.output.write_text(json.dumps(pack(a.pcb,a.lattice,a.encoding,a.output_bits,a.name,a.origin,a.context),ensure_ascii=False,separators=(',',':'))+'\n');print(a.output)

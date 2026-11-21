@@ -37,7 +37,7 @@ internal fun ParamsState.negativeFilmFingerprint(): String {
     }
     recipe.optJSONObject("spektrafilmLab")?.let { lab ->
         lab.keys().asSequence().toList().filter {
-            it == "outputModel" || it == "noritsuJob" || it == "virtualNegative" ||
+            it == "outputModel" || it == "noritsuJob" || it == "noritsuJobId" || it == "virtualNegative" ||
                 it.startsWith("print") || it.startsWith("testPrint")
         }.forEach(lab::remove)
         if(lab.length() == 0) recipe.remove("spektrafilmLab")

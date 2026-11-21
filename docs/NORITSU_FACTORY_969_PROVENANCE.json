@@ -1,0 +1,26 @@
+{
+  "origin": "factory-calculated",
+  "context": "synthetic-neutral-reference",
+  "referenceSourceCodes": [
+    48700,
+    52584,
+    62464
+  ],
+  "contextOffsets": {
+    "anchors": "SCN_ORD_OUT+0x53de",
+    "middle": "SCN_ORD_OUT+0x53f8",
+    "autoControl": "CALC_INPUT+0x28"
+  },
+  "pcbSha256": "bb4e029c1d6fb94470c5c26f1a8a60d70752a832ff84356f8db62dd91edfdf81",
+  "geometry": [
+    6391,
+    4042,
+    6391,
+    4042
+  ],
+  "hardwareCalibrationVerified": false,
+  "originalPerFrameSceneJudgeImplemented": false,
+  "assetSha256": "c482f02f0f4e77c1c465737a5a3e255abc9bd6376e32cc13e6c318e74660f041",
+  "latticeSha256": "d0a2f9a06e43fce3061d4afc34b1c25a74036f99980378309db342aa390aeb9b",
+  "oemExecutablesIncluded": false
+}

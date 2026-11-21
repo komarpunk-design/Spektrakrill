@@ -50,6 +50,7 @@ add_library(spektra SHARED
         io/npy_lut.cpp                       # .npy / .lut binary loaders (M3)
         # Model (photographic math):
         model/noritsu_advanced.cpp
+        model/noritsu_factory.cpp
         model/noritsu_operators.cpp
         model/experimental.cpp
         model/negative.cpp

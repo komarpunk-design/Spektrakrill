@@ -180,7 +180,7 @@ class ScanWorkspaceUiTest {
         compose.onNodeWithText("Local Auto Contrast").performScrollTo().performClick()
         compose.onNodeWithText("Film Sharp").performScrollTo().performClick()
         compose.onNodeWithText("Hue/Saturation S0").performScrollTo().performClick()
-        compose.runOnIdle { NORITSU_JOB_KEYS.forEach { assertTrue(s.labBoolean("outputModel.$it")) } }
+        compose.runOnIdle { NORITSU_JOB_KEYS.filter { it != "noritsuJobNormalize" }.forEach { assertTrue(s.labBoolean("outputModel.$it")) }; assertFalse(s.labBoolean("outputModel.noritsuJobNormalize")) }
         compose.onNodeWithText("Детализация").performScrollTo().performClick()
         compose.onNodeWithText("Film Sharp включён",substring=true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Нерезкая маска").assertDoesNotExist()

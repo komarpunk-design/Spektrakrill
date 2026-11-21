@@ -89,6 +89,7 @@
       "noritsuBlue": 1,
       "noritsuUo": 0,
       "noritsuJobEnabled": false,
+      "noritsuJobNormalize": false,
       "noritsuLocalContrast": false,
       "noritsuFilmSharp": false,
       "noritsuHueSat": false
@@ -907,6 +908,17 @@
       "max": 0,
       "step": 0,
       "help": "Параметризованная стадия noritsu-tool. Для включения нужен проверенный комплект исходных таблиц задания."
+    },
+    {
+      "path": "outputModel.noritsuJobNormalize",
+      "group": "output",
+      "label": "Согласовать вход с виртуальной плёнкой",
+      "kind": "switch",
+      "default": false,
+      "min": 0,
+      "max": 0,
+      "step": 0,
+      "help": "Совмещает средний серый и локальный наклон виртуальной плёнки с диапазоном профиля; не является измеренной калибровкой сканера."
     },
     {
       "path": "outputModel.noritsuLocalContrast",

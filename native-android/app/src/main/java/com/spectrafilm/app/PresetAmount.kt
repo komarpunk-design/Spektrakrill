@@ -39,7 +39,28 @@ object PresetAmount {
      */
     fun blend(base: JSONObject, full: JSONObject, amount: Float): JSONObject {
         val t = amount.coerceIn(0f, 1f)
-        return blendObject(base, full, t)
+        if(t==0f)return JSONObject(base.toString())
+        val complete=full.optString("schema")==PRESET_SCHEMA_ID && full.has("filmProfile")
+        if(t==1f&&complete)return JSONObject(full.toString())
+        val out=blendObject(base, full, t)
+        val b=base.optJSONObject("spektrafilmLab");val f=full.optJSONObject("spektrafilmLab")
+        if(b==null&&f!=null&&t>=.5f)out.put("spektrafilmLab",JSONObject(f.toString()))
+        fun source(j:JSONObject?)=j?.has("noritsuJob")==true||j?.has("noritsuJobId")==true
+        if((source(b)||source(f))&&(complete||source(f))) {
+            val selected=if(t<.5f)b else f
+            val lab=JSONObject(out.optJSONObject("spektrafilmLab")?.toString()?:"{}")
+            lab.remove("noritsuJob");lab.remove("noritsuJobId")
+            selected?.optJSONObject("noritsuJob")?.let{lab.put("noritsuJob",JSONObject(it.toString()))}
+            selected?.optString("noritsuJobId")?.takeIf{it.isNotBlank()}?.let{lab.put("noritsuJobId",it)}
+            val model=lab.optJSONObject("outputModel")?:JSONObject()
+            val selectedModel=selected?.optJSONObject("outputModel")
+            for(key in NORITSU_JOB_KEYS+"mode") {
+                if(selectedModel?.has(key)==true)model.put(key,selectedModel.get(key))else model.remove(key)
+            }
+            if(model.length()>0)lab.put("outputModel",model)else lab.remove("outputModel")
+            if(lab.length()>0)out.put("spektrafilmLab",lab)else out.remove("spektrafilmLab")
+        }
+        return out
     }
 
     /**
@@ -66,7 +87,7 @@ object PresetAmount {
 
     private fun blendValue(key: String, b: Any, f: Any, t: Float): Any = when {
         // Project identity, lock and saved scan variants are one indivisible document.
-        key == "negativeWorkspace" -> if(t < .5f) b else f
+        key == "negativeWorkspace" || key == "noritsuJob" -> if(t < .5f) b else f
         b is JSONObject && f is JSONObject -> blendObject(b, f, t)
         b is JSONArray && f is JSONArray -> blendArray(key, b, f, t)
         b is Boolean && f is Boolean -> if (t < 0.5f) b else f

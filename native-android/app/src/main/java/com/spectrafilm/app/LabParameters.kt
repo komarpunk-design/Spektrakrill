@@ -89,8 +89,19 @@ internal fun ParamsState.applyLabStock(id: String, grain: Boolean = true, dir: B
 
 /** Default is the author's untouched engine. Only explicit Lab overrides cross JNI. */
 internal fun ParamsState.labEngineJson(): String {
-    val key = frozenNegativeCacheKey() ?: return labJson.takeUnless { it.isBlank() || it == "{}" } ?: ""
-    return labObject().put("virtualNegative", key).toString()
+    val key = frozenNegativeCacheKey()
+    if(labJson.isBlank()&&key==null)return ""
+    val value=labObject()
+    val output=value.optJSONObject("outputModel")
+    val mode=output?.optString("mode","paper")?:"paper"
+    if(mode!="noritsu-ls600"||output?.opt("noritsuJobEnabled")!=true) {
+        value.remove("noritsuJob");value.remove("noritsuJobId")
+        NORITSU_JOB_KEYS.forEach{output?.remove(it)}
+    }
+    // Dormant scanner metadata must not disable the engine's bounded paper-export route.
+    if(mode=="paper"||mode=="negative"||output?.length()==0)value.remove("outputModel")
+    if(key!=null)value.put("virtualNegative",key)
+    return if(value.length()==0)"" else value.toString()
 }
 internal fun ParamsState.labScanFilm(): Boolean = when (labString("workflow","normal")) {
     "negative-print" -> false
@@ -132,9 +143,11 @@ internal fun validateLabJson(text: String): String {
         }
     }
     val output=j.optJSONObject("outputModel")
+    val builtinJob=j.opt("noritsuJobId")
+    if(builtinJob!=null)require(builtinJob is String && builtinJob==NORITSU_FACTORY_ID && !j.has("noritsuJob")) { "Неизвестный или неоднозначный встроенный профиль Noritsu" }
     if(output?.opt("noritsuJobEnabled")==true) {
-        val job=j.optJSONObject("noritsuJob");require(job!=null) { "Для цветового тракта Noritsu нужен профиль задания" }
-        listOf("noritsuLocalContrast" to "autoContrast","noritsuFilmSharp" to "filmSharpHex","noritsuHueSat" to "hueLatticeHex").forEach { (flag,section) -> require(output.opt(flag)!=true || job.has(section)) { "Для $flag нет исходных данных в профиле" } }
+        val job=j.optJSONObject("noritsuJob");require(job!=null||builtinJob==NORITSU_FACTORY_ID) { "Для цветового тракта Noritsu нужен профиль задания" }
+        listOf("noritsuLocalContrast" to "autoContrast","noritsuFilmSharp" to "filmSharpHex","noritsuHueSat" to "hueLatticeHex").forEach { (flag,section) -> require(output.opt(flag)!=true || builtinJob==NORITSU_FACTORY_ID || job?.has(section)==true) { "Для $flag нет исходных данных в профиле" } }
     }
     require(j.optString("workflow","normal") in listOf("normal","negative-print","negative-scan","negative-clear"))
     return j.toString()

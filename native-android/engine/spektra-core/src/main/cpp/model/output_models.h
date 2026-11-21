@@ -8,6 +8,7 @@
 #include "model/noritsu_tables.h"
 #include "model/noritsu_operators.h"
 #include "model/noritsu_advanced.h"
+#include "model/noritsu_job_input.h"
 #include "kernels/gaussian.h"
 #include "kernels/parallel.h"
 #include <array>
@@ -37,7 +38,7 @@ inline RGB finish(RGB rgb,double strength=1,bool chromatic=true,double floor=0){
  double ll=std::pow(L+.3963377774*a+.2158037573*B,3),mm=std::pow(L-.1055613458*a-.0638541728*B,3),ss=std::pow(L-.0894841775*a-1.291485548*B,3);
  return {4.0767416621*ll-3.3077115913*mm+.2309699292*ss,-1.2684380046*ll+2.6097574011*mm-.3413193965*ss,-.0041960863*ll-.7034186147*mm+1.707614701*ss};
 }
-struct Params {std::string mode="paper";bool automatic=true;double exposure=0,look=1;RGB keys={0,0,0};double contrast=1,black=0,white=1;noritsu::Controls noritsu;bool jobEnabled=false,local=false,sharp=false,hue=false;std::shared_ptr<const noritsu::advanced::Job> job;};
+struct Params {std::string mode="paper";bool automatic=true;double exposure=0,look=1;RGB keys={0,0,0};double contrast=1,black=0,white=1;noritsu::Controls noritsu;bool jobEnabled=false,local=false,sharp=false,hue=false,jobNormalize=false;std::shared_ptr<const noritsu::advanced::Job> job;};
 inline Params read_params(const char* text){Params p;if(!text||!*text)return p;auto j=json::parse(text);if(!j->has("outputModel"))return p;auto& o=j->at("outputModel");if(!o.is_object())return p;
  if(o.has("mode")){auto s=o.at("mode").as_string();if(s!="paper"&&s!="negative"&&s!="digital"&&s!="auto-levels"&&s!="lab-scan"&&s!="noritsu-ls600")throw std::runtime_error("Unknown output model");p.mode=s;}
  auto num=[&](const char* key,double fallback,double low,double high){if(!o.has(key))return fallback;double v=o.at(key).as_number();if(!std::isfinite(v))throw std::runtime_error("Nonfinite output control");return clamp(v,low,high);};
@@ -48,7 +49,9 @@ inline Params read_params(const char* text){Params p;if(!text||!*text)return p;a
  p.noritsu.gains={num("noritsuRed",1,.25,4),num("noritsuGreen",1,.25,4),num("noritsuBlue",1,.25,4)};
  auto flag=[&](const char* key){if(!o.has(key))return false;if(o.at(key).type!=json::Type::Bool)throw std::invalid_argument("Noritsu stage toggle must be Boolean");return o.at(key).boolean;};
  p.jobEnabled=flag("noritsuJobEnabled");p.local=flag("noritsuLocalContrast");p.sharp=flag("noritsuFilmSharp");p.hue=flag("noritsuHueSat");
- if(p.mode=="noritsu-ls600"&&p.jobEnabled){if(!j->has("noritsuJob"))throw std::invalid_argument("Noritsu: import original job parameters first");p.job=noritsu::advanced::read_job(j->at("noritsuJob"));}
+ p.jobNormalize=flag("noritsuJobNormalize");
+ if(j->has("noritsuJob")&&j->has("noritsuJobId"))throw std::invalid_argument("Noritsu: ambiguous job source");
+ if(p.mode=="noritsu-ls600"&&p.jobEnabled){if(j->has("noritsuJobId"))p.job=noritsu::advanced::builtin_job(j->at("noritsuJobId").as_string());else {if(!j->has("noritsuJob"))throw std::invalid_argument("Noritsu: import original job parameters first");p.job=noritsu::advanced::read_job(j->at("noritsuJob"));}}
  return p;}
 
 /** Operator tone AFTER receiver inversion/finish and BEFORE scanner optics/output
@@ -85,6 +88,13 @@ inline bool scan(const Profile& f,const Params& p,const float* density,int w,int
  if(useJob){
   if(!p.job)throw std::invalid_argument("Noritsu: missing job parameters");
   parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto value=read({density[i*3],density[i*3+1],density[i*3+2]});for(int c=0;c<3;c++)result[i*3+c]=noritsu::density_code(c,value[c]);}});
+  if(p.jobNormalize) {
+   const auto target=noritsu::input::calibrate(*p.job);
+   RGB middle,lower,upper;for(int c=0;c<3;c++){middle[c]=density_at(f,0,c,gamma);lower[c]=density_at(f,-.15,c,gamma);upper[c]=density_at(f,.15,c,gamma);}
+   auto reference=read(middle),low=read(lower),high=read(upper);
+   RGB inputSlope;for(int c=0;c<3;c++){reference[c]=noritsu::density_code(c,reference[c]);inputSlope[c]=std::max(1.,std::abs(noritsu::density_code(c,high[c])-noritsu::density_code(c,low[c]))/.3);if(!std::isfinite(inputSlope[c]))throw std::runtime_error("Noritsu: invalid film reference");}
+   parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++)for(int c=0;c<3;c++)result[i*3+c]=float(target.middle[c]+(result[i*3+c]-reference[c])*target.slope[c]/inputSlope[c]);});
+  }
   noritsu::advanced::process(result,w,h,*p.job,p.local,p.sharp,p.hue);
   const noritsu::Operator op(p.noritsu);const bool active=p.noritsu.active();
   parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){RGB value;for(int c=0;c<3;c++)value[c]=result[i*3+c]*std::pow(2.,p.exposure)*std::pow(10.,-p.keys[c]*.5);if(active)value=op.apply(value);value=operator_tone(value,p);for(int c=0;c<3;c++)result[i*3+c]=value[c];}});

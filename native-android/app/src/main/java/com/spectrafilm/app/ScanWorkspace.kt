@@ -24,6 +24,7 @@ internal val SCAN_CORRECTION_DEFAULTS: Map<String, Any> = linkedMapOf(
     "noritsuRed" to 1.0, "noritsuGreen" to 1.0, "noritsuBlue" to 1.0,
     "noritsuLow" to 100, "noritsuMid" to 100, "noritsuHigh" to 100, "noritsuUo" to 0,
     "noritsuJobEnabled" to false, "noritsuLocalContrast" to false, "noritsuFilmSharp" to false, "noritsuHueSat" to false,
+    "noritsuJobNormalize" to false,
 )
 private val toneKeys = listOf("contrast", "blackPoint", "whitePoint")
 private val colourKeys = listOf("cyan", "magenta", "yellow")

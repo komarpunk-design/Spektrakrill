@@ -18,6 +18,7 @@ struct Job {
  bool srgb=false;int bits=16;
 };
 std::shared_ptr<const Job> read_job(const json::Value& value);
+std::shared_ptr<const Job> builtin_job(const std::string& id);
 // Input: RGB FilmLUT codes in float storage. Output: linear sRGB adapter.
 // The same storage is compacted to u16 and expanded in reverse, without RGB frame copies.
 void process(float* rgbCodes,int w,int h,const Job& job,bool local,bool sharp,bool hue);
