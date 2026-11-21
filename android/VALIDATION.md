@@ -1,4 +1,4 @@
-# Validation — Android alpha 1
+# Validation — Android alpha 2
 
 Выполнено в облачной Linux-среде; физический телефон и Android Vulkan не доступны.
 

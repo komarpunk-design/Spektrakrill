@@ -3,7 +3,7 @@ android {
  namespace = "app.negs.android"
  compileSdk = 37
  buildToolsVersion = "36.0.0"
- defaultConfig { applicationId = "app.negs.android"; minSdk = 26; targetSdk = 36; versionCode = 1; versionName = "0.18.0-android.1"; ndk { abiFilters += "arm64-v8a" } }
+ defaultConfig { applicationId = "app.negs.android"; minSdk = 26; targetSdk = 36; versionCode = 2; versionName = "0.18.0-android.2"; ndk { abiFilters += "arm64-v8a" } }
  packaging { jniLibs.useLegacyPackaging = true }
  compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
  signingConfigs { getByName("debug") { storeFile = rootProject.file("debug.keystore"); storePassword = "android"; keyAlias = "androiddebugkey"; keyPassword = "android" } }

@@ -1,4 +1,4 @@
-# Negs for Android — native port (alpha 1)
+# Negs for Android — native port (alpha 2)
 
 Отдельное Android-приложение на исходном Rust-движке **negs 0.18.0**, upstream `8154a6a`. Package: `app.negs.android`; Android 8+; ARM64. Spektrafilm Lab устанавливается и хранит данные отдельно.
 
