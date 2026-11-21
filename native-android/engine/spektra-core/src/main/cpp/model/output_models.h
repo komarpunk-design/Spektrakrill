@@ -5,6 +5,7 @@
 #include "profiles/profile.h"
 #include "profiles/json_min.h"
 #include "model/color_output.h"
+#include "model/gamut_compression.h"
 #include "model/noritsu_tables.h"
 #include "model/noritsu_operators.h"
 #include "model/noritsu_advanced.h"
@@ -40,7 +41,7 @@ inline RGB finish(RGB rgb,double strength=1,bool chromatic=true,double floor=0){
  return {4.0767416621*ll-3.3077115913*mm+.2309699292*ss,-1.2684380046*ll+2.6097574011*mm-.3413193965*ss,-.0041960863*ll-.7034186147*mm+1.707614701*ss};
 }
 struct Params {std::string mode="paper";bool automatic=true;double exposure=0,look=1;RGB keys={0,0,0};double contrast=1,black=0,white=1;noritsu::Controls noritsu;bool jobEnabled=false,local=false,sharp=false,hue=false,jobNormalize=false;std::shared_ptr<const noritsu::advanced::Job> job;};
-inline Params read_params(const char* text){Params p;if(!text||!*text)return p;auto j=json::parse(text);if(!j->has("outputModel"))return p;auto& o=j->at("outputModel");if(!o.is_object())return p;
+inline Params read_params(const char* text){Params p;if(!text||!*text)return p;auto j=json::parse(text);if(j->has("workflow")){auto route=j->at("workflow").as_string();if(route=="negative-clear"||route=="negative-print")return p;}if(!j->has("outputModel"))return p;auto& o=j->at("outputModel");if(!o.is_object())return p;
  if(o.has("mode")){auto s=o.at("mode").as_string();if(s!="paper"&&s!="negative"&&s!="digital"&&s!="auto-levels"&&s!="lab-scan"&&s!="noritsu-ls600"&&s!="nikon-scan")throw std::runtime_error("Unknown output model");p.mode=s;}
  auto num=[&](const char* key,double fallback,double low,double high){if(!o.has(key))return fallback;double v=o.at(key).as_number();if(!std::isfinite(v))throw std::runtime_error("Nonfinite output control");return clamp(v,low,high);};
  p.exposure=num("exposure",0,-6,6);p.look=num("look",1,0,1);p.keys={num("cyan",0,-1,1),num("magenta",0,-1,1),num("yellow",0,-1,1)};if(o.has("autoSetup")&&o.at("autoSetup").type==json::Type::Bool)p.automatic=o.at("autoSetup").boolean;
@@ -78,7 +79,7 @@ inline RGB operator_tone(RGB value,const Params& p) {
 inline double density_at(const Profile& f,double x,int c,double gamma){x*=gamma;auto& axis=f.log_exposure;if(axis.empty())throw std::runtime_error("No receiver calibration curve");auto it=std::upper_bound(axis.begin(),axis.end(),x);if(it==axis.begin())return f.density_curves[c];if(it==axis.end())return f.density_curves[(axis.size()-1)*3+c];int hi=it-axis.begin(),lo=hi-1;double a=(x-axis[lo])/(axis[hi]-axis[lo]);return f.density_curves[lo*3+c]*(1-a)+f.density_curves[hi*3+c]*a;}
 /** Read CMY densities through Fotufilm's 630/545/465 nm LED receiver, then invert
  * using its softplus scan curve. Calibration/timing is adapted to Spektrafilm. */
-inline bool scan(const Profile& f,const Params& p,const float* density,int w,int h,float* result,double gamma,spk_color_space cs,bool encoded,double blur,double usmSigma,double usmAmount){
+inline bool scan(const Profile& f,const Params& p,const float* density,int w,int h,float* result,double gamma,spk_color_space cs,bool encoded,double blur,double usmSigma,double usmAmount,OutputGamutCompress gamut=OutputGamutCompress::kLegacyClip,double knee=0,double limit=1,double power=6){
  if(p.mode=="paper"||p.mode=="negative"||f.is_positive())return false;
  int count=w*h,n=f.n_samples;if(n<1)return false;
  const bool useNoritsu=p.mode=="noritsu-ls600"&&!f.monochrome;
@@ -130,11 +131,33 @@ inline bool scan(const Profile& f,const Params& p,const float* density,int w,int
  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){RGB value;for(int c=0;c<3;c++)value[c]=useNoritsu?noritsu::response(c,noritsuGray[c]*std::pow(10.,result[i*3+c]*scale+shift+p.exposure*std::log10(2.)-p.keys[c]*.5)):std::pow(10.,-curve(middle-(result[i*3+c]*scale+shift+p.exposure*std::log10(2.)-p.keys[c]*.5)));if(p.mode=="lab-scan")value=finish(value,p.look,!f.monochrome);if(useNoritsuOperators)value=noritsuOperator.apply(value);value=operator_tone(value,p);double gray=(value[0]+value[1]+value[2])/3;for(int c=0;c<3;c++)result[i*3+c]=f.monochrome?gray:value[c];}});
  }
 
+ auto optics=[&](){
  if(blur>0)gaussian_blur(result,w,h,3,blur);if(usmSigma>0&&usmAmount>0&&!(useJob&&p.sharp)){std::vector<float> blurred(result,result+count*3);gaussian_blur(blurred.data(),w,h,3,usmSigma);for(int i=0;i<count*3;i++)result[i]+=usmAmount*(result[i]-blurred[i]);}
+ };
  // sRGB D65 -> XYZ D50, then the engine's own output-space matrix and transfer.
  const double srgbToXYZ[]={.4360657428,.3851514688,.1430784544,.2224931918,.7168870538,.0606197905,.0139239045,.0970812857,.7140993584};
  const double adobeToXYZ[]={0.60892798724451913,0.20905353854062689,0.14621373920552333,0.31010729610234972,0.63117128488427909,0.05871454523345384,0.018905541977057749,0.05148877417082514,0.75473305413748026};
  const double* toXYZ=useNikon?adobeToXYZ:srgbToXYZ;
+
+ // Gamut mapping is pointwise: bounded tiles avoid a second full float64 image.
+ if(gamut!=OutputGamutCompress::kLegacyClip&&gamut!=OutputGamutCompress::kOff){
+  const PreparedOutputGamut mapper(gamut,int(cs),knee,limit,power);
+  constexpr int tile=4096;std::vector<double> linear;
+  for(int start=0;start<count;start+=tile){
+   int n=std::min(tile,count-start);linear.assign(size_t(n)*3,0.);
+   for(int i=0;i<n;i++){
+    RGB xyz={0,0,0};for(int c=0;c<3;c++)for(int k=0;k<3;k++)xyz[c]+=toXYZ[c*3+k]*result[(start+i)*3+k];
+    for(int c=0;c<3;c++)for(int k=0;k<3;k++)linear[i*3+c]+=kXYZ_to_RGB[cs][c*3+k]*xyz[k];
+   }
+   mapper.apply(linear.data(),n);
+   for(int i=0;i<n*3;i++)result[start*3+i]=float(linear[i]);
+  }
+  optics();
+  parallel_for(0,count,[&](int begin,int end){for(int i=begin*3;i<end*3;i++)result[i]=clamp(encoded&&cs!=SPK_CS_LINEAR_SRGB?output_cctf_encode(cs,result[i]):result[i]);});
+  return true;
+ }
+ optics();
+
  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){RGB xyz={0,0,0},v={0,0,0};for(int c=0;c<3;c++)for(int k=0;k<3;k++)xyz[c]+=toXYZ[c*3+k]*result[i*3+k];for(int c=0;c<3;c++)for(int k=0;k<3;k++)v[c]+=kXYZ_to_RGB[cs][c*3+k]*xyz[k];for(int c=0;c<3;c++)result[i*3+c]=clamp(encoded&&cs!=SPK_CS_LINEAR_SRGB?output_cctf_encode(cs,v[c]):v[c]);}});
  return true;
 }

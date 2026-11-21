@@ -17,6 +17,7 @@
 
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 #include <vector>
 
 namespace spk {
@@ -1077,6 +1078,42 @@ void compress_rgb_cam16ucs_chroma(double* rgb, int npix, int output_space,
         const double in[3] = {px[0], px[1], px[2]};
         compress_pixel_cam16ucs(in, output_space, vc, table.data(), L_grid, h_grid,
                                 threshold, limit, power, px);
+    }
+}
+
+struct PreparedOutputGamut::Impl {
+    OutputGamutCompress mode; int space;
+    double threshold,limit,power,white=0;
+    std::vector<double> table;
+    double lightness[kOklchNL]{},hue[kOklchNH]{};
+    Cam16Context viewing{};
+};
+PreparedOutputGamut::PreparedOutputGamut(OutputGamutCompress mode,int space,double threshold,double limit,double power) {
+    if(space<0||space>5)throw std::invalid_argument("Unknown output color space");
+    auto p=std::make_shared<Impl>();p->mode=mode;p->space=space;p->threshold=threshold;p->limit=limit;p->power=power;
+    if(mode>=OutputGamutCompress::kOklch)p->table.resize(size_t(kOklchNL)*kOklchNH);
+    switch(mode){
+        case OutputGamutCompress::kLegacyClip:case OutputGamutCompress::kOff:case OutputGamutCompress::kAcesRgc:break;
+        case OutputGamutCompress::kOklch:build_oklch_cmax_table(space,p->table.data(),p->lightness,p->hue);break;
+        case OutputGamutCompress::kOklrab:build_oklrab_cmax_table(space,p->table.data(),p->lightness,p->hue);break;
+        case OutputGamutCompress::kJzazbz:build_jzazbz_cmax_table(space,p->table.data(),p->lightness,p->hue);p->white=jzazbz_white_Jz(space);break;
+        case OutputGamutCompress::kCam16ucs:p->viewing=build_cam16_context(space);build_cam16ucs_cmax_table(space,p->viewing,p->table.data(),p->lightness,p->hue);break;
+        default:throw std::invalid_argument("Unknown output gamut mode");
+    }
+    impl_=std::move(p);
+}
+void PreparedOutputGamut::apply(double* rgb,int npix) const {
+    const auto& p=*impl_;
+    for(int i=0;i<npix;i++){
+        double* out=rgb+size_t(i)*3;const double in[]={out[0],out[1],out[2]};
+        switch(p.mode){
+            case OutputGamutCompress::kLegacyClip:case OutputGamutCompress::kOff:break;
+            case OutputGamutCompress::kAcesRgc:compress_pixel_aces_rgc(in,p.threshold,p.limit,p.power,out);break;
+            case OutputGamutCompress::kOklch:compress_pixel_oklch(in,p.space,p.table.data(),p.lightness,p.hue,p.threshold,p.limit,p.power,out);break;
+            case OutputGamutCompress::kOklrab:compress_pixel_oklrab(in,p.space,p.table.data(),p.lightness,p.hue,p.threshold,p.limit,p.power,out);break;
+            case OutputGamutCompress::kJzazbz:compress_pixel_jzazbz(in,p.space,p.table.data(),p.lightness,p.hue,p.white,p.threshold,p.limit,p.power,out);break;
+            case OutputGamutCompress::kCam16ucs:compress_pixel_cam16ucs(in,p.space,p.viewing,p.table.data(),p.lightness,p.hue,p.threshold,p.limit,p.power,out);break;
+        }
     }
 }
 

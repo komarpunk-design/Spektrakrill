@@ -315,8 +315,7 @@ typedef struct {
      *     2 = kAcesRgc (ACES RGC v1.3 knee in the linear output space),
      *     3 = kOklch and 4 = kOklrab (IMPLEMENTED, each with its own CI gate:
      *     test_gamut_out_oklch / test_gamut_out_oklrab),
-     *     5..6 = kJzazbz / kCam16ucs (reserved / not yet ported — currently fall
-     *     through silently to the legacy clip).
+     *     5..6 = kJzazbz / kCam16ucs (implemented perceptual chroma compression).
      *   input_gamut_compress   (InputGamutCompress): 0 = kOff (DEFAULT; the filming
      *     tc_lut is built exactly as before, byte-identical), 1 = kXy (radial-to-locus
      *     chromaticity bake into the tc_lut), 2 = kOklch (reserved / not yet ported).

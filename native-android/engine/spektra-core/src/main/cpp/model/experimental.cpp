@@ -231,9 +231,13 @@ void finish_experimental_grain(float* image,int width,int height,const GrainPara
 bool experimental_film_chemistry(const char* text){auto j=tree(text);return j&&flag(*j,"filmChemistry");}
 bool experimental_print_chemistry(const char* text){auto j=tree(text);return j&&flag(*j,"printChemistry");}
 void prepare_experimental_profile(Profile& p,const char* text,bool film,double gamma){
-    auto j=tree(text);if(film)method(p,j.get());if(!j)return;
-    chemistry(p,*j,film,gamma);base(p,*j,film);
-    if(film&&j->has("colorFilter")){
+    auto j=tree(text);
+    const bool realNegative=film&&j&&j->has("workflow")&&j->at("workflow").as_string()!="normal";
+    if(film&&!realNegative)method(p,j.get());if(!j)return;
+    // A physical negative is already exposed/developed. Keep its base calibration,
+    // but do not apply virtual camera/filter/chemistry settings to its inverse model.
+    if(!realNegative)chemistry(p,*j,film,gamma);base(p,*j,film);
+    if(film&&!realNegative&&j->has("colorFilter")){
         const std::string id=j->at("colorFilter").as_string();if(id=="none")return;
         const double* transmission=experimental_filter(id);
         if(!transmission)throw std::runtime_error("Unknown spectral taking filter");

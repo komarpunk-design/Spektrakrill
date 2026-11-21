@@ -51,8 +51,8 @@ android {
         applicationId = "app.spektrafilm.lab"
         minSdk = 24
         targetSdk = 36
-        versionCode = 142
-        versionName = "9.72"
+        versionCode = 143
+        versionName = "9.73"
         testInstrumentationRunner = "com.spectrafilm.app.ReleaseCandidateSmokeInstrumentation"
         ndk { abiFilters += providers.gradleProperty("labAbis").getOrElse("arm64-v8a").split(",") }
     }

@@ -2356,8 +2356,8 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
             film.resolved_viewing_illuminant=&negative_viewing->value;
             film.viewing_illuminant=negative.illuminant;
         }
-        if(p->rgb_to_raw_method==SPK_RGB2RAW_MALLETT2019&&film.experimental_method.empty())spk::select_experimental_spectral_method(film,"mallett2019");
-        film.experimental_auto_exposure=!film.experimental_method.empty()&&p->auto_exposure!=0;
+        if(!negative.active()&&p->rgb_to_raw_method==SPK_RGB2RAW_MALLETT2019&&film.experimental_method.empty())spk::select_experimental_spectral_method(film,"mallett2019");
+        film.experimental_auto_exposure=!negative.active()&&!film.experimental_method.empty()&&p->auto_exposure!=0;
         film.experimental_meter_method=p->auto_exposure_method?p->auto_exposure_method:"center_weighted";
     } catch (const std::bad_alloc&) {
         return SPK_ERR_OOM;
@@ -2417,7 +2417,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
         fparams.date_stamp.frame_height = band->frame_height;
         fparams.date_stamp.frame_y0 = band->y0;
     }
-    const float g = spk::experimental_film_chemistry(p->experimental_json) ? 1.0f : p->density_curve_gamma != 0.0f ? p->density_curve_gamma : 1.0f;
+    const float g = negative.active() || spk::experimental_film_chemistry(p->experimental_json) ? 1.0f : p->density_curve_gamma != 0.0f ? p->density_curve_gamma : 1.0f;
     fparams.density_curve_gamma[0] = g;
     fparams.density_curve_gamma[1] = g;
     fparams.density_curve_gamma[2] = g;
@@ -2494,10 +2494,10 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
     try {
         spk::ScopedStage _t(spk::STG_TC_LUT);  // cold-start heavy (#152)
         tc_lut_lease = engine_tc_lut(
-            eng, p->film_profile, film, p->spectral_gaussian_blur,
-            p->apply_hanatos_window != 0, p->apply_hanatos_surface != 0,
-            p->camera_filter_uv, p->camera_filter_ir,
-            static_cast<spk::InputGamutCompress>(p->input_gamut_compress));
+            eng, p->film_profile, film, negative.active()?0.0f:p->spectral_gaussian_blur,
+            negative.active()?true:p->apply_hanatos_window != 0, negative.active()?false:p->apply_hanatos_surface != 0,
+            negative.active()?nullptr:p->camera_filter_uv, negative.active()?nullptr:p->camera_filter_ir,
+            negative.active()?spk::InputGamutCompress::kOff:static_cast<spk::InputGamutCompress>(p->input_gamut_compress));
     } catch (const std::exception&) {
         return SPK_ERR_ASSET_IO;
     }
@@ -2697,7 +2697,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
 
     final_rgb->resize(static_cast<size_t>(npix) * 3);
     if(negative.workflow=="negative-clear")std::fill(film.base_density.begin(),film.base_density.end(),0);
-    if(!spk::outputs::scan(film, spk::outputs::read_params(p->experimental_json), density_cmy.data(), width, height, final_rgb->data(), g, p->output_color_space, p->output_cctf_encoding!=0, sparams.lens_blur, sparams.unsharp_sigma, sparams.unsharp_amount))
+    if(!spk::outputs::scan(film, spk::outputs::read_params(p->experimental_json), density_cmy.data(), width, height, final_rgb->data(), g, p->output_color_space, p->output_cctf_encoding!=0, sparams.lens_blur, sparams.unsharp_sigma, sparams.unsharp_amount, sparams.output_gamut_compress, sparams.gamut_knee_threshold, sparams.gamut_knee_limit, sparams.gamut_knee_power))
         spk::scan(film, sparams, density_cmy.data(), width, height, final_rgb->data());
     else if(sparams.tone_curve.active) {
         for(int i=0;i<npix;i++)for(int c=0;c<3;c++)(*final_rgb)[i*3+c]=sparams.tone_curve.apply(c,(*final_rgb)[i*3+c]);
@@ -2766,8 +2766,8 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
             film.resolved_viewing_illuminant=&negative_viewing->value;
             film.viewing_illuminant=negative.illuminant;
         }
-        if(p->rgb_to_raw_method==SPK_RGB2RAW_MALLETT2019&&film.experimental_method.empty())spk::select_experimental_spectral_method(film,"mallett2019");
-        film.experimental_auto_exposure=!film.experimental_method.empty()&&p->auto_exposure!=0;
+        if(!negative.active()&&p->rgb_to_raw_method==SPK_RGB2RAW_MALLETT2019&&film.experimental_method.empty())spk::select_experimental_spectral_method(film,"mallett2019");
+        film.experimental_auto_exposure=!negative.active()&&!film.experimental_method.empty()&&p->auto_exposure!=0;
         film.experimental_meter_method=p->auto_exposure_method?p->auto_exposure_method:"center_weighted";
         prnt = load_engine_profile(eng, p->print_profile);
         reference_prnt=prnt;
@@ -2823,10 +2823,10 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
     try {
         spk::ScopedStage _t(spk::STG_TC_LUT);  // cold-start heavy (#152)
         tc_lut_lease = engine_tc_lut(
-            eng, p->film_profile, film, p->spectral_gaussian_blur,
-            p->apply_hanatos_window != 0, p->apply_hanatos_surface != 0,
-            p->camera_filter_uv, p->camera_filter_ir,
-            static_cast<spk::InputGamutCompress>(p->input_gamut_compress));
+            eng, p->film_profile, film, negative.active()?0.0f:p->spectral_gaussian_blur,
+            negative.active()?true:p->apply_hanatos_window != 0, negative.active()?false:p->apply_hanatos_surface != 0,
+            negative.active()?nullptr:p->camera_filter_uv, negative.active()?nullptr:p->camera_filter_ir,
+            negative.active()?spk::InputGamutCompress::kOff:static_cast<spk::InputGamutCompress>(p->input_gamut_compress));
     } catch (const std::exception&) {
         return SPK_ERR_ASSET_IO;
     }
@@ -2892,8 +2892,8 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
         neutral_cc, enl, /*exposure_factor_midgray=*/1.0, pg);
     { spk::ScopedStage _t(spk::STG_PRINT_DIGEST);
       pparams.exposure_factor_midgray = spk::compute_midgray_exposure_factor(
-          film, prnt, tc_lut, pparams.filtered_illuminant, spk::experimental_film_chemistry(p->experimental_json)?1.0f:p->density_curve_gamma,
-          static_cast<double>(p->exposure_compensation_ev),
+          film, prnt, tc_lut, pparams.filtered_illuminant, negative.active()||spk::experimental_film_chemistry(p->experimental_json)?1.0f:p->density_curve_gamma,
+          negative.active()?0.0:static_cast<double>(p->exposure_compensation_ev),
           p->normalize_print_exposure != 0, p->print_exposure_compensation != 0); }
     // enlarger.print_exposure (default 1.0) multiplies the print exposure.
     pparams.print_exposure = p->print_exposure;
@@ -3053,7 +3053,7 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
         fparams.date_stamp.frame_height = band->frame_height;
         fparams.date_stamp.frame_y0 = band->y0;
     }
-    const float fg = spk::experimental_film_chemistry(p->experimental_json) ? 1.0f : p->density_curve_gamma != 0.0f ? p->density_curve_gamma : 1.0f;
+    const float fg = negative.active() || spk::experimental_film_chemistry(p->experimental_json) ? 1.0f : p->density_curve_gamma != 0.0f ? p->density_curve_gamma : 1.0f;
     fparams.density_curve_gamma[0] = fg;
     fparams.density_curve_gamma[1] = fg;
     fparams.density_curve_gamma[2] = fg;

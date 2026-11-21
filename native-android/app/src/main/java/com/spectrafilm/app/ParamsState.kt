@@ -743,8 +743,9 @@ class ParamsState {
      * Powers the "Use its defaults" snackbar action on profile switch (onboarding §6h). UI/state only
      * — the engine still receives a complete param set, so this carries no parity impact.
      */
-    fun resetStockCharacter() {
+    fun resetStockCharacter(film: Boolean = true, print: Boolean = true) {
         val d = ParamsState()
+        if(film) {
         // Grain
         grainActive = d.grainActive
         grainSublayersActive = d.grainSublayersActive
@@ -788,6 +789,7 @@ class ParamsState {
         couplersDiffusionTailWeight = d.couplersDiffusionTailWeight
         // Density-curve gamma (Experimental)
         filmGammaFactor = d.filmGammaFactor
-        printGammaFactor = d.printGammaFactor
+        }
+        if(print)printGammaFactor = d.printGammaFactor
     }
 }

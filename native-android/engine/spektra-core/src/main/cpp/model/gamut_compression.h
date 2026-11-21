@@ -27,6 +27,8 @@
 #ifndef SPK_MODEL_GAMUT_COMPRESSION_H
 #define SPK_MODEL_GAMUT_COMPRESSION_H
 
+#include <memory>
+
 namespace spk {
 
 // Output gamut compression algorithm selector (mirrors
@@ -50,7 +52,7 @@ namespace spk {
 //                 toward CIELAB L*), so the knee response is more perceptually uniform
 //                 across light/dark. Opt-in; gated by tests/test_gamut_out_oklrab.cpp.
 //   kJzazbz/kCam16ucs — perceptual chroma reduction in JzCzhz / CAM16-UCS (#201);
-//                 not implemented yet.
+//                 implemented; independently checked against upstream numeric fixtures.
 enum class OutputGamutCompress {
     kLegacyClip = 0,
     kOff        = 1,
@@ -59,6 +61,15 @@ enum class OutputGamutCompress {
     kOklrab     = 4,
     kJzazbz     = 5,
     kCam16ucs   = 6,
+};
+
+// Per-render immutable tables, reusable across bounded tiles without rebuilding C_max.
+class PreparedOutputGamut {
+    struct Impl;
+    std::shared_ptr<const Impl> impl_;
+public:
+    PreparedOutputGamut(OutputGamutCompress mode,int space,double threshold,double limit,double power);
+    void apply(double* rgb,int npix) const;
 };
 
 // Input gamut compression algorithm selector (mirrors

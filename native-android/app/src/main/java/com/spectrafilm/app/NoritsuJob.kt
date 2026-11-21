@@ -94,17 +94,13 @@ internal fun ParamsState.installNoritsuJob(text: String) {
 private fun ParamsState.installValidatedNoritsuJob(job: JSONObject) {
     val next=labObject();next.remove("noritsuJobId");next.put("noritsuJob",job)
     val out=next.optJSONObject("outputModel")
-    listOf("noritsuLocalContrast" to "autoContrast","noritsuFilmSharp" to "filmSharpHex","noritsuHueSat" to "hueLatticeHex").forEach { (flag,section) -> if(!job.has(section))out?.remove(flag) }
+    // An imported acquisition is a different input/calibration contract. Never inherit
+    // enabled stages or factory normalization from the previous dataset.
+    NORITSU_JOB_KEYS.forEach{out?.remove(it)}
     val result=next.toString();require(result.length<=NORITSU_JOB_LIMIT) { "Рецепт с профилем превышает 512 КиБ" }
-    val workspace=negativeWorkspace().takeIf { it.length()>0 }
-    workspace?.getJSONArray("variants")?.let { variants ->
-        for(i in 0 until variants.length()) {
-            val model=variants.getJSONObject(i).getJSONObject("outputModel")
-            listOf("noritsuLocalContrast" to "autoContrast","noritsuFilmSharp" to "filmSharpHex","noritsuHueSat" to "hueLatticeHex").forEach { (flag,section) -> if(!job.has(section))model.remove(flag) }
-        }
-    }
+    val workspace=negativeWorkspaceWithInactiveJobs()
     labJson=result
-    if(workspace!=null)negativeWorkspaceJson=workspace.toString()
+    if(workspace!=null)negativeWorkspaceJson=workspace
 }
 
 internal fun ParamsState.useFactoryNoritsuJob(text: String) {
@@ -119,13 +115,27 @@ internal fun ParamsState.useFactoryNoritsuJob(text: String) {
     setLab("outputModel.noritsuHueSat",job.has("hueLatticeHex"))
 }
 
+private fun ParamsState.negativeWorkspaceWithInactiveJobs():String? {
+    if(negativeWorkspaceJson.isBlank())return null
+    val workspace=negativeWorkspace()
+    val variants=workspace.getJSONArray("variants")
+    for(i in 0 until variants.length()) {
+        val model=variants.getJSONObject(i).getJSONObject("outputModel")
+        NORITSU_JOB_KEYS.forEach{model.remove(it)}
+    }
+    return workspace.toString()
+}
+
 /** A stable built-in ID keeps sliders/history small; the complete tables remain exportable. */
 internal fun ParamsState.useBuiltinFactoryNoritsuJob() {
-    val next=labObject();next.remove("noritsuJob");next.put("noritsuJobId",NORITSU_FACTORY_ID)
+    val next=labObject()
+    val workspace=if(next.optString("noritsuJobId")!=NORITSU_FACTORY_ID)negativeWorkspaceWithInactiveJobs() else null
+    next.remove("noritsuJob");next.put("noritsuJobId",NORITSU_FACTORY_ID)
     val model=next.optJSONObject("outputModel")?:JSONObject().also{next.put("outputModel",it)}
     model.put("mode","noritsu-ls600")
     NORITSU_JOB_KEYS.forEach{model.put(it,true)}
     labJson=next.toString()
+    if(workspace!=null)negativeWorkspaceJson=workspace
 }
 
 @Composable

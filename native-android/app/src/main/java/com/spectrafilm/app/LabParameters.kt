@@ -94,12 +94,13 @@ internal fun ParamsState.labEngineJson(): String {
     val value=labObject()
     val output=value.optJSONObject("outputModel")
     val mode=output?.optString("mode","paper")?:"paper"
-    if(mode!="noritsu-ls600"||output?.opt("noritsuJobEnabled")!=true) {
+    val receiverAllowed=labString("workflow","normal") in listOf("normal","negative-scan")
+    if(!receiverAllowed||mode!="noritsu-ls600"||output?.opt("noritsuJobEnabled")!=true) {
         value.remove("noritsuJob");value.remove("noritsuJobId")
         NORITSU_JOB_KEYS.forEach{output?.remove(it)}
     }
     // Dormant scanner metadata must not disable the engine's bounded paper-export route.
-    if(mode=="paper"||mode=="negative"||output?.length()==0)value.remove("outputModel")
+    if(!receiverAllowed||mode=="paper"||mode=="negative"||output?.length()==0)value.remove("outputModel")
     if(key!=null)value.put("virtualNegative",key)
     return if(value.length()==0)"" else value.toString()
 }

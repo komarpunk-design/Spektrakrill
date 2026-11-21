@@ -43,6 +43,13 @@ object PresetAmount {
         val complete=full.optString("schema")==PRESET_SCHEMA_ID && full.has("filmProfile")
         if(t==1f&&complete)return JSONObject(full.toString())
         val out=blendObject(base, full, t)
+        if(complete) {
+            // Optional blocks absent from a complete recipe mean defaults, not a sparse patch.
+            val lab=blendCompleteLab(base.optJSONObject("spektrafilmLab"),full.optJSONObject("spektrafilmLab"),t)
+            if(lab==null)out.remove("spektrafilmLab")else out.put("spektrafilmLab",lab)
+            val chosen=if(t<.5f)base else full
+            if(chosen.has("negativeWorkspace"))out.put("negativeWorkspace",JSONObject(chosen.getJSONObject("negativeWorkspace").toString()))else out.remove("negativeWorkspace")
+        }
         val b=base.optJSONObject("spektrafilmLab");val f=full.optJSONObject("spektrafilmLab")
         if(b==null&&f!=null&&t>=.5f)out.put("spektrafilmLab",JSONObject(f.toString()))
         fun source(j:JSONObject?)=j?.has("noritsuJob")==true||j?.has("noritsuJobId")==true
@@ -59,6 +66,20 @@ object PresetAmount {
             }
             if(model.length()>0)lab.put("outputModel",model)else lab.remove("outputModel")
             if(lab.length()>0)out.put("spektrafilmLab",lab)else out.remove("spektrafilmLab")
+        }
+        return out
+    }
+
+    private fun blendCompleteLab(base:JSONObject?,full:JSONObject?,t:Float):JSONObject? {
+        if(base==null||full==null)return (if(t<.5f)base else full)?.let{JSONObject(it.toString())}
+        val out=JSONObject()
+        for(key in (base.keys().asSequence().toList()+full.keys().asSequence().toList()).distinct()) {
+            if(!base.has(key)||!full.has(key)) {
+                val chosen=if(t<.5f)base else full
+                if(chosen.has(key))out.put(key,chosen.get(key))
+            } else if(key!="noritsuJob"&&base.opt(key) is JSONObject && full.opt(key) is JSONObject) {
+                out.put(key,blendCompleteLab(base.getJSONObject(key),full.getJSONObject(key),t))
+            } else out.put(key,blendValue(key,base.get(key),full.get(key),t))
         }
         return out
     }

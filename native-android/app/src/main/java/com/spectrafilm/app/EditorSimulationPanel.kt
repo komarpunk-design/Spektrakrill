@@ -100,7 +100,7 @@ internal fun EditorSimulationPanel(
                 state.lastColourPrint = null
                 offerSnackbarSuggestion(scope, snackbarHost,
                     ctx.getString(R.string.editor_snack_switched_to, StockCatalog.displayName(ctx, id)),
-                    ctx.getString(R.string.editor_snack_use_defaults)) { state.resetStockCharacter() }
+                    ctx.getString(R.string.editor_snack_use_defaults)) { state.resetPrintStockCharacter() }
             }
         },
     )
