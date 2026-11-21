@@ -88,9 +88,16 @@ inline bool scan(const Profile& f,const Params& p,const float* density,int w,int
  const bool useNikon=p.mode=="nikon-scan"&&!f.monochrome;
  const bool useJob=useNoritsu&&p.jobEnabled;
  if(useNikon){
-  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto v=read({density[i*3],density[i*3+1],density[i*3+2]});for(int c=0;c<3;c++)result[i*3+c]=float(std::pow(10.,v[c]));}});
-  const auto gain=nikon::gains(result,w,h,p.automatic);
-  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto v=nikon::apply({result[i*3],result[i*3+1],result[i*3+2]},gain);for(int c=0;c<3;c++)v[c]=std::pow(v[c],2.19921875)*std::pow(2.,p.exposure)*std::pow(10.,-p.keys[c]*.5);v=operator_tone(v,p);for(int c=0;c<3;c++)result[i*3+c]=float(v[c]);}});
+  // The public estimator is trained on hardware RAW and must not grade virtual sensor RGB.
+  RGB mid,low,high;for(int c=0;c<3;c++){mid[c]=density_at(f,0,c,1);low[c]=density_at(f,-.15,c,1);high[c]=density_at(f,.15,c,1);}
+  const auto ref=read(mid),lower=read(low),upper=read(high);
+  const auto target=nikon::neutral_raw(.18),targetLo=nikon::neutral_raw(.18*std::pow(10.,-.15)),targetHi=nikon::neutral_raw(.18*std::pow(10.,.15));
+  RGB slope,targetSlope;for(int c=0;c<3;c++){slope[c]=(upper[c]-lower[c])/.3;targetSlope[c]=std::log10(targetHi[c]/targetLo[c])/.3;if(!std::isfinite(slope[c])||std::abs(slope[c])<1e-8)throw std::runtime_error("Nikon: flat film reference");}
+  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto v=read({density[i*3],density[i*3+1],density[i*3+2]});for(int c=0;c<3;c++)result[i*3+c]=float((v[c]-ref[c])/slope[c]);}});
+  double shift=0;
+  if(p.automatic){std::vector<double> values;int step=std::max(1,count/16384);for(int i=0;i<count;i+=step)values.push_back((result[i*3]+result[i*3+1]+result[i*3+2])/3.);std::sort(values.begin(),values.end());shift=std::clamp(values[values.size()/2],-1.,1.);}
+  const nikon::RGB gain={nikon::data::reference_gain[0],nikon::data::reference_gain[1],nikon::data::reference_gain[2]};
+  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){nikon::RGB raw;for(int c=0;c<3;c++)raw[c]=target[c]*std::pow(10.,std::clamp((result[i*3+c]-shift)*targetSlope[c],-12.,12.));auto v=nikon::apply(raw,gain);for(int c=0;c<3;c++)v[c]=std::pow(v[c],2.19921875)*std::pow(2.,p.exposure)*std::pow(10.,-p.keys[c]*.5);v=operator_tone(v,p);for(int c=0;c<3;c++)result[i*3+c]=float(v[c]);}});
  }else if(useJob){
   if(!p.job)throw std::invalid_argument("Noritsu: missing job parameters");
   parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto value=read({density[i*3],density[i*3+1],density[i*3+2]});for(int c=0;c<3;c++)result[i*3+c]=noritsu::density_code(c,value[c]);}});

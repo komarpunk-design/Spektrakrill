@@ -1,3 +1,5 @@
+> Nikon virtual input was corrected in 9.72. See [NIKON_COLOR_972.md](NIKON_COLOR_972.md); the hardware-trained gain estimator is no longer used on virtual receiver RGB.
+
 # Film-first defaults and Nikon Scan model · 9.71
 
 New edits open the film catalogue. Choosing a different stock automatically

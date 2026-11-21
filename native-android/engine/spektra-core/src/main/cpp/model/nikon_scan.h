@@ -39,3 +39,23 @@ inline RGB apply(RGB raw,RGB gain){
  return result;
 }
 }
+
+namespace spk::nikon {
+/** Virtual-input calibration only; not a measured Coolscan sensor profile. */
+inline RGB neutral_raw(double linear) {
+ const double* xs[]={data::x0,data::x1,data::x2};const double* ys[]={data::y0,data::y1,data::y2};
+ double a[3][4];double target=std::pow(linear,1./2.19921875);
+ for(int c=0;c<3;c++){
+  double lo=xs[c][0],hi=xs[c][256];
+  for(int i=0;i<60;i++){double mid=(lo+hi)*.5;if(curve(mid,xs[c],ys[c])>target)lo=mid;else hi=mid;}
+  for(int k=0;k<3;k++)a[c][k]=data::matrix[c][k]*data::reference_gain[k];a[c][3]=(lo+hi)*.5;
+ }
+ for(int k=0;k<3;k++){
+  int row=k;for(int r=k+1;r<3;r++)if(std::abs(a[r][k])>std::abs(a[row][k]))row=r;
+  for(int c=k;c<4;c++)std::swap(a[k][c],a[row][c]);double d=a[k][k];if(std::abs(d)<1e-12)throw std::runtime_error("Nikon: singular calibration");
+  for(int c=k;c<4;c++)a[k][c]/=d;
+  for(int r=0;r<3;r++)if(r!=k){double v=a[r][k];for(int c=k;c<4;c++)a[r][c]-=v*a[k][c];}
+ }
+ RGB result;for(int c=0;c<3;c++){result[c]=a[c][3];if(!std::isfinite(result[c])||result[c]<=0)throw std::runtime_error("Nikon: unusable neutral calibration");}return result;
+}
+}
