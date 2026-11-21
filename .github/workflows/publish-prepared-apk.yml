@@ -1,0 +1,32 @@
+name: Publish native Negs Android APK
+on:
+  push:
+    branches: [apk-delivery-negs-018-alpha2-402aeab]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify, publish and download the complete APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view negs-android-v0.18.0-alpha.1 >/dev/null 2>&1; then
+            gh release edit negs-android-v0.18.0-alpha.1 --draft --title 'Superseded Android alpha 1 - do not install'
+            gh release delete-asset negs-android-v0.18.0-alpha.1 Negs-Android-v0.18.0-alpha.1-arm64.apk --yes
+          fi
+          echo '6c6db74e8b1c07190f4cf99ef64aa39a1a6a7d89176f199f1f69a5493989034b  release-payload/Negs-Android-v0.18.0-alpha.2-arm64.apk' | sha256sum --check
+          if ! gh release view negs-android-v0.18.0-alpha.2 >/dev/null 2>&1; then
+            gh release create negs-android-v0.18.0-alpha.2 --target 402aeab3a4f543e7eed1887b51b60792e14bb1c2 --prerelease --title 'Negs Android 0.18.0 — alpha 2 · ARM64' --notes-file release-payload/notes.md
+          fi
+          if ! gh release view negs-android-v0.18.0-alpha.2 --json assets --jq '.assets[].name' | grep -Fxq 'Negs-Android-v0.18.0-alpha.2-arm64.apk'; then
+            gh release upload negs-android-v0.18.0-alpha.2 release-payload/Negs-Android-v0.18.0-alpha.2-arm64.apk
+          fi
+          mkdir downloaded
+          gh release download negs-android-v0.18.0-alpha.2 --pattern Negs-Android-v0.18.0-alpha.2-arm64.apk --dir downloaded
+          echo '6c6db74e8b1c07190f4cf99ef64aa39a1a6a7d89176f199f1f69a5493989034b  downloaded/Negs-Android-v0.18.0-alpha.2-arm64.apk' | sha256sum --check
