@@ -1,4 +1,4 @@
-# Validation — Android alpha 2
+# Validation — Android alpha 3
 
 Выполнено в облачной Linux-среде; физический телефон и Android Vulkan не доступны.
 
@@ -9,13 +9,13 @@
 | spektrafilm-io, последовательно | 133 passed, 3 ignored исходным набором |
 | spektrafilm-math | 51 passed |
 | spektrafilm-model | 11 passed |
-| Native / Android FFI | 29 passed; включая настоящий FFI-render, PNG 8/TIFF 16 и sidecar round-trip |
+| Native / Android FFI | 30 passed; включая настоящий FFI-render, PNG 8/TIFF 16 и sidecar round-trip |
 | Reference f64 FFI | 2 passed: render/export и sidecar round-trip |
-| Android Java / Robolectric SDK 26 и 35 | 14 passed |
+| Android Java / Robolectric SDK 26 и 35 | 18 passed |
 | Android lint | 0 errors; предупреждения перечислены в lint report |
 | Android release | Собран и подписан development-ключом |
 
-Всего 391 прошедшая host-проверка, 2 дополнительных прогона Reference, 14 Android-проверок. Четыре исходных ignored-теста не выдаются за пройденные. Первый параллельный прогон IO не завершился; итоговый последовательный прогон выполнен полностью.
+Всего 392 прошедшие host-проверки, 2 дополнительных прогона Reference, 18 Android-проверок. Четыре исходных ignored-теста не выдаются за пройденные. Первый параллельный прогон IO не завершился; итоговый последовательный прогон выполнен полностью.
 
 Проверены: сериализация всех используемых запросов, массивы и nullable-значения, независимый снимок рецепта для очереди, crop/border/rotation/ICC/depth в Save, сохранность бинарных данных и Unicode, история, размеры основного Android-экрана, отказ от повреждённого/нового sidecar без перезаписи. PNG/TIFF из одной исходной цепочки сравниваются с допуском одного 8-битного шага.
 
@@ -24,3 +24,5 @@
 Снимок компоновки из Robolectric — вспомогательная проверка, не скриншот установленного приложения и не пользовательское тестирование. Производительность, драйверы, SAF разных провайдеров, прерывание процесса во время экспорта и крупные RAW на реальном телефоне требуют отдельной проверки.
 
 При проверке ELF выявлена и исправлена ошибка Android-линковки: общий NDK `-L` выбирал статическую Bionic вместо API-specific libc.so. C++ archives теперь передаются абсолютными путями. Скрипт требует зависимость от системной libc.so и запрещает встроенные malloc/free/pthread_create в каждом DSO.
+
+Проверки производительности и неизменности экспорта: [PERFORMANCE.md](PERFORMANCE.md).

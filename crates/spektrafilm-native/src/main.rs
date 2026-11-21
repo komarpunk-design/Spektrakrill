@@ -285,6 +285,8 @@ enum Command {
 
 #[derive(Default)]
 struct Session {
+    // Android screen proxy only; None for desktop commands and every export.
+    mobile_preview_side: Option<u32>,
     source_generation: u64,
     backend: Option<Box<dyn ComputeBackend>>,
     source: Option<Source>,
@@ -928,6 +930,7 @@ impl Session {
                 // canvas fits the original to the developed photograph.
                 let factor = if params.io.photo_long_side_px.is_some() { 1.0 } else { params.io.upscale_factor };
                 let dimensions = preview_dimensions(source.width, source.height, factor, limit_preview);
+                let dimensions = screen_proxy_dimensions(dimensions,self.mobile_preview_side);
                 let resized = (dimensions != (source.width, source.height))
                     .then(|| rescale_preview_input_fast(&source, dimensions));
                 let working = resized.as_ref().unwrap_or(&source);
@@ -1151,7 +1154,7 @@ impl Session {
                     crop.validate()?;
                 }
                 save_options.check(&output)?;
-                let metadata = spektrafilm_io::read_metadata(source);
+                let metadata = save_options.copy_metadata.then(|| spektrafilm_io::read_metadata(source)).flatten();
                 // The render is the unclipped scan; Post, crop, border and resize
                 // work on it as the file will hold it. Clipping in place keeps
                 // memory flat, and the display clips the same way.
@@ -1256,6 +1259,7 @@ impl Session {
                 // interactive render is a smaller frame of it that never
                 // enlarges the source.
                 let photo_dimensions = preview_cap(size.working, limit_preview);
+                let photo_dimensions=screen_proxy_dimensions(photo_dimensions,self.mobile_preview_side.filter(|_|limit_preview));
                 let dimensions = match interactive_scale.filter(|&s| s < 1.0) {
                     Some(s) => interactive_dimensions(photo_dimensions, s, (source_width, source_height)),
                     None => photo_dimensions,
@@ -1265,11 +1269,11 @@ impl Session {
                 let render_key = json!({
                     "input": input, "source_generation": source_generation, "film": film,
                     "paper": paper, "params": params, "limit_preview": limit_preview,
-                    "interactive_scale": interactive_scale, "working": size.working,
+                    "interactive_scale": interactive_scale, "working": size.working, "mobile_preview_side":self.mobile_preview_side,
                 });
                 let reused = self.output.take().filter(|last| last.key == render_key);
                 if let Some(last) = reused {
-                    write_display(&last.image, last.encoding, &post, &preview_path)?;
+                    if self.mobile_preview_side.is_none() {write_display(&last.image, last.encoding, &post, &preview_path)?;}
                     let mut response = last.response.clone();
                     // Edge rounding moves the crop's pixels with its position.
                     response["photo_crop_width"] = json!(size.photo.0);
@@ -1360,7 +1364,7 @@ impl Session {
                         .unwrap_or_else(|| pipeline.process_with_backend(working.clone(), backend.as_ref()))
                 };
                 let encoding = Encoding::new(&params.io.output_color_space, params.io.output_cctf_encoding);
-                let (width, height) = write_display(&output, encoding, &post, &preview_path)?;
+                let (width,height)=if self.mobile_preview_side.is_some(){(output.width as usize,output.height as usize)}else{write_display(&output,encoding,&post,&preview_path)?};
                 // At the uncapped working size the output is byte-identical to
                 // a Fast (GPU) export, so the app can save it instead of
                 // rendering again. The display proxy's limit doesn't matter:
@@ -1458,6 +1462,13 @@ fn parse_request(line: &str) -> Result<Request> {
 /// Writes the preview for the app as raw RGBA, avoiding PNG compression on
 /// every slider edit. Save keeps the float output, independent of this proxy.
 /// The bytes are in `DisplaySpace::of(encoding)`.
+// Screen proxy affects neither the retained source nor a full export.
+fn screen_proxy_dimensions(size:(u32,u32),side:Option<u32>)->(u32,u32){
+    let Some(side)=side else{return size};let long=size.0.max(size.1);
+    if long<=side{return size}let ratio=side as f64/long as f64;
+    (((size.0 as f64*ratio).floor() as u32).max(1),((size.1 as f64*ratio).floor() as u32).max(1))
+}
+
 fn write_display(
     image: &ImageBuf,
     encoding: Encoding,

@@ -1,4 +1,4 @@
-# Negs for Android — native port (alpha 2)
+# Negs for Android — native port (alpha 3)
 
 Отдельное Android-приложение на исходном Rust-движке **negs 0.18.0**, upstream `8154a6a`. Package: `app.negs.android`; Android 8+; ARM64. Spektrafilm Lab устанавливается и хранит данные отдельно.
 
@@ -53,3 +53,7 @@ android/gradlew -p android :app:testDebugUnitTest :app:lintRelease
 Для уже скачанных test SDK можно передать `-ProbolectricSdkDir=/path/to/android-all-jars`.
 
 Лицензия GPL-3.0-only и исходные атрибуции сохранены. LibRaw: LGPL/CDDL, его лицензии также включены в APK.
+
+## Быстродействие alpha 3
+
+Экранный предпросмотр по умолчанию ограничен длинной стороной 1280 px; в меню ⋮ → «Качество предпросмотра» доступны также 768 и 2048 px. Это не ограничивает полноразмерный экспорт. Первый RAW декодируется по-прежнему из сенсорных данных, затем используется кеш исходника. См. [PERFORMANCE.md](PERFORMANCE.md).

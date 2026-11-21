@@ -13,12 +13,18 @@ pub unsafe extern "C" fn negs_request(data: *const c_char, request: *const c_cha
         let text = unsafe { CStr::from_ptr(request) }.to_str().map_err(anyhow::Error::msg)?;
         ANDROID_SESSION.with(|s| {
             let mut session=s.borrow_mut();
-            let document:Value=serde_json::from_str(text)?;
+            let mut document:Value=serde_json::from_str(text)?;
             if document["command"]=="android_release" { *session=Session::default();return Ok(json!({})); }
             if document["command"].as_str().unwrap_or("").starts_with("android_sidecar_") {
                 return android_sidecar(&document, Path::new(data));
             }
-            let mut request=parse_request(text)?;
+            let mobile_side=if document["command"]=="android_preview" || document["command"]=="android_original" {
+                let side=document["long_side"].as_u64().context("Missing preview long side")?;
+                ensure!((256..=4096).contains(&side),"Invalid preview size");
+                document["command"]=if document["command"]=="android_original"{json!("original")}else{json!("render")};document["limit_preview"]=json!(true);
+                Some(side as u32)
+            }else{None};
+            let mut request:Request=serde_json::from_value(document)?;
             if cfg!(feature="android-reference") {
                 session.backend=Some(Box::new(spektrafilm_gpu::cpu_backend::CpuBackend));
                 if let Command::Render { params, .. } = &mut request.command {
@@ -26,7 +32,10 @@ pub unsafe extern "C" fn negs_request(data: *const c_char, request: *const c_cha
                     params.settings.use_scanner_lut=false;
                 }
             }
-            session.handle(request, Path::new(data))
+            session.mobile_preview_side=mobile_side;
+            let result=session.handle(request,Path::new(data));
+            session.mobile_preview_side=None;
+            result
         })
     }));
     let response = match result {
@@ -124,6 +133,34 @@ fn android_sidecar(document:&Value,data:&Path)->Result<Value> {
   send(json!({"id":42,"command":"render","input":input,"film":"kodak_portra_400","paper":"kodak_portra_endura","params":params,"limit_preview":true,"preview_path":rgba}));
   for (file,bits) in [(&png,8),(&tiff,16)] {send(json!({"id":43,"command":"save","render_id":42,"output":file,"crop_after_post":true,"save_options":{"bit_depth":bits,"color_space":"sRGB"}}));assert!(std::fs::metadata(file).unwrap().len()>200);}
   let a=image::open(&png).unwrap().to_rgb8();let b=image::open(&tiff).unwrap().to_rgb16();assert_eq!(a.dimensions(),b.dimensions());for (a,b) in a.as_raw().iter().zip(b.as_raw()){assert!((*a as f64-*b as f64/257.).abs()<=1.1);}
+  std::fs::remove_dir_all(dir).unwrap();
+ }
+}
+
+#[cfg(test)] mod preview_performance_contract {
+ use super::*;
+ #[test] fn screen_proxy_reuses_source_skips_unused_file_and_never_limits_export(){
+  let dir=std::env::temp_dir().join(format!("negs-preview-perf-{}",std::process::id()));std::fs::create_dir_all(&dir).unwrap();
+  let input=dir.join("input.png");let display=dir.join("unused.rgba");let before=dir.join("before.png");let after=dir.join("after.png");
+  let image=ImageBuf::from_data(1536,1024,[0.12,0.25,0.4].repeat(1536*1024));spektrafilm_io::save_image(&image,&input,None).unwrap();
+  let data=CString::new(concat!(env!("CARGO_MANIFEST_DIR"),"/../../data")).unwrap();
+  let send=|v:Value| {let request=CString::new(v.to_string()).unwrap();unsafe{let p=negs_request(data.as_ptr(),request.as_ptr());let r:Value=serde_json::from_str(CStr::from_ptr(p).to_str().unwrap()).unwrap();negs_free(p);assert!(r.get("error").is_none(),"{r}");r["result"].clone()}};
+  send(json!({"id":0,"command":"android_release"}));
+  let mut params=RuntimeParams::default();params.film_render.grain.active=false;
+  let full=json!({"id":42,"command":"render","input":input,"film":"kodak_portra_400","paper":"kodak_portra_endura","params":params,"limit_preview":false,"preview_path":display});
+  let warm=send(full.clone());assert_eq!(warm["output_width"],1536);
+  let mut full=full;full["params"]["prep"]["exposure_ev"]=json!(0.1);
+  let start=Instant::now();send(full.clone());let full_ms=start.elapsed().as_millis();
+  let save=|output:&Path|json!({"id":43,"command":"save","render_id":42,"output":output,"save_options":{"bit_depth":8,"color_space":"sRGB","copy_metadata":false},"crop_after_post":true});
+  send(save(&before));std::fs::remove_file(&display).unwrap();
+  let mut proxy=full.clone();proxy["command"]=json!("android_preview");proxy["long_side"]=json!(512);
+  let start=Instant::now();let small=send(proxy);let proxy_ms=start.elapsed().as_millis();
+  assert_eq!(small["source_width"],1536);assert_eq!(small["source_height"],1024);assert_eq!(small["output_width"],512);assert!(small["output_height"].as_u64().unwrap()<=342);assert!(!display.exists());
+  assert_eq!(ANDROID_SESSION.with(|s|s.borrow().source_loads),1);
+  let mut original=full.clone();original["command"]=json!("android_original");original["long_side"]=json!(512);
+  let original=send(original);assert_eq!(original["width"],512);assert_eq!(std::fs::metadata(&display).unwrap().len(),original["width"].as_u64().unwrap()*original["height"].as_u64().unwrap()*4);
+  let restored=send(full);assert_eq!(restored["output_width"],1536);assert_eq!(restored["output_height"],1024);send(save(&after));assert_eq!(std::fs::read(&before).unwrap(),std::fs::read(&after).unwrap());
+  println!("WARM CPU FRAME: full 1536x1024={full_ms}ms; proxy 512x341={proxy_ms}ms; export bytes identical");
   std::fs::remove_dir_all(dir).unwrap();
  }
 }
