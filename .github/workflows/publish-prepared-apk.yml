@@ -1,0 +1,28 @@
+name: Publish native Spektrafilm Lab APK
+on:
+  push:
+    branches: [apk-delivery-native-9-71-b1b1b0a]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify, publish and download the complete APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '735b2785258f0fc0e5ef8fe3289829ccde9cdbdab70c2c7984aacbeaf22a0e80  release-payload/Spektrafilm-v9.71.0.apk' | sha256sum --check
+          if ! gh release view v9.71.0 >/dev/null 2>&1; then
+            gh release create v9.71.0 --target b1b1b0a81322aff07e4efcceedd0a87cc474eccf --prerelease --title 'Spektrafilm Lab 9.71 — Плёнка · Arctic · Nikon Scan · ARM64' --notes-file release-payload/notes.md
+          fi
+          if ! gh release view v9.71.0 --json assets --jq '.assets[].name' | grep -Fxq 'Spektrafilm-v9.71.0.apk'; then
+            gh release upload v9.71.0 release-payload/Spektrafilm-v9.71.0.apk
+          fi
+          mkdir downloaded
+          gh release download v9.71.0 --pattern Spektrafilm-v9.71.0.apk --dir downloaded
+          echo '735b2785258f0fc0e5ef8fe3289829ccde9cdbdab70c2c7984aacbeaf22a0e80  downloaded/Spektrafilm-v9.71.0.apk' | sha256sum --check
