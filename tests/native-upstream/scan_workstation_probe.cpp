@@ -34,7 +34,7 @@ int main(int argc,char**argv) try {
  p.auto_exposure=0;p.scan_film=1;p.grain_active=0;p.halation_active=0;p.glare_active=0;p.scanner_unsharp[0]=0;p.scanner_unsharp[1]=0;p.preview_max_size=64;
  auto render=[&](const std::string& json,bool preview=false){p.experimental_json=json.c_str();spk_image out{};auto status=preview?spk_simulate_preview(e,&image,&p,&out):spk_simulate(e,&image,&p,&out);if(status!=SPK_OK)throw std::runtime_error(spk_last_error_message());std::vector<float> data(out.data,out.data+w*h*3);spk_image_free(&out);for(auto v:data)if(!std::isfinite(v)||v<0||v>1)throw std::runtime_error("invalid output");return data;};
  int renders=0;
- for(auto stock:{"kodak_portra_400","negs_ilford_hp5_plus_6p5min"})for(auto mode:{"digital","auto-levels","lab-scan"}) {
+ for(auto stock:{"kodak_portra_400","negs_ilford_hp5_plus_6p5min"})for(auto mode:{"digital","auto-levels","lab-scan","nikon-scan"}) {
   p.film_profile=stock;std::string prefix=std::string("{\"outputModel\":{\"mode\":\"")+mode+"\"";
   auto base=render(prefix+"}}");
   for(auto control:{",\"contrast\":1.4",",\"blackPoint\":0.025",",\"whitePoint\":0.8"})check(render(prefix+control+"}}")!=base,"each scan operator reaches the engine");

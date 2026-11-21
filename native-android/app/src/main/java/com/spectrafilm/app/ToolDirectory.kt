@@ -43,7 +43,7 @@ internal val PhotoTool.purpose:String get()=when(this){
     PhotoTool.PAPER->"Материал, экспозиция, фильтры и оптика печати"
     PhotoTool.PAPER_BASE->"Плотность и цвет подложки фотобумаги"
     PhotoTool.TEST_PRINT->"Сравнение экспозиций и цветовых фильтров печати"
-    PhotoTool.SCAN->"Lab Scan, Noritsu, Digital Reference, Auto Levels: тон, цвет и резкость"
+    PhotoTool.SCAN->"Lab Scan, Noritsu, Nikon Scan, Digital Reference, Auto Levels: тон, цвет и резкость"
     PhotoTool.NEGATIVE->"Маска, калибровка и конвертация настоящего негатива"
     PhotoTool.SPECTRAL_SCAN->"Прямой спектральный скан и блики"
     PhotoTool.CROP->"Обрезка, пропорции, поворот и выравнивание"
@@ -56,7 +56,7 @@ internal val PhotoTool.purpose:String get()=when(this){
     PhotoTool.DISPLAY->"Качество предпросмотра и сравнение результата"
 }
 internal fun toolDirectoryResults(query:String,stage:PhotoStage?,dirtyOnly:Boolean,dirty:Set<PhotoTool>,extra:Map<PhotoTool,String> = emptyMap()):List<PhotoTool> {
-    val words=query.trim().lowercase(Locale.ROOT).replace('ё','е').replace("норитсу","noritsu").replace("норицу","noritsu").split(Regex("\\s+")).filter{it.isNotEmpty()}
+    val words=query.trim().lowercase(Locale.ROOT).replace('ё','е').replace("норитсу","noritsu").replace("норицу","noritsu").replace("никон","nikon").split(Regex("\\s+")).filter{it.isNotEmpty()}
     return PhotoTool.entries.filter{tool->
         (stage==null||tool.stage==stage)&&(!dirtyOnly||tool in dirty)&&
         words.all{word->("${tool.title} ${tool.purpose} ${tool.stage?.title.orEmpty()} ${extra[tool].orEmpty()}").lowercase(Locale.ROOT).replace('ё','е').contains(word)}

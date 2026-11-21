@@ -232,3 +232,11 @@ adapter, not a verified complete physical-scanner reconstruction.
 Runtime capture/calibration bundles are NOT included. Synthetic oracle fixtures
 live only in unit-test resources, are visibly labelled as test data, and are
 excluded from APK assets. No invented default lattice or FilmSharp job is used.
+
+Nikon Scan model integration (9.71): Nikonlook-v2 numeric model and algorithm
+ported from Rohan Pandula's ScanStudio / nikon-coolscan4-software-archaeology,
+MIT license, commit fa09658c0db01c5de63d1c4481c9fe0b6c0d2589.
+The MIT license is bundled as licenses/NIKON_SCANSTUDIO_MIT.txt.
+The Spektrafilm virtual-receiver adapter is not a measured Coolscan spectral
+calibration. The upstream model is beta, not a byte-identical Nikon Scan clone.
+No Nikon ICC profile, driver or firmware is included.

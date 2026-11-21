@@ -350,6 +350,9 @@ internal fun SimulationSection(
                     onSelect = onFilmProfileChange,
                     previewHost = filmPreviewHost,
                 )
+                LabNote("При выборе новой плёнки автоматически загружаются её параметры и спектр Arctic. Точная настройка остаётся в разделах обработки.")
+                val filmContext=androidx.compose.ui.platform.LocalContext.current
+                TextButton(onClick={s.applyFilmFirstDefaults(filmContext,s.filmProfile)}) { Text("Вернуть профильные значения") }
                 // The curve viewer is reference material for the stock just picked.
                 OutlinedButton(
                     onClick = onOpenFilmCurves,

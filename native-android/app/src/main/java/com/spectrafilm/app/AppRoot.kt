@@ -463,11 +463,11 @@ internal fun AppRoot(
     // round-trip to Settings/About and back — you return to where you were editing,
     // Lightroom-style, instead of a collapsed panel.
     val editorCategory = remember {
-        mutableStateOf(activeRestoration.document?.tool?.category)
+        mutableStateOf(activeRestoration.document?.tool?.category ?: if(activeRestoration.document==null)Category.SIMULATION else null)
     }
     LaunchedEffect(editorEntryGeneration, editorAuthorityReady) {
         if (editorAuthorityReady) {
-            editorCategory.value = activeRestoration.document?.tool?.category
+            editorCategory.value = activeRestoration.document?.tool?.category ?: if(activeRestoration.document==null)Category.SIMULATION else null
         }
     }
 

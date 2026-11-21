@@ -9,6 +9,7 @@
 #include "model/noritsu_operators.h"
 #include "model/noritsu_advanced.h"
 #include "model/noritsu_job_input.h"
+#include "model/nikon_scan.h"
 #include "kernels/gaussian.h"
 #include "kernels/parallel.h"
 #include <array>
@@ -40,7 +41,7 @@ inline RGB finish(RGB rgb,double strength=1,bool chromatic=true,double floor=0){
 }
 struct Params {std::string mode="paper";bool automatic=true;double exposure=0,look=1;RGB keys={0,0,0};double contrast=1,black=0,white=1;noritsu::Controls noritsu;bool jobEnabled=false,local=false,sharp=false,hue=false,jobNormalize=false;std::shared_ptr<const noritsu::advanced::Job> job;};
 inline Params read_params(const char* text){Params p;if(!text||!*text)return p;auto j=json::parse(text);if(!j->has("outputModel"))return p;auto& o=j->at("outputModel");if(!o.is_object())return p;
- if(o.has("mode")){auto s=o.at("mode").as_string();if(s!="paper"&&s!="negative"&&s!="digital"&&s!="auto-levels"&&s!="lab-scan"&&s!="noritsu-ls600")throw std::runtime_error("Unknown output model");p.mode=s;}
+ if(o.has("mode")){auto s=o.at("mode").as_string();if(s!="paper"&&s!="negative"&&s!="digital"&&s!="auto-levels"&&s!="lab-scan"&&s!="noritsu-ls600"&&s!="nikon-scan")throw std::runtime_error("Unknown output model");p.mode=s;}
  auto num=[&](const char* key,double fallback,double low,double high){if(!o.has(key))return fallback;double v=o.at(key).as_number();if(!std::isfinite(v))throw std::runtime_error("Nonfinite output control");return clamp(v,low,high);};
  p.exposure=num("exposure",0,-6,6);p.look=num("look",1,0,1);p.keys={num("cyan",0,-1,1),num("magenta",0,-1,1),num("yellow",0,-1,1)};if(o.has("autoSetup")&&o.at("autoSetup").type==json::Type::Bool)p.automatic=o.at("autoSetup").boolean;
  p.contrast=num("contrast",1,.5,2);p.black=num("blackPoint",0,-.05,.1);p.white=num("whitePoint",1,.5,1.5);
@@ -84,8 +85,13 @@ inline bool scan(const Profile& f,const Params& p,const float* density,int w,int
  std::vector<RGB> bands(n);double centers[]={630,545,465},widths[]={8.5,14,9.5};RGB sums={0,0,0};
  for(int i=0;i<n;i++)for(int c=0;c<3;c++){double value=std::exp(-.5*std::pow((f.wavelengths[i]-centers[c])/widths[c],2));if(!std::isfinite(f.base_density[i])||!std::isfinite(f.channel_density[i*3])||!std::isfinite(f.channel_density[i*3+1])||!std::isfinite(f.channel_density[i*3+2]))value=0;bands[i][c]=value;sums[c]+=value;}
  auto read=[&](RGB d){RGB energy={0,0,0};for(int i=0;i<n;i++){if(bands[i][0]+bands[i][1]+bands[i][2]==0)continue;double od=f.base_density[i];for(int k=0;k<3;k++)od+=d[k]*f.channel_density[i*3+k];double light=std::pow(10.,-od);for(int c=0;c<3;c++)energy[c]+=bands[i][c]*light;}for(int c=0;c<3;c++)energy[c]=std::log10(std::max(energy[c]/std::max(sums[c],1e-12),1e-12));return energy;};
+ const bool useNikon=p.mode=="nikon-scan"&&!f.monochrome;
  const bool useJob=useNoritsu&&p.jobEnabled;
- if(useJob){
+ if(useNikon){
+  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto v=read({density[i*3],density[i*3+1],density[i*3+2]});for(int c=0;c<3;c++)result[i*3+c]=float(std::pow(10.,v[c]));}});
+  const auto gain=nikon::gains(result,w,h,p.automatic);
+  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto v=nikon::apply({result[i*3],result[i*3+1],result[i*3+2]},gain);for(int c=0;c<3;c++)v[c]=std::pow(v[c],2.19921875)*std::pow(2.,p.exposure)*std::pow(10.,-p.keys[c]*.5);v=operator_tone(v,p);for(int c=0;c<3;c++)result[i*3+c]=float(v[c]);}});
+ }else if(useJob){
   if(!p.job)throw std::invalid_argument("Noritsu: missing job parameters");
   parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto value=read({density[i*3],density[i*3+1],density[i*3+2]});for(int c=0;c<3;c++)result[i*3+c]=noritsu::density_code(c,value[c]);}});
   if(p.jobNormalize) {
@@ -119,7 +125,9 @@ inline bool scan(const Profile& f,const Params& p,const float* density,int w,int
 
  if(blur>0)gaussian_blur(result,w,h,3,blur);if(usmSigma>0&&usmAmount>0&&!(useJob&&p.sharp)){std::vector<float> blurred(result,result+count*3);gaussian_blur(blurred.data(),w,h,3,usmSigma);for(int i=0;i<count*3;i++)result[i]+=usmAmount*(result[i]-blurred[i]);}
  // sRGB D65 -> XYZ D50, then the engine's own output-space matrix and transfer.
- const double toXYZ[]={.4360657428,.3851514688,.1430784544,.2224931918,.7168870538,.0606197905,.0139239045,.0970812857,.7140993584};
+ const double srgbToXYZ[]={.4360657428,.3851514688,.1430784544,.2224931918,.7168870538,.0606197905,.0139239045,.0970812857,.7140993584};
+ const double adobeToXYZ[]={0.60892798724451913,0.20905353854062689,0.14621373920552333,0.31010729610234972,0.63117128488427909,0.05871454523345384,0.018905541977057749,0.05148877417082514,0.75473305413748026};
+ const double* toXYZ=useNikon?adobeToXYZ:srgbToXYZ;
  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){RGB xyz={0,0,0},v={0,0,0};for(int c=0;c<3;c++)for(int k=0;k<3;k++)xyz[c]+=toXYZ[c*3+k]*result[i*3+k];for(int c=0;c<3;c++)for(int k=0;k<3;k++)v[c]+=kXYZ_to_RGB[cs][c*3+k]*xyz[k];for(int c=0;c<3;c++)result[i*3+c]=clamp(encoded&&cs!=SPK_CS_LINEAR_SRGB?output_cctf_encode(cs,v[c]):v[c]);}});
  return true;
 }

@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/rohanpandula/nikon-coolscan4-software-archaeology",
+  "commit": "fa09658c0db01c5de63d1c4481c9fe0b6c0d2589",
+  "files": {
+    "nikonlook.rs": "6ed0470dd33cbf32ef678d418b44afad800d7701dcc163682e030e89adc1cec3",
+    "LICENSE": "6d950f72c4b4e609134101bb3d226a633f6f8877834eea50faa3aa6b976413b4",
+    "model.json": "60d7f99b750ad6e012d354d695fc28714d0a6d629ef65874ae8639d64c649448",
+    "layer_a.json": "4ea99ff985cf3fff943a48bb61b9dd557f83441de71a60754f1df297b7236c0c",
+    "manifest.json": "18208e132512e21714b4d223561f8419f8d71ee9954b14e24ee36b3bdd08e2db",
+    "PROVENANCE.md": "b1b94e75ca619830e71e12b7024528dc7863b35c814716b3dde93ba63d3dd678"
+  }
+}

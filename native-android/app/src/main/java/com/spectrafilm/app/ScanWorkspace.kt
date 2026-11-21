@@ -11,7 +11,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 
-internal val SCAN_RECEIVER_MODES = listOf("lab-scan", "noritsu-ls600", "digital", "auto-levels")
+internal val SCAN_RECEIVER_MODES = listOf("lab-scan", "noritsu-ls600", "digital", "auto-levels", "nikon-scan")
 internal val NORITSU_GRADATION_KEYS = listOf("noritsuGamma", "noritsuLow", "noritsuMid", "noritsuHigh", "noritsuUo")
 internal val NORITSU_INTEGER_KEYS = setOf("noritsuLow", "noritsuMid", "noritsuHigh", "noritsuUo")
 internal val NORITSU_COLOUR_KEYS = listOf("noritsuSaturation", "noritsuRed", "noritsuGreen", "noritsuBlue")
@@ -121,6 +121,7 @@ internal fun ScanWorkspace(s: ParamsState) {
     val modes = listOf(
         "lab-scan" to "Lab Scan · характер минилаба",
         "noritsu-ls600" to "Noritsu LS-600 · реконструкция",
+        "nikon-scan" to "Nikon Scan · модель v2 (эксперимент)",
         "digital" to "Digital Reference · фиксированный",
         "auto-levels" to "Auto Levels · автоподбор кадра",
     )
@@ -159,14 +160,16 @@ internal fun ScanWorkspace(s: ParamsState) {
         Dropdown("Режим сканирования", mode, modes.map { it.first }, { key -> modes.first { it.first == key }.second }, { s.chooseScanReceiver(it) })
         ScanSlider(s, "exposure", "Яркость скана · EV")
         if (profileActive) LabNote("Используется цветовой тракт задания. Старый автоподбор адаптера сохранён, но не применяется. EV и CMY здесь работают после выхода из профильного RGB.")
-        else if (mode == "lab-scan" || (noritsu && !monochrome)) {
-            SwitchRow(if (noritsu) "Автоподбор адаптера" else "Автоподбор кадра", automatic, { s.setLab("outputModel.autoSetup", it) },
-                if (noritsu) "Медиана и запас светов. Выключите для серии; автоэкспозиция камеры независима."
+        else if (mode == "lab-scan" || mode == "nikon-scan" && !monochrome || (noritsu && !monochrome)) {
+            SwitchRow(if (mode=="nikon-scan") "Автоэкспозиция Nikon" else if (noritsu) "Автоподбор адаптера" else "Автоподбор кадра", automatic, { s.setLab("outputModel.autoSetup", it) },
+                if(mode=="nikon-scan")"Включено: оценка RGB-усилений по 48 признакам изображения из исходной модели Nikonlook-v2. Выключено: постоянные опорные усиления модели."
+                else if (noritsu) "Медиана и запас светов. Выключите для серии; автоэкспозиция камеры независима."
                 else if (automatic) "Подбор плотности и контраста для каждого кадра. Выключите для серии."
                 else "Фиксированный сканер для серии. Автоэкспозиция камеры настраивается независимо.")
-        } else LabNote(if (noritsu && monochrome) "Для ч/б сейчас работает Digital Reference: восстановлены только цветные таблицы NEGA135. Автоподбор Noritsu не применяется."
+        } else if(mode!="nikon-scan")LabNote(if (noritsu && monochrome) "Для ч/б сейчас работает Digital Reference: восстановлены только цветные таблицы NEGA135. Автоподбор Noritsu не применяется."
             else if (mode == "digital") "Фиксированный нейтральный приёмник. Автоподбора и характера минилаба здесь нет; ручные поправки ниже работают."
             else "Автоподбор включён в этом режиме всегда. Для фиксированной серии выберите Digital Reference или выключите автоподбор в Lab Scan.")
+        if(mode=="nikon-scan")LabNote(if(monochrome)"Для ч/б применяется нейтральный Digital Reference: модель Nikon обучена на цветном негативе." else "Открытая модель Nikonlook-v2: матрица, поканальные кривые и регрессионная оценка экспозиции. Вход виртуальной плёнки — адаптация Spektrafilm, не измеренный сенсор Coolscan. Не точная копия Nikon Scan и не управление физическим сканером. Выключение автоэкспозиции использует опорные усиления из исходной модели.")
         if (noritsu) {
             LabNote("Частичная реконструкция LS-600: таблицы Noritsu; приёмник и автоподбор — наша адаптация.")
             if (monochrome) OutlinedButton(onClick = { s.chooseScanReceiver("lab-scan") }) { Text("Использовать Lab Scan для ч/б") }

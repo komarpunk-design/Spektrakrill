@@ -83,7 +83,7 @@ internal fun labParameterBuckets(group:String,values:List<JSONObject>):List<Pair
     LabGroup(s,"transport")
 }
 @Composable internal fun LabOutputSection(s: ParamsState) {
-    LabChoice(s,"outputModel.mode","Получение изображения",listOf("paper" to "Фотобумага / кинопозитив","digital" to "Digital Reference · нейтральный позитив","auto-levels" to "Auto Levels · автоматический позитив","lab-scan" to "Lab Scan · минилаб","noritsu-ls600" to "Noritsu LS-600 · реконструкция","negative" to "Негатив на просвет"),"paper")
+    LabChoice(s,"outputModel.mode","Получение изображения",listOf("paper" to "Фотобумага / кинопозитив","digital" to "Digital Reference · нейтральный позитив","auto-levels" to "Auto Levels · автоматический позитив","lab-scan" to "Lab Scan · минилаб","noritsu-ls600" to "Noritsu LS-600 · реконструкция","nikon-scan" to "Nikon Scan · модель v2 (эксперимент)","negative" to "Негатив на просвет"),"paper")
     val mode=s.labString("outputModel.mode","paper")
     if(mode=="paper") {
         SwitchRow("Прямой спектральный скан плёнки",s.scanFilm,{s.scanFilm=it},"Исходный режим приложения: получить позитив плёнки без виртуальной фотобумаги. Digital Reference / Lab Scan выбираются отдельно в списке выше.")

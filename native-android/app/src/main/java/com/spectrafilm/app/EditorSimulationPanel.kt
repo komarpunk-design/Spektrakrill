@@ -77,7 +77,7 @@ internal fun EditorSimulationPanel(
         onFilmProfileChange = { id ->
             val oldFilm = state.filmProfile
             val changed = id != oldFilm
-            state.filmProfile = id
+            if(changed)state.applyFilmFirstDefaults(ctx,id)
             if (changed) {
                 val oldPrint = state.printProfile
                 val newPrint = SilverPrint.printAfterFilmChange(
@@ -89,23 +89,7 @@ internal fun EditorSimulationPanel(
                     remembered = state.lastColourPrint,
                 )
                 if (newPrint != oldPrint) state.printProfile = newPrint
-                val name = StockCatalog.displayName(ctx, id)
-                // A reversal (slide) film is most naturally viewed as a
-                // positive — nudge Slide mode if the print is still showing;
-                // otherwise offer to drop the previous stock's tweaks.
-                if (SilverPrint.isSilverFilm(id) && newPrint != oldPrint) {
-                    offerSnackbarSuggestion(scope, snackbarHost,
-                        ctx.getString(R.string.editor_snack_silver_paper, StockCatalog.displayName(ctx, newPrint)),
-                        ctx.getString(R.string.editor_snack_use_defaults)) { state.resetStockCharacter() }
-                } else if (StockCatalog.isReversalFilm(ctx, id) && !state.scanFilm) {
-                    offerSnackbarSuggestion(scope, snackbarHost,
-                        ctx.getString(R.string.editor_snack_slide_film, name),
-                        ctx.getString(R.string.editor_snack_slide_mode)) { state.scanFilm = true }
-                } else {
-                    offerSnackbarSuggestion(scope, snackbarHost,
-                        ctx.getString(R.string.editor_snack_switched_to, name),
-                        ctx.getString(R.string.editor_snack_use_defaults)) { state.resetStockCharacter() }
-                }
+
             }
         },
         onPrintProfileChange = { id ->
