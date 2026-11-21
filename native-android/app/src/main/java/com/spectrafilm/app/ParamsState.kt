@@ -71,6 +71,10 @@ val AUTO_EXPOSURE_METHODS = listOf(
 @Stable
 class ParamsState {
     var labJson by mutableStateOf("")
+    // Project state, separate from the engine's Lab controls and portable film recipe.
+    var negativeWorkspaceJson by mutableStateOf("")
+    internal var negativeSourceKey by mutableStateOf<String?>(null)
+    internal var negativeFingerprintMemo: Pair<EditorParams, String>? = null
 
     // Each section below is one immutable value (#452). The fields are delegates into it,
     // so callers read and write them as before; [snapshot] returns all of them at once.
@@ -366,6 +370,7 @@ class ParamsState {
     /** Every editing group as one immutable value (the editor's UiState params). */
     fun snapshot(): EditorParams = EditorParams(
         labJson = labJson,
+        negativeWorkspaceJson = negativeWorkspaceJson,
         profiles = profilesGroup.value,
         input = inputGroup.value,
         rawImport = rawImportGroup.value,
@@ -560,7 +565,7 @@ class ParamsState {
         filmOverride: String? = null,
         printOverride: String? = null,
     ): SpektraParams = SpektraParams(
-        experimentalJson = labEngineJson(),
+        experimentalJson = if(filmOverride != null && filmOverride != filmProfile) labJson else labEngineJson(),
         filmProfile = filmOverride ?: filmProfile,
         printProfile = printOverride ?: printProfile,
         camera = CameraParams(
@@ -640,7 +645,7 @@ class ParamsState {
         filmRender = FilmRenderingParams(
             densityCurveGamma = filmGammaFactor,
             grain = GrainParams(
-                active = grainActive && !skipGrainHalation,
+                active = grainActive && (!skipGrainHalation || negativeIsFrozen()),
                 // The three grain sub-layers are the colour films' model; a silver film's
                 // datasheet supports no split, so its grain is always one layer.
                 sublayersActive = grainSublayersActive && !SilverPrint.isSilverFilm(filmOverride ?: filmProfile),
@@ -655,7 +660,7 @@ class ParamsState {
                 nSubLayers = grainNSubLayers,
             ),
             halation = HalationParams(
-                active = halationActive && !skipGrainHalation,
+                active = halationActive && (!skipGrainHalation || negativeIsFrozen()),
                 scatterAmount = halScatterAmount,
                 scatterSpatialScale = halScatterSpatialScale,
                 halationAmount = halHalationAmount,

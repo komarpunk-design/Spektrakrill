@@ -354,7 +354,11 @@ internal fun EditorScreen(
     }
     // The Crop item in the bottom bar / rail: open the tab, or leave it when it is open.
     fun toggleCrop() {
-        if (toolVm.current.cropOpen) closeCrop() else toolVm.onAction(EditorToolAction.OpenCrop)
+        if (toolVm.current.cropOpen) closeCrop()
+        else if(state.negativeIsFrozen()) scope.launch {
+            screen.snackbarHost.showSnackbar("Проявка зафиксирована. Нажмите «Вернуться к проявке» в разделе Скан.")
+        }
+        else toolVm.onAction(EditorToolAction.OpenCrop)
     }
 
     // Lightroom's single tap on the photo: everything but the picture gets out of the way
@@ -985,6 +989,9 @@ internal fun EditorScreen(
 
     // Every preview render effect: draft, skin, settle, GPU feed, the render trigger and the
     // idle full-resolution pre-render (EditorPreviewEffects.kt). Same order as before.
+    LaunchedEffect(sourceUri, sourceKind, rotation) {
+        state.negativeSourceKey = "${sourceKind.name}|${sourceUri ?: "demo"}|${rotation.degrees}"
+    }
     val snapshot by remember { derivedStateOf { state.toParams() } }
     EditorPreviewEffects(
         ctx = ctx,
@@ -1337,7 +1344,7 @@ internal fun EditorScreen(
                 onPhotoInfo = sourceUri?.let { { openPhotoInfo() } },
                 // The canvas tools that used to float on the photo (EditorPreviewRegion.kt).
                 hasPhoto = preview != null || gpuProxy != null,
-                onCrop = { toolVm.onAction(EditorToolAction.OpenCrop) },
+                onCrop = ::toggleCrop,
                 // The Crop and Frame canvases have no split view, original peek, histogram or
                 // clipping overlay, so those toggles rest while either shows.
                 compare = viewerUi.compare && !ownCanvas,

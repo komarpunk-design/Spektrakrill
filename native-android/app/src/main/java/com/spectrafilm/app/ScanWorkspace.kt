@@ -111,6 +111,13 @@ internal fun ScanWorkspace(s: ParamsState) {
         "auto-levels" to "Auto Levels · автоподбор кадра",
     )
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        if(workflow == "normal" && !reversal) {
+            NegativeWorkspaceControls(s)
+            if(mode == "negative" && s.negativeWorkspaceJson.isNotBlank()) {
+                LabNote("Негатив на просвет. При сохранении будет выведен этот негатив; для позитива нажмите «Готовый скан». Режим настоящего негатива включать не нужно.")
+                return@Column
+            }
+        }
         if (mode !in SCAN_RECEIVER_MODES || reversal || workflow in listOf("negative-print", "negative-clear"))
             Text("Цифровой позитив без фотобумаги", style = MaterialTheme.typography.titleMedium)
         if (workflow in listOf("negative-print", "negative-clear")) {

@@ -65,6 +65,8 @@ object PresetAmount {
     }
 
     private fun blendValue(key: String, b: Any, f: Any, t: Float): Any = when {
+        // Project identity, lock and saved scan variants are one indivisible document.
+        key == "negativeWorkspace" -> if(t < .5f) b else f
         b is JSONObject && f is JSONObject -> blendObject(b, f, t)
         b is JSONArray && f is JSONArray -> blendArray(key, b, f, t)
         b is Boolean && f is Boolean -> if (t < 0.5f) b else f

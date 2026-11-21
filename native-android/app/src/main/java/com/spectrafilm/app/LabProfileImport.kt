@@ -20,7 +20,11 @@ internal object LabProfiles {
         private set
     private var cached: Map<String,StockEntry>?=null
     private fun root(ctx:Context)=File(ctx.filesDir,"lab-profiles").apply{mkdirs()}
-    fun initialize(ctx:Context){ProfileOverrides.directory=root(ctx).absolutePath}
+    fun initialize(ctx:Context){
+        val directory = root(ctx)
+        File(directory, "negatives").mkdirs()
+        ProfileOverrides.directory=directory.absolutePath
+    }
     fun entries(ctx:Context):Map<String,StockEntry> {
         cached?.let{return it}
         val f=File(root(ctx),".catalog.json");val j=if(f.isFile)runCatching{JSONObject(f.readText())}.getOrDefault(JSONObject())else JSONObject()

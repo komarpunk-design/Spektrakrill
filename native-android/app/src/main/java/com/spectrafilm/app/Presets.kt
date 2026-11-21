@@ -362,6 +362,7 @@ object Presets {
 
     private fun toJson(s: ParamsState): JSONObject = JSONObject().apply {
         if(s.labJson.isNotBlank()) put("spektrafilmLab", JSONObject(s.labJson))
+        if(s.negativeWorkspaceJson.isNotBlank()) put("negativeWorkspace", JSONObject(s.negativeWorkspaceJson))
         put("schema", PRESET_SCHEMA_ID)
         put("version", PRESET_VERSION)
         put("filmProfile", s.filmProfile)
@@ -604,6 +605,9 @@ object Presets {
     }
 
     private fun applyJson(o: JSONObject, s: ParamsState) {
+        if(o.has("negativeWorkspace")) {
+            s.negativeWorkspaceJson = validateNegativeWorkspace(o.getJSONObject("negativeWorkspace"), o.optJSONObject("spektrafilmLab") ?: JSONObject()).toString()
+        } else if(o.has("schema") && o.has("filmProfile")) s.negativeWorkspaceJson = ""
         s.filmProfile = o.optString("filmProfile", s.filmProfile)
         s.printProfile = o.optString("printProfile", s.printProfile)
         if(o.has("spektrafilmLab")) s.labJson = validateLabJson(o.getJSONObject("spektrafilmLab").toString())

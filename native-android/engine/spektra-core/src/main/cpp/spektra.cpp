@@ -79,6 +79,7 @@
 #include "model/output_models.h"
 #include "model/negs_projection.h"
 #include "model/negative.h"
+#include "model/virtual_negative.h"
 #include "model/experimental_projection.h"
 #include "kernels/spectral_upsampling.h"
 #include "runtime/print_digest.h"
@@ -834,8 +835,9 @@ static uint64_t compute_film_cache_key(const std::vector<double>& rgb, int width
                                        int height, int input_color_space,
                                        const spk_params* p,
                                        double resize_pixel_size_um,
-                                       double bw_exposure_correction) {
-    uint64_t h = 0xcbf29ce484222325ULL;  // FNV offset basis
+                                       double bw_exposure_correction,
+                                       uint64_t normalized_input_hash = 0) {
+    uint64_t h = normalized_input_hash ? normalized_input_hash : 0xcbf29ce484222325ULL;
     // 1) The expose input buffer (content + AE + crop/rescale already baked in).
     h = fnv1a64(h, rgb.data(), rgb.size() * sizeof(double));
     // 2) Geometry / domain scalars.
@@ -2571,7 +2573,35 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
     }
     if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
 
+    const auto negative_directory = std::atomic_load(&g_lab_profile_directory);
+    // Bind storage to actual preprocessed pixels, not just URI or dimensions. Two equally
+    // sized magnifier crops (or a provider replacing content at the same URI) must never
+    // share densities. Normalize direct/materialized input to the same double values.
+    uint64_t negative_input_stamp = 1469598103934665603ULL;
+    if(p->experimental_json && std::strstr(p->experimental_json, "\"virtualNegative\"")) {
+        negative_input_stamp = fnv1a64(negative_input_stamp, &in->color_space, sizeof(in->color_space));
+        for(size_t i = 0; i < out_elems; ++i) {
+            const double value = pin.direct ? static_cast<double>(in->data[i]) * pin.gain : pin.rgb[i];
+            negative_input_stamp = fnv1a64(negative_input_stamp, &value, sizeof(value));
+        }
+        // Reuse the filming dependency inventory, replacing only Lab JSON with the frozen
+        // identity (its digest covers Lab film settings but excludes scanner operators).
+        // Candidate-film renders and temporary parameter copies must not borrow its density.
+        auto root = spk::json::parse(p->experimental_json);
+        const auto token = root->at("virtualNegative").as_string();
+        spk_params density_identity = *p;
+        density_identity.experimental_json = token.c_str();
+        negative_input_stamp = compute_film_cache_key({}, width, height, in->color_space,
+            &density_identity, resize_pixel_size_um, fparams.bw_exposure_correction, negative_input_stamp);
+    }
+    spk::VirtualNegative virtual_negative(p->experimental_json,
+        negative_directory ? *negative_directory : std::string(), width, height,
+        p->film_format_mm, fparams.grain.active, fparams.halation.active,
+        !converter && !film.is_positive() && band == nullptr && !scan_tap_bypass, negative_input_stamp);
     if (!scan_film_cache_hit) {
+        const bool stored_negative = virtual_negative.load(density_cmy);
+        if(stored_negative) { std::vector<double>().swap(pin.rgb); }
+        if(!stored_negative) {
         if(converter){
             density_cmy.resize(out_elems);
             converter->convert(pin.direct?in->data:nullptr,pin.direct?nullptr:pin.rgb.data(),pin.gain,npix,density_cmy.data());
@@ -2600,6 +2630,8 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
         density_cmy.resize(out_elems);
         spk::develop(log_raw.data(), width, height, film, fparams, density_cmy.data(),
                      &log_raw);  // last read inside develop (#300)
+        }
+        if (!cancellation_requested(cancel, cancel_user_data)) virtual_negative.store(density_cmy);
         }
         if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
         if (use_scan_film_cache) {

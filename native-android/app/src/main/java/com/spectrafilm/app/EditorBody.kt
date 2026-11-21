@@ -18,6 +18,9 @@ package com.spectrafilm.app
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
@@ -124,7 +127,12 @@ internal fun ColumnScope.EditorBody(
                 LocalPhotoNavigate provides chooseTool) {
                 key(page.id) {
                     page.bypassReason(state)?.let { LabNote(it) }
-                    if (page == PhotoTool.RAW_CLEANUP && !toolShown(Category.RAW_CLEANUP)) {
+                    if(page.lockedByNegative(state)) {
+                        LabNote("Проявка зафиксирована. Чтобы изменить исходник, плёнку или съёмочные параметры, вернитесь к проявке. Варианты сканирования сохранятся.")
+                        androidx.compose.material3.OutlinedButton(onClick = { state.unlockNegative(); onParamsChanged() }) {
+                            androidx.compose.material3.Text("Вернуться к проявке")
+                        }
+                    } else if (page == PhotoTool.RAW_CLEANUP && !toolShown(Category.RAW_CLEANUP)) {
                         LabNote("Очистка сенсора доступна для RAW/DNG. Откройте RAW через Камера → Исходник.")
                     } else for (tool in page.categories) toolContent(tool)
                 }
@@ -159,7 +167,13 @@ internal fun ColumnScope.EditorBody(
         val panelInset by animateDpAsState(panelTarget, label = "previewPanelInset")
         // In Edit each stacked tool carries its own reset (ToolHeader); elsewhere the
         // panel offers one for the open tool.
-        val resetActiveCategory: (() -> Unit)? = if (page in workflowDirty) ({ page.reset(state); onParamsChanged() }) else null
+        val resetActiveCategory: (() -> Unit)? = if (page in workflowDirty && !page.lockedByNegative(state)) ({ page.reset(state); onParamsChanged() }) else null
+        val imageWorkspace: @Composable () -> Unit = {
+            Column(Modifier.fillMaxSize()) {
+                if(!chromeHidden && !cropOpen) NegativeCanvasToolbar(state) { chooseTool(PhotoTool.SCAN) }
+                Box(Modifier.weight(1f).fillMaxWidth()) { previewRegion(panelInset, editOpen) }
+            }
+        }
         val editSections = emptyList<Stage>()
         val openSection: (Stage) -> Unit = {}
         if (wide) {
@@ -174,7 +188,7 @@ internal fun ColumnScope.EditorBody(
                 exportInFlight = exportInFlight,
                 onExport = onExport,
                 onShare = onShare,
-                previewRegion = { previewRegion(panelInset, editOpen) },
+                previewRegion = imageWorkspace,
                 bookAligned = bookAligned,
                 bookHingeGap = bookHingeGap,
                 sidePaneWidth = sidePaneWidth,
@@ -202,7 +216,7 @@ internal fun ColumnScope.EditorBody(
                 posture = posture,
                 interacting = interacting,
                 sliderReadout = sliderReadout,
-                previewRegion = { previewRegion(panelInset, editOpen) },
+                previewRegion = imageWorkspace,
                 panelBackProgress = panelBackProgress,
                 panelTall = if(page==PhotoTool.PRESETS)presetPanelTall else panelTall,
                 onPanelTallChange = { if(page==PhotoTool.PRESETS)presetPanelTall=it else panelTall=it },

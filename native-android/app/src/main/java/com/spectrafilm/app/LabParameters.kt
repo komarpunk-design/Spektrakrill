@@ -88,7 +88,10 @@ internal fun ParamsState.applyLabStock(id: String, grain: Boolean = true, dir: B
 }
 
 /** Default is the author's untouched engine. Only explicit Lab overrides cross JNI. */
-internal fun ParamsState.labEngineJson(): String = labJson.takeUnless { it.isBlank() || it == "{}" } ?: ""
+internal fun ParamsState.labEngineJson(): String {
+    val key = frozenNegativeCacheKey() ?: return labJson.takeUnless { it.isBlank() || it == "{}" } ?: ""
+    return labObject().put("virtualNegative", key).toString()
+}
 internal fun ParamsState.labScanFilm(): Boolean = when (labString("workflow","normal")) {
     "negative-print" -> false
     "negative-scan", "negative-clear" -> true
@@ -100,6 +103,7 @@ internal fun validateLabJson(text: String): String {
     if (text.isBlank()) return ""
     require(text.length <= NORITSU_JOB_LIMIT) { "Lab settings exceed 512 KB" }
     val j=JSONObject(text)
+    require(!j.has("virtualNegative")) { "Идентификатор сохранённого негатива назначается приложением" }
     if(j.has("noritsuJob"))validateNoritsuJob(j.getJSONObject("noritsuJob"))
     else require(text.length<=32768) { "Lab settings exceed 32 KB" }
     fun check(o: JSONObject, depth: Int) {

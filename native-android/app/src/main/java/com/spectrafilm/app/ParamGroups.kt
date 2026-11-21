@@ -318,6 +318,7 @@ data class DiffusionUiParams(
 @Immutable
 data class EditorParams(
     val labJson: String = "",
+    val negativeWorkspaceJson: String = "",
     val profiles: ProfileUiParams,
     val input: InputUiParams,
     val rawImport: RawImportUiParams,
