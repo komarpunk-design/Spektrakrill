@@ -474,7 +474,15 @@ struct FilmingStageDiagnostics {
 bool filming_expose(const double* rgb_f64, const float* rgb_f32, double gain,
                     uint32_t npix, int width, int height, const double* tc_lut,
                     uint32_t tc_edge, double exposure_multiplier, double* out_raw,
-                    float* out_log_raw, FilmingStageDiagnostics* diagnostics);
+                    float* out_log_raw, FilmingStageDiagnostics* diagnostics,
+                    const double* projection = nullptr);
+
+// Layered Transport's original 2D stencil, single-channel and CLAMP boundary.
+// Unsupported shapes/domains or a failed f64 sample check return false; caller
+// must then overwrite the whole destination with its original CPU convolution.
+bool transport_convolve(const float* source, int width, int height,
+                        const double* kernel, int radius, float* result);
+unsigned long long transport_convolve_passes();
 
 // DEVELOP: density_curves.py::interpolate_exposure_to_density. `axis` is the
 // per-channel axis that function builds (log_exposure[k] / gamma[c], points*3)

@@ -63,7 +63,7 @@ enum class OutputGamutCompress {
     kCam16ucs   = 6,
 };
 
-// Per-render immutable tables, reusable across bounded tiles without rebuilding C_max.
+// Immutable tables, reused across renders and bounded tiles without rebuilding C_max.
 class PreparedOutputGamut {
     struct Impl;
     std::shared_ptr<const Impl> impl_;
@@ -71,6 +71,7 @@ public:
     PreparedOutputGamut(OutputGamutCompress mode,int space,double threshold,double limit,double power);
     void apply(double* rgb,int npix) const;
 };
+unsigned long long prepared_output_gamut_table_builds();
 
 // Input gamut compression algorithm selector (mirrors
 // gamut_compression.py::InputGamutCompressSpec.algorithm, plus the kOff sentinel that

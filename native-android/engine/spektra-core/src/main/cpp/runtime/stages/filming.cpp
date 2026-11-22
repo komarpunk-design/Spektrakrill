@@ -40,6 +40,7 @@ namespace spk {
 
 namespace {
 std::atomic<long long> g_gpu_halation_frames{0};
+std::atomic<unsigned long long> g_gpu_projected_expose_frames{0};
 
 // Runs model/diffusion.cpp::apply_halation_um's model on the GPU. Returns true
 // only when the whole pass succeeded and `raw` now holds its result; false
@@ -180,6 +181,9 @@ bool gpu_halation_pass(double* raw, int width, int height,
 unsigned long long gpu_halation_frames_rendered() {
     return static_cast<unsigned long long>(
         g_gpu_halation_frames.load(std::memory_order_relaxed));
+}
+unsigned long long gpu_projected_expose_frames_rendered() {
+    return g_gpu_projected_expose_frames.load(std::memory_order_relaxed);
 }
 
 namespace {
@@ -678,24 +682,55 @@ void expose_impl(const Src& src, int width, int height,
     const bool measure_boost_max = params.halation.boost_max_out != nullptr;
     const bool banded_diffusion = params.diffusion_filter.active &&
                                   params.diffusion_filter.band_far != nullptr;
+    const char* projected_override = std::getenv("SPK_PROJECTED_GPU");
     const bool gpu_expose_ok =
-        params.allow_gpu_filming && !measure_boost_max && !params.prep.active() && !params.experimental_projection_active && !banded_diffusion &&
+        params.allow_gpu_filming && !measure_boost_max && !params.prep.active() && !banded_diffusion &&
+        !(params.experimental_projection_active && projected_override && projected_override[0] == '0') &&
         !params.scene_latitude.engaged() &&  // the GPU expose has no latitude stage
         !params.date_stamp.engaged() &&      // ...and no date-back imprint
         tc_lut.shape.size() == 3 &&
         tc_lut.shape[0] >= 2 && tc_lut.shape[0] == tc_lut.shape[1] &&
         tc_lut.shape[2] == 3;
 
+    // The custom projection changes both LUT coordinates and brightness. Check
+    // actual frame samples against the unchanged f64 operator on THIS driver.
+    // A failed check discards the accelerated pass; the CPU overwrites it all.
+    auto validate_projection = [&](const double* raw, const float* log_raw,
+                                   gpu::FilmingStageDiagnostics& gd) {
+        if (!params.experimental_projection_active) return true;
+        const int samples = std::min(npix, 65);
+        for (int sample = 0; sample < samples; ++sample) {
+            const int pixel = samples > 1 ? int(int64_t(sample) * (npix - 1) / (samples - 1)) : 0;
+            double rgb[3], brightness, reference[3]; Vec2 tc;
+            src.load(pixel, rgb);
+            prophoto_rgb_to_tc_b(rgb, &tc, &brightness, params.experimental_projection);
+            cubic_interp_lut_at_2d(tc_lut, tc.x * scale, tc.y * scale, reference);
+            for (int c = 0; c < 3; ++c) {
+                double expected = reference[c] * brightness * ((raw && params.raw_auto_exposure) ? 1. : exp_mult);
+                if (log_raw) expected = std::log10(std::fmax(expected, 0.0) + 1e-10);
+                const double actual = log_raw ? log_raw[pixel * 3 + c] : raw[pixel * 3 + c];
+                const double tolerance = log_raw ? 5e-5 : 5e-5 * std::max(1e-4, std::abs(expected));
+                if (!std::isfinite(actual) || !std::isfinite(expected) || std::abs(actual - expected) > tolerance) {
+                    gd.engaged = false; gd.reason = "projection-frame-check"; return false;
+                }
+            }
+        }
+        ++g_gpu_projected_expose_frames;
+        return true;
+    };
+
     if (pointwise_fused) {
         ScopedStage _t(STG_FILMING_EXPOSE);
         if (gpu_expose_ok) {
             gpu::FilmingStageDiagnostics gd{};
-            const bool ok = gpu::filming_expose(
+            bool ok = gpu::filming_expose(
                 gpu_rgb_f64, gpu_rgb_f32, gpu_gain,
                 static_cast<uint32_t>(npix), width, height, tc_lut.data.data(),
                 static_cast<uint32_t>(tc_lut.shape[0]), exp_mult,
-                /*out_raw=*/nullptr, log_raw_out, &gd);
-            note_gpu_filming("expose_fused", gd);
+                /*out_raw=*/nullptr, log_raw_out, &gd,
+                params.experimental_projection_active ? params.experimental_projection : nullptr);
+            if (ok) ok = validate_projection(nullptr, log_raw_out, gd);
+            note_gpu_filming(params.experimental_projection_active ? "expose_projected_fused" : "expose_fused", gd);
             if (ok) return;
         }
         parallel_for(0, npix, [&](int lo, int hi) {
@@ -731,9 +766,11 @@ void expose_impl(const Src& src, int width, int height,
         done = gpu::filming_expose(
             gpu_rgb_f64, gpu_rgb_f32, gpu_gain, static_cast<uint32_t>(npix),
             width, height, tc_lut.data.data(),
-            static_cast<uint32_t>(tc_lut.shape[0]), exp_mult,
-            raw, /*out_log_raw=*/nullptr, &gd);
-        note_gpu_filming("expose", gd);
+            static_cast<uint32_t>(tc_lut.shape[0]), params.raw_auto_exposure ? 1. : exp_mult,
+            raw, /*out_log_raw=*/nullptr, &gd,
+            params.experimental_projection_active ? params.experimental_projection : nullptr);
+        if (done) done = validate_projection(raw, nullptr, gd);
+        note_gpu_filming(params.experimental_projection_active ? "expose_projected" : "expose", gd);
     }
     if (!done && (!params.prep.active() || params.raw_auto_exposure))
     parallel_for(0, npix, [&](int lo, int hi) {
@@ -860,7 +897,7 @@ void expose_impl(const Src& src, int width, int height,
     // known), so the spatial-OFF goldens still skip it.
     if (params.halation.active && params.layered_transport.model=="layered") {
         ScopedStage _t(STG_HALATION);
-        transport::apply(raw,width,height,params.transport_stock,params.layered_transport,params.halation.halation_strength,params.pixel_size_um/1000.,params.halation.halation_amount,params.halation.halation_spatial_scale);
+        transport::apply(raw,width,height,params.transport_stock,params.layered_transport,params.halation.halation_strength,params.pixel_size_um/1000.,params.halation.halation_amount,params.halation.halation_spatial_scale,params.allow_gpu_halation);
     } else if (params.halation.active) {
         ScopedStage _t(STG_HALATION);
         // Fast GPU export (#206): the same scatter + halation model on the
@@ -963,7 +1000,7 @@ void expose_f32_gain(const float* rgb, double gain, int width, int height,
 
 void develop(const float* log_raw, int width, int height, const Profile& film,
              const FilmingParams& params, float* density_cmy_out,
-             FloatBuffer* release_log_raw) {
+             FloatBuffer* release_log_raw, bool defer_grain) {
     int n = film.n_density_pts;
     const int npix = width * height;
 
@@ -1013,6 +1050,17 @@ void develop(const float* log_raw, int width, int height, const Profile& film,
         log_raw = nullptr;
         FloatBuffer().swap(*release_log_raw);
     }
+
+    if (!defer_grain) apply_film_grain(width, height, film, params, density_cmy_out);
+}
+
+void apply_film_grain(int width, int height, const Profile& film,
+                      const FilmingParams& params, float* density_cmy_out) {
+    if (!params.grain.active) return;
+    const int n = film.n_density_pts;
+    const int npix = width * height;
+    std::vector<float> ndc(static_cast<size_t>(n) * 3);
+    normalize_density_curves(film.density_curves.data(), n, ndc.data());
 
     // Stochastic grain (AgX particle model). Identity unless grain.active (set by
     // digest_grain_params when grain_active && stochastic effects are on). The

@@ -1,11 +1,13 @@
 /* Apache-2.0, port of Fotufilm LayeredTransport.swift / HalationModel.swift /
  * TransportKernelCompiler.swift @b9049f3. MUAStudio Inc. Modifications: C++ CPU
- * implementation and three-record Spektrafilm adapter. See docs/LAYERED_TRANSPORT.md. */
+ * implementation, checked Vulkan stencils and three-record Spektrafilm adapter.
+ * See docs/LAYERED_TRANSPORT.md. */
 #pragma once
 #include "profiles/json_min.h"
 #include "model/layered_transport_data.h"
 #include "kernels/gaussian.h"
 #include "kernels/parallel.h"
+#include "gpu/vulkan_compute.h"
 #include <array>
 #include <map>
 #include <tuple>
@@ -56,9 +58,11 @@ inline std::shared_ptr<const Prepared> prepare(const std::string& film,const Par
  for(int c=0;c<3;c++){auto original=construction(film,c,strengths),model=adjusted(original,p);auto solved=solve(model);double factor=1;if(p.anti!=1||p.thickness!=1||p.plate!=0){auto reference=solve(original);Params lossless;lossless.anti=0;auto bare=solve(adjusted(original,lossless));factor=adjusted_return(original.ratio,reference.captured,solved.captured,bare.captured,(1-original.capture)/original.capture);}out->ratio[c]=original.ratio*factor;out->core[c]=original.core;out->kernels[c]=stencils(coarsen(solved.nodes),pitch);}
  {std::lock_guard<std::mutex> lock(mutex);if(cache.size()>=12)cache.erase(cache.begin());cache[key]=out;}return out;
 }
-inline std::vector<float> spread(const std::vector<float>& source,int w,int h,const std::vector<Stencil>& kernels){std::vector<float> out(w*h,0),owned;const std::vector<float>* level=&source;int lw=w,lh=h,stride=1;for(auto& s:kernels){while(stride<s.stride){int nw=(lw+1)/2,nh=(lh+1)/2;std::vector<float> coarse(nw*nh);for(int y=0;y<nh;y++)for(int x=0;x<nw;x++){double sum=0;for(int dy=0;dy<2;dy++)for(int dx=0;dx<2;dx++)sum+=(*level)[std::min(2*y+dy,lh-1)*lw+std::min(2*x+dx,lw-1)];coarse[y*nw+x]=sum*.25;}owned.swap(coarse);level=&owned;lw=nw;lh=nh;stride*=2;}
- std::vector<float> convolved(lw*lh);int side=2*s.radius+1;parallel_for_weighted(0,lh,1LL*lw*side*side,[&](int begin,int end){for(int y=begin;y<end;y++)for(int x=0;x<lw;x++){double sum=0;for(int dy=-s.radius;dy<=s.radius;dy++)for(int dx=-s.radius;dx<=s.radius;dx++)sum+=s.values[(dy+s.radius)*side+dx+s.radius]*(*level)[std::clamp(y+dy,0,lh-1)*lw+std::clamp(x+dx,0,lw-1)];convolved[y*lw+x]=sum;}});
+inline std::vector<float> spread(const std::vector<float>& source,int w,int h,const std::vector<Stencil>& kernels,bool allow_gpu=false){std::vector<float> out(w*h,0),owned;const std::vector<float>* level=&source;int lw=w,lh=h,stride=1;for(auto& s:kernels){while(stride<s.stride){int nw=(lw+1)/2,nh=(lh+1)/2;std::vector<float> coarse(nw*nh);for(int y=0;y<nh;y++)for(int x=0;x<nw;x++){double sum=0;for(int dy=0;dy<2;dy++)for(int dx=0;dx<2;dx++)sum+=(*level)[std::min(2*y+dy,lh-1)*lw+std::min(2*x+dx,lw-1)];coarse[y*nw+x]=sum*.25;}owned.swap(coarse);level=&owned;lw=nw;lh=nh;stride*=2;}
+ std::vector<float> convolved(lw*lh);int side=2*s.radius+1;
+ if(!(allow_gpu&&gpu::transport_convolve(level->data(),lw,lh,s.values.data(),s.radius,convolved.data())))
+ parallel_for_weighted(0,lh,1LL*lw*side*side,[&](int begin,int end){for(int y=begin;y<end;y++)for(int x=0;x<lw;x++){double sum=0;for(int dy=-s.radius;dy<=s.radius;dy++)for(int dx=-s.radius;dx<=s.radius;dx++)sum+=s.values[(dy+s.radius)*side+dx+s.radius]*(*level)[std::clamp(y+dy,0,lh-1)*lw+std::clamp(x+dx,0,lw-1)];convolved[y*lw+x]=sum;}});
  parallel_for_weighted(0,h,w,[&](int begin,int end){for(int y=begin;y<end;y++)for(int x=0;x<w;x++){double fx=std::clamp((x+.5)/stride-.5,0.,double(lw-1)),fy=std::clamp((y+.5)/stride-.5,0.,double(lh-1));int x0=fx,y0=fy,x1=std::min(x0+1,lw-1),y1=std::min(y0+1,lh-1);fx-=x0;fy-=y0;double a=convolved[y0*lw+x0]*(1-fx)+convolved[y0*lw+x1]*fx,b=convolved[y1*lw+x0]*(1-fx)+convolved[y1*lw+x1]*fx;out[y*w+x]+=s.weight*(a*(1-fy)+b*fy);}});
  }return out;}
-inline void apply(double* raw,int w,int h,const std::string& film,const Params& p,const double* strengths,double pitch,double amount,double size){auto prepared=prepare(film,p,strengths,pitch/std::max(.1,size));for(int c=0;c<3;c++){std::vector<float> source(w*h);for(int i=0;i<w*h;i++)source[i]=raw[i*3+c];auto core=source;if(prepared->core[c]>0)gaussian_blur_plane(core.data(),w,h,prepared->core[c]/pitch);if(amount>0&&prepared->ratio[c]>0){auto returned=spread(source,w,h,prepared->kernels[c]);if(p.haze>0)gaussian_blur_plane(returned.data(),w,h,p.haze/(pitch*1000));for(int i=0;i<w*h;i++)core[i]+=amount*prepared->ratio[c]*returned[i];}for(int i=0;i<w*h;i++)raw[i*3+c]=core[i];}}
+inline void apply(double* raw,int w,int h,const std::string& film,const Params& p,const double* strengths,double pitch,double amount,double size,bool allow_gpu=false){auto prepared=prepare(film,p,strengths,pitch/std::max(.1,size));for(int c=0;c<3;c++){std::vector<float> source(w*h);for(int i=0;i<w*h;i++)source[i]=raw[i*3+c];auto core=source;if(prepared->core[c]>0)gaussian_blur_plane(core.data(),w,h,prepared->core[c]/pitch);if(amount>0&&prepared->ratio[c]>0){auto returned=spread(source,w,h,prepared->kernels[c],allow_gpu);if(p.haze>0)gaussian_blur_plane(returned.data(),w,h,p.haze/(pitch*1000));for(int i=0;i<w*h;i++)core[i]+=amount*prepared->ratio[c]*returned[i];}for(int i=0;i<w*h;i++)raw[i*3+c]=core[i];}}
 }}

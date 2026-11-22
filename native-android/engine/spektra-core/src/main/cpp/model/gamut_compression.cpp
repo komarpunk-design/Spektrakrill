@@ -19,6 +19,9 @@
 #include <limits>
 #include <stdexcept>
 #include <vector>
+#include <atomic>
+#include <map>
+#include <mutex>
 
 namespace spk {
 
@@ -1088,8 +1091,24 @@ struct PreparedOutputGamut::Impl {
     double lightness[kOklchNL]{},hue[kOklchNH]{};
     Cam16Context viewing{};
 };
+namespace { std::atomic<unsigned long long> prepared_gamut_builds{0}; }
+unsigned long long prepared_output_gamut_table_builds() { return prepared_gamut_builds.load(); }
 PreparedOutputGamut::PreparedOutputGamut(OutputGamutCompress mode,int space,double threshold,double limit,double power) {
     if(space<0||space>5)throw std::invalid_argument("Unknown output color space");
+    // C_max geometry depends ONLY on model and output space, never the knee.
+    // Four entries bound residency to about 1.5 MiB, even during slider drags.
+    static std::mutex mutex;
+    static std::map<std::pair<int,int>,std::shared_ptr<const Impl>> geometries;
+    const auto key=std::make_pair(int(mode),space);
+    if(mode>=OutputGamutCompress::kOklch) {
+        std::shared_ptr<const Impl> cached;
+        { std::lock_guard<std::mutex> lock(mutex);auto it=geometries.find(key);if(it!=geometries.end())cached=it->second; }
+        if(cached) {
+            if(cached->threshold==threshold&&cached->limit==limit&&cached->power==power)impl_=cached;
+            else {auto adjusted=std::make_shared<Impl>(*cached);adjusted->threshold=threshold;adjusted->limit=limit;adjusted->power=power;impl_=std::move(adjusted);}
+            return;
+        }
+    }
     auto p=std::make_shared<Impl>();p->mode=mode;p->space=space;p->threshold=threshold;p->limit=limit;p->power=power;
     if(mode>=OutputGamutCompress::kOklch)p->table.resize(size_t(kOklchNL)*kOklchNH);
     switch(mode){
@@ -1099,6 +1118,11 @@ PreparedOutputGamut::PreparedOutputGamut(OutputGamutCompress mode,int space,doub
         case OutputGamutCompress::kJzazbz:build_jzazbz_cmax_table(space,p->table.data(),p->lightness,p->hue);p->white=jzazbz_white_Jz(space);break;
         case OutputGamutCompress::kCam16ucs:p->viewing=build_cam16_context(space);build_cam16ucs_cmax_table(space,p->viewing,p->table.data(),p->lightness,p->hue);break;
         default:throw std::invalid_argument("Unknown output gamut mode");
+    }
+    if(mode>=OutputGamutCompress::kOklch) {
+        std::lock_guard<std::mutex> lock(mutex);
+        if(geometries.size()>=4)geometries.erase(geometries.begin());
+        ++prepared_gamut_builds;geometries[key]=p;
     }
     impl_=std::move(p);
 }

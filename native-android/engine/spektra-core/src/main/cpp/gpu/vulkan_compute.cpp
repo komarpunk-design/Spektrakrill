@@ -108,10 +108,12 @@ void frame_discard() {}
 bool frame_active(int, int) { return false; }
 bool filming_expose(const double*, const float*, double, uint32_t, int, int,
                     const double*, uint32_t, double, double*, float*,
-                    FilmingStageDiagnostics* d) {
+                    FilmingStageDiagnostics* d, const double*) {
     if (d) { *d = FilmingStageDiagnostics{}; d->attempted = true; d->reason = "vulkan-disabled"; }
     return false;
 }
+bool transport_convolve(const float*, int, int, const double*, int, float*) { return false; }
+unsigned long long transport_convolve_passes() { return 0; }
 bool subtract_per_channel(const float*, float*, int, int, const double*,
                           FilmingStageDiagnostics* d) {
     if (d) { *d = FilmingStageDiagnostics{}; d->attempted = true; d->reason = "vulkan-disabled"; }
@@ -2595,8 +2597,9 @@ struct FilmingStagePush {
     float sub_c1;
     float sub_c2;
     float src_gain;
+    float projection[9];
 };
-static_assert(sizeof(FilmingStagePush) == 68, "push block must match filming_stage.comp");
+static_assert(sizeof(FilmingStagePush) == 104, "push block must match filming_stage.comp");
 
 constexpr uint32_t kFilmModeExpose = 0u;
 constexpr uint32_t kFilmModeDevelop = 1u;
@@ -2607,8 +2610,10 @@ constexpr uint32_t kFilmModeUnsharp = 5u;
 constexpr uint32_t kFilmModeLog10 = 6u;
 constexpr uint32_t kFilmModeLayers = 7u;
 constexpr uint32_t kFilmModeSubC = 8u;
+constexpr uint32_t kFilmModeStencil = 9u;
 constexpr uint32_t kFilmFlagPositive = 2u;
 constexpr uint32_t kFilmFlagLog10 = 1u;
+constexpr uint32_t kFilmFlagProjection = 4u;
 
 // One dispatch, four buffers, one upload and one readback. Both entry points
 // funnel through here because they differ only in which table they carry and
@@ -2645,6 +2650,7 @@ struct FilmingStageRun {
     int32_t n = 0;
     float exp_mult = 1.0f;
     float src_gain = 1.0f;
+    float projection[9] = {};
     float raw_x0 = 0.0f;
     float inv_max_raw = 0.0f;
     float boost_scale = 0.0f;
@@ -2684,7 +2690,7 @@ bool run_filming_stage(const FilmingStageRun& r, FilmingStageDiagnostics* diagno
     // unconditional "a table must be present" check refused them both.
     const bool needs_table = r.mode == kFilmModeExpose || r.mode == kFilmModeDevelop ||
                              r.mode == kFilmModeMix || r.mode == kFilmModeUnsharp ||
-                             r.mode == kFilmModeLayers;
+                             r.mode == kFilmModeLayers || r.mode == kFilmModeStencil;
     if (needs_table && r.tc_count == 0 && r.curve_count == 0)
         return give_up("null-table");
 
@@ -2834,6 +2840,7 @@ bool run_filming_stage(const FilmingStageRun& r, FilmingStageDiagnostics* diagno
         push.n = r.n;
         push.exp_mult = r.exp_mult;
         push.src_gain = r.src_gain;
+        std::copy(r.projection, r.projection + 9, push.projection);
         push.raw_x0 = r.raw_x0;
         push.inv_max_raw = r.inv_max_raw;
         push.boost_scale = r.boost_scale;
@@ -2905,9 +2912,12 @@ bool run_filming_stage(const FilmingStageRun& r, FilmingStageDiagnostics* diagno
 bool filming_expose(const double* rgb_f64, const float* rgb_f32, double gain,
                     uint32_t npix, int width, int height, const double* tc_lut,
                     uint32_t tc_edge, double exposure_multiplier, double* out_raw,
-                    float* out_log_raw, FilmingStageDiagnostics* diagnostics) {
+                    float* out_log_raw, FilmingStageDiagnostics* diagnostics,
+                    const double* projection) {
     if (tc_lut == nullptr || tc_edge < 2 || !std::isfinite(gain) ||
-        !std::isfinite(exposure_multiplier)) {
+        !std::isfinite(exposure_multiplier) ||
+        (projection && (frame_active(width, height) ||
+            !std::all_of(projection, projection + 9, [](double v) { return std::isfinite(float(v)); })))) {
         if (diagnostics) {
             *diagnostics = FilmingStageDiagnostics{};
             diagnostics->attempted = true;
@@ -2918,6 +2928,10 @@ bool filming_expose(const double* rgb_f64, const float* rgb_f32, double gain,
     FilmingStageRun r;
     r.mode = kFilmModeExpose;
     r.flags = out_log_raw ? kFilmFlagLog10 : 0u;
+    if (projection) {
+        r.flags |= kFilmFlagProjection;
+        for (int i = 0; i < 9; ++i) r.projection[i] = float(projection[i]);
+    }
     r.npix = npix;
     r.width = width;
     r.height = height;
@@ -2932,6 +2946,41 @@ bool filming_expose(const double* rgb_f64, const float* rgb_f32, double gain,
     r.dst_f64 = out_raw;
     r.dst_f32 = out_log_raw;
     return run_filming_stage(r, diagnostics);
+}
+
+namespace { std::atomic<unsigned long long> transport_passes{0}; }
+unsigned long long transport_convolve_passes() { return transport_passes.load(); }
+bool transport_convolve(const float* source, int width, int height,
+                        const double* kernel, int radius, float* result) {
+    const char* enabled=std::getenv("SPK_TRANSPORT_GPU");
+    if(enabled&&enabled[0]=='0')return false;
+    const int64_t count=int64_t(width)*height, side=2LL*radius+1;
+    if(!source||!kernel||!result||source==result||width<=0||height<=0||radius<1||radius>32||
+        count<4096||count>INT32_MAX||count*side*side<2*1024*1024)return false;
+    double total=0;
+    for(int i=0;i<side*side;i++) {
+        if(!std::isfinite(kernel[i])||kernel[i]<0)return false;
+        total+=kernel[i];
+    }
+    if(std::abs(total-1)>1e-6)return false;
+    for(int64_t i=0;i<count;i++)if(!std::isfinite(source[i])||source[i]<0||source[i]>1e20f)return false;
+    FilmingStageRun r;
+    r.mode=kFilmModeStencil;r.npix=uint32_t(count);r.npix_is_components=true;
+    r.width=width;r.height=height;r.L=width;r.n=height;r.raw_x0=float(radius);
+    r.src_f32=source;r.tc_table=kernel;r.tc_count=size_t(side*side);r.dst_f32=result;
+    FilmingStageDiagnostics d;
+    if(!run_filming_stage(r,&d))return false;
+    // Preserve the clamped boundary operator and its arbitrary original stencil;
+    // no Gaussian substitute, shortened radius, or reflection is introduced.
+    for(int sample=0;sample<65;sample++) {
+        const int pixel=int(int64_t(sample)*(count-1)/64),y=pixel/width,x=pixel%width;
+        double expected=0;
+        for(int dy=-radius;dy<=radius;dy++)for(int dx=-radius;dx<=radius;dx++)
+            expected+=kernel[(dy+radius)*side+dx+radius]*source[std::clamp(y+dy,0,height-1)*width+std::clamp(x+dx,0,width-1)];
+        const double actual=result[pixel];
+        if(!std::isfinite(actual)||std::abs(actual-expected)>2e-5*std::max(std::abs(expected),1e-5))return false;
+    }
+    ++transport_passes;return true;
 }
 
 bool filming_develop(const float* log_raw, uint32_t npix, int width, int height,

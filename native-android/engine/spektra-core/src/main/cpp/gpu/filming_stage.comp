@@ -119,6 +119,8 @@ shared float s_max[WG];
 // as its own pass after halation. One flag reproduces both placements instead
 // of needing two shaders.
 #define FLAG_LOG10   1u
+#define FLAG_PROJECTION 4u
+#define MODE_STENCIL 9u
 
 layout(push_constant) uniform Push {
     uint  npix;
@@ -149,6 +151,9 @@ layout(push_constant) uniform Push {
     // 2^ae_ev into the float32 read rather than materialising a scaled plane;
     // this reproduces that placement instead of asking the caller to pre-scale.
     float src_gain;
+    float p0; float p1; float p2;
+    float p3; float p4; float p5;
+    float p6; float p7; float p8;
 } pc;
 
 float finite_or(float v, float fallback) {
@@ -296,6 +301,17 @@ void main() {
         return;
     }
 
+    if (pc.mode == MODE_STENCIL) {
+        if (p >= pc.npix) return;
+        int width=pc.L, height=pc.n, radius=int(pc.raw_x0), side=2*radius+1;
+        int x=int(p)%width, y=int(p)/width;
+        float sum=0.0;
+        for(int dy=-radius;dy<=radius;dy++)for(int dx=-radius;dx<=radius;dx++)
+            sum+=tc_lut[(dy+radius)*side+dx+radius]*src[clamp(y+dy,0,height-1)*width+clamp(x+dx,0,width-1)];
+        dst[p]=sum;
+        return;
+    }
+
     if (pc.mode == MODE_MIX || pc.mode == MODE_UNSHARP) {
         // Component-wise, like the boost modes: pc.npix is the component count.
         if (p >= pc.npix) return;
@@ -333,10 +349,17 @@ void main() {
         float X = 0.7815775876144749 * r + 0.12427353211547089 * g + 0.05084064074531416 * bch;
         float Y = 0.28106991658512925 * r + 0.7111246050020191 * g + 0.0078043503519031375 * bch;
         float Z = 0.0008785229438793953 * r + 0.0012166783269637077 * g + 0.9190442562432091 * bch;
+        bool projected = (pc.flags & FLAG_PROJECTION) != 0u;
+        if (projected) {
+            X = (pc.p0 * r + pc.p1 * g) + pc.p2 * bch;
+            Y = (pc.p3 * r + pc.p4 * g) + pc.p5 * bch;
+            Z = (pc.p6 * r + pc.p7 * g) + pc.p8 * bch;
+        }
         float bsum = X + Y + Z;
         float denom = max(bsum, 1e-10);
-        float cx = clamp(X / denom, 0.0, 1.0);
-        float cy = clamp(Y / denom, 0.0, 1.0);
+        // Custom/Arctic projection clips AFTER tri2quad, matching its CPU path.
+        float cx = projected ? X / denom : clamp(X / denom, 0.0, 1.0);
+        float cy = projected ? Y / denom : clamp(Y / denom, 0.0, 1.0);
         float qy = clamp(cy / max(1.0 - cx, 1e-10), 0.0, 1.0);
         float qx = clamp((1.0 - cx) * (1.0 - cx), 0.0, 1.0);
         float bmul = finite_or(bsum, 0.0);

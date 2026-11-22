@@ -43,6 +43,7 @@ namespace spk {
 // Frames whose halation pass ran on the GPU (issue #206). Observability for
 // the Fast GPU export route, like gpu_print_frames_rendered().
 unsigned long long gpu_halation_frames_rendered();
+unsigned long long gpu_projected_expose_frames_rendered();
 
 // Build the Hanatos2025 filming tc_lut (shape {L, L, 3}) from the spectra LUT
 // and the film profile, mirroring compute_hanatos2025_tc_lut with
@@ -137,9 +138,16 @@ void expose_f32_gain(const float* rgb, double gain, int width, int height,
 // `release_log_raw`, when given, must own `log_raw`; it is emptied right after
 // the DIR-coupler step, its last reader, so the grain step runs without it
 // (#300, export peak memory). Output is unaffected.
+// `defer_grain` stops after deterministic DIR correction so the caller can memo
+// that result and invoke apply_film_grain AFTER storing it. Default is unchanged.
 void develop(const float* log_raw, int width, int height, const Profile& film,
              const FilmingParams& params, float* density_cmy_out,
-             FloatBuffer* release_log_raw = nullptr);
+             FloatBuffer* release_log_raw = nullptr, bool defer_grain = false);
+
+// The unchanged stochastic tail, also usable on a cached deterministic density.
+// Its seeded sampler is executed on every render, including memo hits.
+void apply_film_grain(int width, int height, const Profile& film,
+                      const FilmingParams& params, float* density_cmy);
 
 }  // namespace spk
 
