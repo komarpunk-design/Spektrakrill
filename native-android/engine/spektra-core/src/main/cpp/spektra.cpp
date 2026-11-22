@@ -31,6 +31,7 @@
  *     the rest since E1).
  *   - grain_active    -> stochastic AgX particle grain (model/grain.cpp).
  */
+#include "runtime/lab_acceleration.h"
 #include "spektra.h"
 
 #include <algorithm>
@@ -844,6 +845,10 @@ static uint64_t compute_film_cache_key(const std::vector<double>& rgb, int width
     h = fnv1a64(h, &width, sizeof(width));
     h = fnv1a64(h, &height, sizeof(height));
     h = fnv1a64(h, &input_color_space, sizeof(input_color_space));
+    // Fast preview stages may differ by floating-point roundoff from Strict
+    // CPU stages. Never let their intermediate buffers cross precision domains.
+    const int gpu_domain = p->allow_gpu_scan != 0;
+    h = fnv1a64(h, &gpu_domain, sizeof(gpu_domain));
     // 3) Film profile id bytes (NULL-safe).
     h = fnv1a64(h, &p->auto_exposure, sizeof(p->auto_exposure));
     if(p->auto_exposure_method)h=fnv1a64(h,p->auto_exposure_method,std::strlen(p->auto_exposure_method));
@@ -1000,6 +1005,9 @@ static uint64_t compute_print_density_key(const Buffer& film_density_cmy,
                                           const spk_params* p,
                                           double resize_pixel_size_um) {
     uint64_t h = 0xcbf29ce484222325ULL;  // FNV offset basis
+    // Printing can also use approximate GPU kernels, independently of filming.
+    const int gpu_domain = p->allow_gpu_scan != 0;
+    h = fnv1a64(h, &gpu_domain, sizeof(gpu_domain));
     h = fnv1a64(h, film_density_cmy.data(),
                 film_density_cmy.size() * sizeof(float));
     h = fnv1a64(h, &width, sizeof(width));
@@ -1115,7 +1123,7 @@ inline bool gpu_whole_frame_fits(int width, int height) noexcept {
 
 inline void latch_filming_gpu(spk::FilmingParams& fparams, const spk_params* p,
                               int width, int height) {
-    const bool fast_gpu_route = (p->allow_gpu_scan != 0) && !(p->experimental_json && p->experimental_json[0]);
+    const bool fast_gpu_route = spk::stage_gpu_requested(p->allow_gpu_scan!=0,p->experimental_json&&p->experimental_json[0],p->gpu_export!=0,gpu_whole_frame_fits(width,height));
     // Export GPU filming/grain/halation wrote Dmin on this Adreno (12 MP Portra
     // 0.04-0.09 with scan_state=2). Keep GPU scan (sliced). Preview stays GPU.
     const bool whole = gpu_whole_frame_fits(width, height) && (p->gpu_export == 0);
@@ -2699,7 +2707,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
 
     final_rgb->resize(static_cast<size_t>(npix) * 3);
     if(negative.workflow=="negative-clear")std::fill(film.base_density.begin(),film.base_density.end(),0);
-    if(!spk::outputs::scan(film, spk::outputs::read_params(p->experimental_json), density_cmy.data(), width, height, final_rgb->data(), g, p->output_color_space, p->output_cctf_encoding!=0, sparams.lens_blur, sparams.unsharp_sigma, sparams.unsharp_amount, sparams.output_gamut_compress, sparams.gamut_knee_threshold, sparams.gamut_knee_limit, sparams.gamut_knee_power, nikon_nominal.get()))
+    if(!spk::outputs::scan(film, spk::outputs::read_params(p->experimental_json), density_cmy.data(), width, height, final_rgb->data(), g, p->output_color_space, p->output_cctf_encoding!=0, sparams.lens_blur, sparams.unsharp_sigma, sparams.unsharp_amount, sparams.output_gamut_compress, sparams.gamut_knee_threshold, sparams.gamut_knee_limit, sparams.gamut_knee_power, nikon_nominal.get(),p->allow_gpu_scan!=0))
         spk::scan(film, sparams, density_cmy.data(), width, height, final_rgb->data());
     else if(sparams.tone_curve.active) {
         for(int i=0;i<npix;i++)for(int c=0;c<3;c++)(*final_rgb)[i*3+c]=sparams.tone_curve.apply(c,(*final_rgb)[i*3+c]);
@@ -3096,7 +3104,7 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
     // (`tp.allow_gpu_scan = 0`, `bp.allow_gpu_scan = 0`), so those stay Strict
     // Exact, and a default render -- where neither toggle is set -- is
     // byte-identical to before this change. That is what keeps the 44 goldens green.
-    const bool fast_gpu_route = (p->allow_gpu_scan != 0) && !(p->experimental_json && p->experimental_json[0]);
+    const bool fast_gpu_route = spk::stage_gpu_requested(p->allow_gpu_scan!=0,p->experimental_json&&p->experimental_json[0],p->gpu_export!=0,gpu_whole_frame_fits(width,height));
     fparams.allow_gpu_halation = fast_gpu_route;
     // The diffusion FFT convolution (#216). Same latch as halation and for the
     // same reason: it is the SAME operator the CPU runs, in f32, so it belongs

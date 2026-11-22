@@ -11,6 +11,8 @@
 #include "model/noritsu_advanced.h"
 #include "model/noritsu_job_input.h"
 #include "model/nikon_scan.h"
+#include "model/receiver_acceleration.h"
+#include "runtime/stage_timer.h"
 #include "kernels/gaussian.h"
 #include "kernels/parallel.h"
 #include <array>
@@ -79,13 +81,16 @@ inline RGB operator_tone(RGB value,const Params& p) {
 inline double density_at(const Profile& f,double x,int c,double gamma){x*=gamma;auto& axis=f.log_exposure;if(axis.empty())throw std::runtime_error("No receiver calibration curve");auto it=std::upper_bound(axis.begin(),axis.end(),x);if(it==axis.begin())return f.density_curves[c];if(it==axis.end())return f.density_curves[(axis.size()-1)*3+c];int hi=it-axis.begin(),lo=hi-1;double a=(x-axis[lo])/(axis[hi]-axis[lo]);return f.density_curves[lo*3+c]*(1-a)+f.density_curves[hi*3+c]*a;}
 /** Read CMY densities through Fotufilm's 630/545/465 nm LED receiver, then invert
  * using its softplus scan curve. Calibration/timing is adapted to Spektrafilm. */
-inline bool scan(const Profile& f,const Params& p,const float* density,int w,int h,float* result,double gamma,spk_color_space cs,bool encoded,double blur,double usmSigma,double usmAmount,OutputGamutCompress gamut=OutputGamutCompress::kLegacyClip,double knee=0,double limit=1,double power=6,const Profile* nominal=nullptr){
+inline bool scan(const Profile& f,const Params& p,const float* density,int w,int h,float* result,double gamma,spk_color_space cs,bool encoded,double blur,double usmSigma,double usmAmount,OutputGamutCompress gamut=OutputGamutCompress::kLegacyClip,double knee=0,double limit=1,double power=6,const Profile* nominal=nullptr,bool allowReceiverGpu=false){
  if(p.mode=="paper"||p.mode=="negative"||f.is_positive())return false;
+ ScopedStage receiverTiming(STG_SCAN);
  int count=w*h,n=f.n_samples;if(n<1)return false;
  const bool useNoritsu=p.mode=="noritsu-ls600"&&!f.monochrome;
  std::vector<RGB> bands(n);double centers[]={630,545,465},widths[]={8.5,14,9.5};RGB sums={0,0,0};
  for(int i=0;i<n;i++)for(int c=0;c<3;c++){double value=std::exp(-.5*std::pow((f.wavelengths[i]-centers[c])/widths[c],2));if(!std::isfinite(f.base_density[i])||!std::isfinite(f.channel_density[i*3])||!std::isfinite(f.channel_density[i*3+1])||!std::isfinite(f.channel_density[i*3+2]))value=0;bands[i][c]=value;sums[c]+=value;}
  auto read=[&](RGB d){RGB energy={0,0,0};for(int i=0;i<n;i++){if(bands[i][0]+bands[i][1]+bands[i][2]==0)continue;double od=f.base_density[i];for(int k=0;k<3;k++)od+=d[k]*f.channel_density[i*3+k];double light=std::pow(10.,-od);for(int c=0;c<3;c++)energy[c]+=bands[i][c]*light;}for(int c=0;c<3;c++)energy[c]=std::log10(std::max(energy[c]/std::max(sums[c],1e-12),1e-12));return energy;};
+ const bool gpuRead=allowReceiverGpu&&receiver_gpu_integral(f,density,count,result,bands,sums);
+ auto pixel_read=[&](int i){if(!gpuRead)return read(RGB{density[i*3],density[i*3+1],density[i*3+2]});RGB energy;for(int c=0;c<3;c++)energy[c]=std::log10(std::max(double(result[i*3+c]),1e-12));return energy;};
  const bool useNikon=p.mode=="nikon-scan"&&!f.monochrome;
  const bool useJob=useNoritsu&&p.jobEnabled;
  if(useNikon){
@@ -108,7 +113,7 @@ inline bool scan(const Profile& f,const Params& p,const float* density,int w,int
   const auto ref=read_anchor(mid),lower=read_anchor(low),upper=read_anchor(high);
   const auto target=nikon::neutral_raw(.18),targetLo=nikon::neutral_raw(.18*std::pow(10.,-.15)),targetHi=nikon::neutral_raw(.18*std::pow(10.,.15));
   RGB slope,targetSlope;for(int c=0;c<3;c++){slope[c]=(upper[c]-lower[c])/.3;targetSlope[c]=std::log10(targetHi[c]/targetLo[c])/.3;if(!std::isfinite(slope[c])||std::abs(slope[c])<1e-8)throw std::runtime_error("Nikon: flat film reference");}
-  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto v=read({density[i*3],density[i*3+1],density[i*3+2]});for(int c=0;c<3;c++)result[i*3+c]=float((v[c]-ref[c])/slope[c]);}});
+  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto v=pixel_read(i);for(int c=0;c<3;c++)result[i*3+c]=float((v[c]-ref[c])/slope[c]);}});
   double shift=0;
   if(p.automatic){std::vector<double> values;int step=std::max(1,count/16384);for(int i=0;i<count;i+=step)values.push_back((result[i*3]+result[i*3+1]+result[i*3+2])/3.);std::sort(values.begin(),values.end());shift=std::clamp(values[values.size()/2],-1.,1.);}
   const nikon::RGB gain={nikon::data::reference_gain[0],nikon::data::reference_gain[1],nikon::data::reference_gain[2]};
@@ -140,7 +145,7 @@ inline bool scan(const Profile& f,const Params& p,const float* density,int w,int
   }});
  }else if(useJob){
   if(!p.job)throw std::invalid_argument("Noritsu: missing job parameters");
-  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto value=read({density[i*3],density[i*3+1],density[i*3+2]});for(int c=0;c<3;c++)result[i*3+c]=noritsu::density_code(c,value[c]);}});
+  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto value=pixel_read(i);for(int c=0;c<3;c++)result[i*3+c]=noritsu::density_code(c,value[c]);}});
   if(p.jobNormalize) {
    const auto target=noritsu::input::calibrate(*p.job);
    RGB middle,lower,upper;for(int c=0;c<3;c++){middle[c]=density_at(f,0,c,gamma);lower[c]=density_at(f,-.15,c,gamma);upper[c]=density_at(f,.15,c,gamma);}
@@ -155,7 +160,7 @@ inline bool scan(const Profile& f,const Params& p,const float* density,int w,int
  RGB mid,lo,hi;for(int c=0;c<3;c++){mid[c]=density_at(f,0,c,gamma);lo[c]=density_at(f,-.15,c,gamma);hi[c]=density_at(f,.15,c,gamma);}auto ref=read(mid),low=read(lo),high=read(hi);
  if(useNoritsu)for(int c=0;c<3;c++){ref[c]=noritsu::density_code(c,ref[c]);low[c]=noritsu::density_code(c,low[c]);high[c]=noritsu::density_code(c,high[c]);}
  RGB slopes;for(int c=0;c<3;c++)slopes[c]=std::max(useNoritsu?1.:.05,std::abs((high[c]-low[c])/.3));
- parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto value=read({density[i*3],density[i*3+1],density[i*3+2]});for(int c=0;c<3;c++)result[i*3+c]=useNoritsu?(noritsu::density_code(c,value[c])-ref[c])/slopes[c]:(ref[c]-value[c])/slopes[c];}});
+ parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto value=pixel_read(i);for(int c=0;c<3;c++)result[i*3+c]=useNoritsu?(noritsu::density_code(c,value[c])-ref[c])/slopes[c]:(ref[c]-value[c])/slopes[c];}});
  std::vector<double> stats;int stride=std::max(1,count/16384);for(int i=0;i<count;i+=stride)stats.push_back((result[i*3]+result[i*3+1]+result[i*3+2])/3.);std::sort(stats.begin(),stats.end());
  double median=stats[stats.size()/2],highValue=stats[std::min(stats.size()-1,size_t(stats.size()*.995))],middle=inverse(-std::log10(.18));bool automatic=p.mode=="auto-levels"||((p.mode=="lab-scan"||useNoritsu)&&p.automatic);
  double scale=automatic?clamp(1.2/std::max(.8,highValue-median),1,1.5):1,shift=automatic?std::min({0.,-median*.5,(middle-inverse(.08))-highValue*scale}):0;

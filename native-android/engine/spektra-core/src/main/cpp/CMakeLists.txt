@@ -49,6 +49,7 @@ add_library(spektra SHARED
         # LUT/asset loaders:
         io/npy_lut.cpp                       # .npy / .lut binary loaders (M3)
         # Model (photographic math):
+        model/receiver_acceleration.cpp
         model/noritsu_advanced.cpp
         model/noritsu_factory.cpp
         model/noritsu_operators.cpp
