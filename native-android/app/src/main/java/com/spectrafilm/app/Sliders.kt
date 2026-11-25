@@ -90,6 +90,7 @@ fun EnhancedSlider(
     decimals: Int = 2,
     tooltip: String? = null,
     default: Float? = null,
+    parameterPath: String? = null,
     onValueChangeFinished: (() -> Unit)? = null,
 ) {
     val view = LocalView.current
@@ -99,7 +100,7 @@ fun EnhancedSlider(
     // Which detent zone the last drag frame was in, so the haptic tick fires on arrival only.
     val lastZone = remember { mutableStateOf(SliderZone.FREE) }
     val readoutEdit = rememberReadoutEdit(value, range, step, decimals, onValueChange, onValueChangeFinished)
-    Column(modifier.fillMaxWidth().multiTouchPeek(interaction.onMultiTouch)) {
+    Column(modifier.nativeParameterTarget(parameterPath).fillMaxWidth().multiTouchPeek(interaction.onMultiTouch)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             // The value pill is interactive (Lightroom-style): single-tap to type an exact
@@ -308,8 +309,9 @@ fun TripleSlider(
         stringResource(R.string.widget_component_b),
     ),
     default: Triple<Float, Float, Float>? = null,
+    parameterPath: String? = null,
 ) {
-    Column(Modifier.fillMaxWidth()) {
+    Column(Modifier.nativeParameterTarget(parameterPath).fillMaxWidth()) {
         Text(label, style = MaterialTheme.typography.bodyMedium)
         if (tooltip != null) {
             Text(
@@ -340,8 +342,9 @@ fun PairSlider(
     componentLabels: Pair<String, String> =
         stringResource(R.string.widget_component_1) to stringResource(R.string.widget_component_2),
     default: Pair<Float, Float>? = null,
+    parameterPath: String? = null,
 ) {
-    Column(Modifier.fillMaxWidth()) {
+    Column(Modifier.nativeParameterTarget(parameterPath).fillMaxWidth()) {
         Text(label, style = MaterialTheme.typography.bodyMedium)
         if (tooltip != null) {
             Text(
@@ -366,10 +369,12 @@ fun IntSlider(
     onValueChange: (Int) -> Unit,
     tooltip: String? = null,
     default: Int? = null,
+    parameterPath: String? = null,
     onValueChangeFinished: (() -> Unit)? = null,
 ) {
     EnhancedSlider(
         label = label,
+        parameterPath = parameterPath,
         value = value.toFloat(),
         range = range.first.toFloat()..range.last.toFloat(),
         step = 1f,

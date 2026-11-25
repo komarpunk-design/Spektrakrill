@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="native_film_characteristic">Film characteristic</string>
+    <string name="native_print_characteristic">Print material development</string>
+    <string name="native_parameter_other_model">These are saved Spektrafilm controls. The selected alternative model remains active; choose Spektrafilm above to apply these values.</string>
+    <string name="native_parameter_inactive">This tool is off. Values are retained; enable its switch to apply them.</string>
+    <string name="native_spectral_scan">Direct spectral film scan</string>
+    <string name="native_parameter_other_route">This saved switch applies to the spectral route. The currently selected digital receiver has its own output path.</string>
+</resources>

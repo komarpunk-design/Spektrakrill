@@ -334,7 +334,8 @@ fun AutoExposureControl(
     // Tap: if off → turn on and expand. If on → toggle list visibility.
     // Swipe up: expand the list.
     Box(
-        modifier = modifier
+        modifier = modifier.nativeParameterTarget(
+            if(LocalParameterSearch.current?.path=="camera.autoExposureMethod")"camera.autoExposureMethod" else "camera.autoExposure")
             .fillMaxWidth()
             .pointerInput(Unit) {
                 detectVerticalDragGestures(

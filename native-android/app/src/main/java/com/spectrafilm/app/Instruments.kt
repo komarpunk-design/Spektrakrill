@@ -151,6 +151,7 @@ internal fun Instrument(
     caption: String = label,
     // What a FILL_KNOB shows in its middle; the caption's initial when not given.
     glyph: String? = null,
+    parameterPath: String? = null,
 ) {
     val view = LocalView.current
     val interaction = LocalSliderInteraction.current
@@ -263,7 +264,7 @@ internal fun Instrument(
 
     when (kind) {
         InstrumentKind.GRAD_BAR, InstrumentKind.METER_HIGH, InstrumentKind.METER_LOW,
-        InstrumentKind.LENS_GRID, InstrumentKind.WAVE -> Column(modifier.fillMaxWidth().then(gesture)) {
+        InstrumentKind.LENS_GRID, InstrumentKind.WAVE -> Column(modifier.nativeParameterTarget(parameterPath).fillMaxWidth().then(gesture)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 Text(formatted, style = MaterialTheme.typography.labelMedium, color = valueColor)
@@ -375,7 +376,7 @@ internal fun Instrument(
         }
         InstrumentKind.KNOB, InstrumentKind.FADER, InstrumentKind.PILL, InstrumentKind.ARC_GAUGE,
         InstrumentKind.FILL_KNOB -> Column(
-            modifier.width(76.dp).then(gesture),
+            modifier.nativeParameterTarget(parameterPath).width(76.dp).then(gesture),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (kind == InstrumentKind.KNOB) {
@@ -547,11 +548,12 @@ internal val LocalInstrumentHint = staticCompositionLocalOf<(String) -> Unit> { 
 @Composable
 internal fun InstrumentRow(
     hints: Map<String, String> = emptyMap(),
+    modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
     var touched by remember { mutableStateOf<String?>(null) }
     CompositionLocalProvider(LocalInstrumentHint provides { touched = it }) {
-        Column(Modifier.fillMaxWidth()) {
+        Column(modifier.fillMaxWidth()) {
             Row(
                 Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,

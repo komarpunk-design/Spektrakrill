@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="operator_report_heading">Фактическое выполнение обработки</string>
+    <string name="operator_report_empty">Пока нет показанного результата движка. Откройте и обработайте фотографию.</string>
+    <string name="operator_report_identity">Расчёт №%1$d · %2$s</string>
+    <string name="operator_report_cache">Кеш + подготовка CPU</string>
+    <string name="operator_report_unused">Нет записанной работы</string>
+    <string name="operator_report_times">Стадия %1$.2f мс · загрузка %2$.2f · GPU %3$.2f · чтение %4$.2f</string>
+    <string name="operator_report_reason">Причина выбора пути: %1$s</string>
+    <string name="operator_report_note">Отчёт описывает нативный движок; декодирование и запись файла сюда не входят. GPU + CPU означает выполнение GPU-ядер внутри стадии; остальные операции этой стадии могут выполняться на CPU. Отменённые и заменённые результаты исключены. Пиксели не сохраняются.</string>
+    <string name="operator_report_refresh">Обновить диагностику обработки</string>
+</resources>

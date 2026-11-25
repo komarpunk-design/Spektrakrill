@@ -52,10 +52,14 @@ fun DiagnosticsScreen() {
     var crash by remember { mutableStateOf<String?>(null) }
     var log by remember { mutableStateOf<String?>(null) }
     var engineCache by remember { mutableStateOf<String?>(null) }
+    var operators by remember { mutableStateOf<OperatorReport?>(null) }
     // Read the persisted crash off the main thread (file IO).
     LaunchedEffect(Unit) {
         crash = withContext(dispatchers.io) { Diagnostics.lastCrash(ctx) }
         engineCache = withContext(dispatchers.default) { Diagnostics.engineCacheSnapshot() }
+        operators = withContext(dispatchers.default) {
+            runCatching { OperatorReport.parse(com.spectrafilm.engine.SpektraEngine.operatorReportJson()) }.getOrNull()
+        }
     }
 
     Column(
@@ -74,6 +78,15 @@ fun DiagnosticsScreen() {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        OperatorReportContent(operators)
+        OutlinedButton(onClick = {
+            scope.launch {
+                operators = withContext(dispatchers.default) {
+                    runCatching { OperatorReport.parse(com.spectrafilm.engine.SpektraEngine.operatorReportJson()) }.getOrNull()
+                }
+            }
+        }) { Text(stringResource(R.string.operator_report_refresh)) }
 
         // --- last crash ---
         SectionHeading(stringResource(R.string.screen_diag_last_crash))

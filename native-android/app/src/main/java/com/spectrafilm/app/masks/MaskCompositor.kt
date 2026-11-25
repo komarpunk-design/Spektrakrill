@@ -209,11 +209,12 @@ object MaskCompositor {
         runtime: MaskCompositorRuntime,
     ) {
         val image = checkedImageView(data, w, h)
-        val active = adjustments.filter { hasOp(it.delta) && MaskRaster.coverage(it.mask) > 1e-4f }
+        val active = adjustments.filter { hasOp(it.delta) }
+            .map { it to MaskGeometryCache.prepare(it.mask) }.filter { it.second.coverage() > 1e-4f }
         if (active.isEmpty()) return
 
         // Every allocation and numeric extent that can fail is resolved before the first output write.
-        val prepared = active.map { prepare(it, w, h, cs) }
+        val prepared = active.map { prepare(it.first, w, h, cs, it.second) }
         val plan = MaskScratchPlan.create(w, h, prepared.map { it.positiveRadii })
         val scratch = if (runtime.allocator == null) {
             MaskTileScratch.open(plan, runtime.memoryBridge)
@@ -255,6 +256,7 @@ object MaskCompositor {
 
     private data class PreparedAdjustment(
         val adjustment: LocalAdjustment,
+        val geometry: PreparedMask,
         val whiteBalance: FloatArray?,
         val gain: Float,
         val saturation: Float,
@@ -302,6 +304,7 @@ object MaskCompositor {
         w: Int,
         h: Int,
         cs: ColorSpace,
+        geometry: PreparedMask,
     ): PreparedAdjustment {
         val d = adjustment.delta
         val maxWH = maxOf(w, h).toFloat()
@@ -323,6 +326,7 @@ object MaskCompositor {
         val radii = intArrayOf(clarity, texture, sharp, region).filter { it > 0 }.distinct().sorted().toIntArray()
         return PreparedAdjustment(
             adjustment = adjustment,
+            geometry = geometry,
             whiteBalance = if (d.temp != 0f || d.tint != 0f) LocalWhiteBalance.matrix(cs, d.temp, d.tint) else null,
             gain = exposureGain(d.exposureEv),
             saturation = d.saturation / 100f,
@@ -436,7 +440,7 @@ object MaskCompositor {
         val item = run.prepared
         val adj = item.adjustment
         val d = adj.delta
-        MaskRaster.rasterizeRow(adj.mask, w, h, y, scratch.alpha)
+        item.geometry.rasterizeRow(w, h, y, scratch.alpha)
         cancellation.checkpoint(MaskCancellationPoint.RASTER)
         val lumRange = adj.mask.luminanceRange?.takeIf { it.isActive }
         val colorRange = adj.mask.colorRange?.takeIf { it.isActive }

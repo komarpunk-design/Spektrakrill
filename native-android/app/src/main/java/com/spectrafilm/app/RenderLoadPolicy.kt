@@ -13,6 +13,14 @@ internal data class RenderLoad(val thermalStatus: Int = 0, val powerSave: Boolea
     val allowSpeculation: Boolean get() = !powerSave && thermalStatus < 2
     val needsCooling: Boolean get() = thermalStatus >= 4
 
+    /** Zero preserves the user's normal worker/affinity policy. Never changes a recipe. */
+    fun workerLimit(availableCores: Int): Int = when {
+        thermalStatus >= 4 -> 1
+        thermalStatus >= 3 -> (availableCores / 3).coerceAtLeast(1)
+        thermalStatus >= 2 || powerSave -> (availableCores / 2).coerceAtLeast(1)
+        else -> 0
+    }
+
     fun batchRestMs(previousPhotoMs: Long): Long = when {
         thermalStatus >= 3 -> (previousPhotoMs.coerceAtLeast(0L) / 2).coerceAtMost(10_000L)
         thermalStatus >= 2 || powerSave -> (previousPhotoMs.coerceAtLeast(0L) / 6).coerceAtMost(3_000L)

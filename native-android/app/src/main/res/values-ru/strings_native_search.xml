@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="native_film_characteristic">Характеристика плёнки</string>
+    <string name="native_print_characteristic">Проявка печатного материала</string>
+    <string name="native_parameter_other_model">Это сохранённые параметры Spektrafilm. Сейчас работает другая модель. Чтобы эти значения влияли на результат, выберите Spektrafilm выше.</string>
+    <string name="native_parameter_inactive">Инструмент выключен. Значения сохраняются; включите его переключатель, чтобы применить их.</string>
+    <string name="native_spectral_scan">Прямой спектральный скан плёнки</string>
+    <string name="native_parameter_other_route">Этот сохранённый переключатель относится к спектральному маршруту. Выбранный цифровой приёмник использует свой путь вывода.</string>
+</resources>

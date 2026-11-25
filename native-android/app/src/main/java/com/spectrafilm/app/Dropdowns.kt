@@ -39,12 +39,13 @@ fun <T> Dropdown(
     display: (T) -> String,
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
+    parameterPath: String? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = it },
-        modifier = modifier,
+        modifier = modifier.nativeParameterTarget(parameterPath),
     ) {
         OutlinedTextField(
             value = display(selected),

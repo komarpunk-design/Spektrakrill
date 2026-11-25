@@ -26,6 +26,47 @@ class QuietWorkbenchUiTest {
     @get:Rule(order=0)val host=ComposeHostActivityRule()
     @get:Rule(order=1)val compose=createComposeRule()
     private val s=ParamsState()
+    @Test fun nativeSearchOpensTheExactAdvancedGrainControlWithoutChangingTheRecipe(){
+        LabCatalog.initialize(RuntimeEnvironment.getApplication())
+        s.setLab("grainRms",true)
+        val before=Presets.encode(s).toString()
+        compose.setContent{MaterialTheme{
+            var target by remember{mutableStateOf<ParameterSearchTarget?>(null)}
+            if(target==null)ToolDirectory(PhotoTool.FILMS,emptySet(),true,{},onParameter={target=it},onSelect={})
+            else CompositionLocalProvider(LocalQuietEditor provides true,LocalFlatSections provides true,
+                LocalPhotoTool provides PhotoTool.GRAIN,LocalParameterFocus provides remember{ParameterFocus()},LocalParameterSearch provides target){
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())){GrainSection(s)}
+            }
+        }}
+        compose.onNodeWithTag("tool-directory-search").performTextInput("grain.microStructure")
+        compose.onNodeWithTag("search-parameter-grain.microStructure").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("parameter-grain.microStructure").assertIsDisplayed()
+        compose.runOnIdle{assertEquals(before,Presets.encode(s).toString());assertTrue(s.labBoolean("grainRms"))}
+    }
+    @Test fun nativeDiffusionSearchRevealsBothTheParentGroupAndItsDetails(){
+        val context=RuntimeEnvironment.getApplication()
+        val target=mutableStateOf(nativeParameterSearchIndex(context).single{it.path=="camera.diffusion.haloSize"})
+        val before=Presets.encode(s).toString()
+        compose.setContent{MaterialTheme{
+            CompositionLocalProvider(LocalQuietEditor provides true,LocalFlatSections provides true,
+                LocalPhotoTool provides PhotoTool.LENS,LocalParameterFocus provides remember{ParameterFocus()},LocalParameterSearch provides target.value){
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())){
+                    SectionCard(context.getString(Category.CAMERA_DIFFUSION.labelRes),false,{}){
+                        DiffusionGroup("Diffusion",s.cameraDiffusionState,"camera.diffusion")
+                    }
+                }
+            }
+        }}
+        compose.waitForIdle()
+        compose.onNodeWithTag("parameter-camera.diffusion.haloSize").assertIsDisplayed()
+        compose.onNodeWithText(context.getString(Category.CAMERA_DIFFUSION.labelRes)).performScrollTo().performClick()
+        compose.onNodeWithTag("parameter-camera.diffusion.haloSize").assertDoesNotExist()
+        compose.runOnIdle{target.value=target.value.copy(requestSerial=1)}
+        compose.waitForIdle()
+        compose.onNodeWithTag("parameter-camera.diffusion.haloSize").assertIsDisplayed()
+        compose.runOnIdle{assertEquals(before,Presets.encode(s).toString())}
+    }
     private fun showScan(){
         LabCatalog.initialize(RuntimeEnvironment.getApplication())
         compose.setContent{MaterialTheme{
@@ -110,7 +151,7 @@ class QuietWorkbenchUiTest {
         }}}
         compose.onNodeWithText(ctx.getString(R.string.editor_preflash_title)).performScrollTo().performClick()
         compose.onNodeWithText(ctx.getString(R.string.editor_preflash_exposure)).assertExists()
-        compose.onNodeWithText("Проявка печатного материала").performScrollTo().performClick()
+        compose.onNodeWithText(RuntimeEnvironment.getApplication().getString(R.string.native_print_characteristic)).performScrollTo().performClick()
         compose.onNodeWithText(ctx.getString(R.string.editor_preflash_exposure)).assertDoesNotExist()
         compose.onNodeWithText(ctx.getString(R.string.editor_exp_print_gamma)).assertExists()
         compose.runOnIdle{assertEquals(before,Presets.encode(s).toString())}

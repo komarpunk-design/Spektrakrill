@@ -63,10 +63,10 @@ internal fun InputSection(s: ParamsState, onEditCrop: () -> Unit, part:InputPart
         // change the render. Other input spaces are the deferred input-gamut work.
         GatedBlock(stringResource(R.string.editor_input_gated_colorspace)) {
             Dropdown(stringResource(R.string.editor_input_color_space), s.inputColorSpace, INPUT_COLOR_SPACES, { it },
-                { s.inputColorSpace = it })
+                { s.inputColorSpace = it }, parameterPath = "input.inputColorSpace")
         }
         SwitchRow(stringResource(R.string.editor_input_cctf), s.inputCctfDecoding, { s.inputCctfDecoding = it },
-            stringResource(R.string.editor_input_cctf_tooltip))
+            stringResource(R.string.editor_input_cctf_tooltip), parameterPath = "input.inputCctfDecoding")
         }
         if (part == InputPart.ALL || part == InputPart.SPECTRUM) {
         // Honesty: the engine only implements HANATOS2025 (filming.expose always calls
@@ -76,32 +76,32 @@ internal fun InputSection(s: ParamsState, onEditCrop: () -> Unit, part:InputPart
         Divider()
         GatedBlock(stringResource(R.string.editor_input_gated_upsampling)) {
             Dropdown(stringResource(R.string.editor_input_spectral_upsampling), s.spectralUpsampling, Rgb2Raw.entries.toList(),
-                { it.name.lowercase() }, { s.spectralUpsampling = it })
+                { it.name.lowercase() }, { s.spectralUpsampling = it }, parameterPath = "input.spectralUpsampling")
         }
         SwitchRow(stringResource(R.string.editor_input_adaptation_window), s.adaptationWindow, { s.adaptationWindow = it },
-            stringResource(R.string.editor_input_adaptation_window_tooltip))
+            stringResource(R.string.editor_input_adaptation_window_tooltip), parameterPath = "input.adaptationWindow")
         SwitchRow(stringResource(R.string.editor_input_adaptation_surface), s.adaptationSurface, { s.adaptationSurface = it },
-            stringResource(R.string.editor_input_adaptation_surface_tooltip))
+            stringResource(R.string.editor_input_adaptation_surface_tooltip), parameterPath = "input.adaptationSurface")
         EnhancedSlider(stringResource(R.string.editor_input_spectral_blur), s.spectralGaussianBlur, OperationalParamLimits.SPECTRAL_GAUSSIAN_BLUR,
             { s.spectralGaussianBlur = it }, step = 0.1f, decimals = 1,
             tooltip = stringResource(R.string.editor_input_spectral_blur_tooltip),
-            default = PARAM_DEFAULTS.spectralGaussianBlur)
+            default = PARAM_DEFAULTS.spectralGaussianBlur, parameterPath = "input.spectralGaussianBlur")
         }
         if (part == InputPart.ALL || part == InputPart.LENS) {
         TripleSlider(stringResource(R.string.editor_input_uv_filter), s.filterUv, 0f..800f, { s.filterUv = it },
             step = 1f, decimals = 0,
             tooltip = stringResource(R.string.editor_input_uv_filter_tooltip),
-            componentLabels = Triple("amp", "λ", "σ"), default = PARAM_DEFAULTS.filterUv)
+            componentLabels = Triple("amp", "λ", "σ"), default = PARAM_DEFAULTS.filterUv, parameterPath = "input.filterUv")
         TripleSlider(stringResource(R.string.editor_input_ir_filter), s.filterIr, 0f..800f, { s.filterIr = it },
             step = 1f, decimals = 0,
             tooltip = stringResource(R.string.editor_input_ir_filter_tooltip),
-            componentLabels = Triple("amp", "λ", "σ"), default = PARAM_DEFAULTS.filterIr)
+            componentLabels = Triple("amp", "λ", "σ"), default = PARAM_DEFAULTS.filterIr, parameterPath = "input.filterIr")
         }
         if (part == InputPart.ALL || part == InputPart.SIZE) {
         EnhancedSlider(stringResource(R.string.editor_input_upscale), s.upscaleFactor, OperationalParamLimits.UPSCALE_FACTOR, { s.upscaleFactor = it },
             step = 0.5f, decimals = 1,
             tooltip = stringResource(R.string.editor_input_upscale_tooltip),
-            default = PARAM_DEFAULTS.upscaleFactor)
+            default = PARAM_DEFAULTS.upscaleFactor, parameterPath = "input.upscaleFactor")
         }
         if (part == InputPart.ALL) {
         // Crop is now an interactive overlay (see the crop button under the
@@ -168,10 +168,10 @@ internal fun ImportRawSection(s: ParamsState, isRaw: Boolean, onPickNeutral: () 
         // Gradient bars (instrument catalogue: gradBar): the colour under the thumb is the
         // shift being applied, so the direction reads without the number.
         Instrument(InstrumentKind.GRAD_BAR, stringResource(R.string.editor_wb_warmth), s.creativeWbTemp, -100f..100f,
-            { s.creativeWbTemp = it }, step = 1f, decimals = 0, default = 0f, gradient = WARMTH_STOPS)
+            { s.creativeWbTemp = it }, step = 1f, decimals = 0, default = 0f, gradient = WARMTH_STOPS, parameterPath = "creativeWb.temp")
         InstrumentTooltip(stringResource(R.string.editor_wb_warmth_tooltip))
         Instrument(InstrumentKind.GRAD_BAR, stringResource(R.string.editor_wb_tint), s.creativeWbTint, -100f..100f,
-            { s.creativeWbTint = it }, step = 1f, decimals = 0, default = 0f, gradient = TINT_STOPS)
+            { s.creativeWbTint = it }, step = 1f, decimals = 0, default = 0f, gradient = TINT_STOPS, parameterPath = "creativeWb.tint")
         InstrumentTooltip(stringResource(R.string.editor_wb_tint_tooltip))
 
         Divider()
@@ -185,7 +185,7 @@ internal fun ImportRawSection(s: ParamsState, isRaw: Boolean, onPickNeutral: () 
             s.balanceToFilmStock,
             { s.balanceToFilmStock = it },
             stringResource(if (tungsten) R.string.editor_wb_balance_tungsten else R.string.editor_wb_balance_daylight),
-        )
+         parameterPath = "creativeWb.balanceToFilmStock")
 
         if (isRaw) {
             Divider()
@@ -196,7 +196,7 @@ internal fun ImportRawSection(s: ParamsState, isRaw: Boolean, onPickNeutral: () 
             )
             val customActive = s.rawWhiteBalance == WhiteBalance.CUSTOM
             Dropdown(stringResource(R.string.editor_wb_camera), s.rawWhiteBalance, WhiteBalance.entries.toList(),
-                { it.name.lowercase() }, { s.rawWhiteBalance = it })
+                { it.name.lowercase() }, { s.rawWhiteBalance = it }, parameterPath = "raw.whiteBalance")
             OutlinedButton(
                 onClick = {
                     s.rawWhiteBalance = WhiteBalance.AS_SHOT
@@ -224,14 +224,14 @@ internal fun ImportRawSection(s: ParamsState, isRaw: Boolean, onPickNeutral: () 
                     step = 100f, decimals = 0,
                     tooltip = stringResource(R.string.editor_wb_temperature_tooltip),
                     default = PARAM_DEFAULTS.rawTemperature,
-                )
+                 parameterPath = "raw.temperature")
                 EnhancedSlider(
                     stringResource(R.string.editor_wb_tint_multiplier), s.rawTint, 0f..2f,
                     { s.rawTint = it },
                     step = 0.01f, decimals = 2,
                     tooltip = stringResource(R.string.editor_wb_tint_multiplier_tooltip),
                     default = PARAM_DEFAULTS.rawTint,
-                )
+                 parameterPath = "raw.tint")
             }
         }
     }
@@ -250,14 +250,14 @@ internal fun RawCleanupSection(s: ParamsState) {
             s.rawHotPixels,
             { s.rawHotPixels = it },
             stringResource(R.string.editor_raw_hot_pixels_tooltip),
-        )
+         parameterPath = "raw.hotPixels")
         EnhancedSlider(
             stringResource(R.string.editor_raw_chroma_noise), s.rawChromaNoise, 0f..100f,
             { s.rawChromaNoise = it },
             step = 1f, decimals = 0,
             tooltip = stringResource(R.string.editor_raw_chroma_noise_tooltip),
             default = 0f,
-        )
+         parameterPath = "raw.chromaNoise")
     }
 }
 
@@ -365,7 +365,7 @@ internal fun SimulationSection(
                 // from the panel's scroll.
                 Box(Modifier.fillMaxWidth(), contentAlignment = androidx.compose.ui.Alignment.Center) {
                     Instrument(InstrumentKind.PILL, stringResource(R.string.editor_sim_camera_ev), s.exposureCompensationEv,
-                        -10f..10f, { s.exposureCompensationEv = it }, step = 0.25f, decimals = 2, default = 0f)
+                        -10f..10f, { s.exposureCompensationEv = it }, step = 0.25f, decimals = 2, default = 0f, parameterPath = "camera.exposureCompensationEv")
                 }
                 InstrumentTooltip(stringResource(R.string.editor_sim_camera_ev_tooltip))
                 AutoExposureControl(
@@ -379,17 +379,17 @@ internal fun SimulationSection(
             SimPart.FILM_FORMAT -> {
                 Instrument(InstrumentKind.LENS_GRID, stringResource(R.string.editor_sim_film_format), s.filmFormatMm,
                     OperationalParamLimits.FILM_FORMAT_MM, { s.filmFormatMm = it }, step = 1f, decimals = 0,
-                    default = PARAM_DEFAULTS.filmFormatMm)
+                    default = PARAM_DEFAULTS.filmFormatMm, parameterPath = "camera.filmFormatMm")
                 InstrumentTooltip(stringResource(R.string.editor_sim_film_format_tooltip))
             }
             SimPart.LENS_BLUR -> {
                 EnhancedSlider(stringResource(R.string.editor_sim_camera_lens_blur), s.cameraLensBlurUm, 0f..20f, { s.cameraLensBlurUm = it },
                     step = 0.05f, decimals = 2,
                     tooltip = stringResource(R.string.editor_sim_camera_lens_blur_tooltip),
-                    default = PARAM_DEFAULTS.cameraLensBlurUm)
+                    default = PARAM_DEFAULTS.cameraLensBlurUm, parameterPath = "camera.lensBlurUm")
             }
             SimPart.CAMERA_DIFFUSION ->
-                DiffusionGroup(stringResource(R.string.editor_sim_camera_diffusion), s.cameraDiffusionState)
+                DiffusionGroup(stringResource(R.string.editor_sim_camera_diffusion), s.cameraDiffusionState, "camera.diffusion")
             SimPart.SCENE_LATITUDE -> SceneLatitudeGroup(s)
             SimPart.DATE_STAMP -> DateStampGroup(s, photoDateStamp)
             SimPart.PAPER -> {
@@ -402,7 +402,7 @@ internal fun SimulationSection(
                 )
                 // Slide mode skips the paper altogether, so it sits with the paper choice.
                 if(LocalPhotoTool.current==null) SwitchRow(stringResource(R.string.editor_sim_slide_mode), s.scanFilm, { s.scanFilm = it },
-                    stringResource(R.string.editor_sim_slide_mode_tooltip))
+                    stringResource(R.string.editor_sim_slide_mode_tooltip), parameterPath = "output.scanFilm")
                 OutlinedButton(
                     onClick = onOpenPrintCurves,
                     modifier = Modifier.fillMaxWidth(),
@@ -413,10 +413,10 @@ internal fun SimulationSection(
                 EnhancedSlider(stringResource(R.string.editor_sim_print_exposure), s.printExposure, 0f..4f, { s.printExposure = it },
                     step = 0.02f, decimals = 2,
                     tooltip = stringResource(R.string.editor_sim_print_exposure_tooltip),
-                    default = PARAM_DEFAULTS.printExposure)
+                    default = PARAM_DEFAULTS.printExposure, parameterPath = "enlarger.printExposure")
                 SwitchRow(stringResource(R.string.editor_sim_print_auto_comp), s.printExposureCompensation,
                     { s.printExposureCompensation = it },
-                    stringResource(R.string.editor_sim_print_auto_comp_tooltip))
+                    stringResource(R.string.editor_sim_print_auto_comp_tooltip), parameterPath = "enlarger.printExposureCompensation")
             }
             SimPart.PRINT_COLOR -> {
                 // One puck for the enlarger's colour head: magenta across, yellow up.
@@ -436,16 +436,16 @@ internal fun SimulationSection(
                     EnhancedSlider(stringResource(R.string.editor_sim_enlarger_lens_blur), s.enlargerLensBlur, 0f..20f, { s.enlargerLensBlur = it },
                         step = 0.05f, decimals = 2,
                         tooltip = stringResource(R.string.editor_sim_enlarger_lens_blur_tooltip),
-                        default = PARAM_DEFAULTS.enlargerLensBlur)
+                        default = PARAM_DEFAULTS.enlargerLensBlur, parameterPath = "enlarger.lensBlur")
                 }
-                DiffusionGroup(stringResource(R.string.editor_sim_print_diffusion), s.printDiffusionState)
+                DiffusionGroup(stringResource(R.string.editor_sim_print_diffusion), s.printDiffusionState, "enlarger.diffusion")
             }
             SimPart.SCANNER -> {
                 val ctx = LocalContext.current
                 EnhancedSlider(stringResource(R.string.editor_sim_scan_lens_blur), s.scanLensBlur, 0f..20f, { s.scanLensBlur = it },
                     step = 0.05f, decimals = 2,
                     tooltip = stringResource(R.string.editor_sim_scan_lens_blur_tooltip),
-                    default = PARAM_DEFAULTS.scanLensBlur)
+                    default = PARAM_DEFAULTS.scanLensBlur, parameterPath = "scanner.lensBlur")
                 // Scan white/black correction pins the scan's white/black points to the target levels
                 // below. The engine makes it a STRICT no-op in Slide mode on a negative stock (it's
                 // active only for a slide/positive film on the scan-film route, or in print mode — all
@@ -464,27 +464,27 @@ internal fun SimulationSection(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     SwitchRow(stringResource(R.string.editor_sim_scan_white_correction), s.scanWhiteCorrection, { s.scanWhiteCorrection = it },
-                        stringResource(R.string.editor_sim_scan_white_correction_tooltip))
+                        stringResource(R.string.editor_sim_scan_white_correction_tooltip), parameterPath = "scanner.whiteCorrection")
                     Instrument(InstrumentKind.METER_HIGH, stringResource(R.string.editor_sim_scan_white_level), s.scanWhiteLevel,
                         0f..1f, { s.scanWhiteLevel = it }, step = 0.005f, decimals = 3,
-                        default = PARAM_DEFAULTS.scanWhiteLevel)
+                        default = PARAM_DEFAULTS.scanWhiteLevel, parameterPath = "scanner.whiteLevel")
                     InstrumentTooltip(stringResource(R.string.editor_sim_scan_white_level_tooltip))
                     SwitchRow(stringResource(R.string.editor_sim_scan_black_correction), s.scanBlackCorrection, { s.scanBlackCorrection = it },
-                        stringResource(R.string.editor_sim_scan_black_correction_tooltip))
+                        stringResource(R.string.editor_sim_scan_black_correction_tooltip), parameterPath = "scanner.blackCorrection")
                     Instrument(InstrumentKind.METER_LOW, stringResource(R.string.editor_sim_scan_black_level), s.scanBlackLevel,
                         0f..1f, { s.scanBlackLevel = it }, step = 0.005f, decimals = 3,
-                        default = PARAM_DEFAULTS.scanBlackLevel)
+                        default = PARAM_DEFAULTS.scanBlackLevel, parameterPath = "scanner.blackLevel")
                     InstrumentTooltip(stringResource(R.string.editor_sim_scan_black_level_tooltip))
                 }
                 PairSlider(stringResource(R.string.editor_sim_scan_unsharp), s.scanUnsharpMask, 0f..5f, { s.scanUnsharpMask = it },
                     step = 0.05f, decimals = 2,
                     tooltip = stringResource(R.string.editor_sim_scan_unsharp_tooltip),
-                    componentLabels = "σ" to "amt", default = PARAM_DEFAULTS.scanUnsharpMask)
+                    componentLabels = "σ" to "amt", default = PARAM_DEFAULTS.scanUnsharpMask, parameterPath = "scanner.unsharpMask")
             }
             SimPart.OUTPUT -> {
                 val res = LocalContext.current.resources
                 Dropdown(stringResource(R.string.editor_sim_output_color_space), s.outputColorSpace, ColorSpace.entries.toList(),
-                    { it.name }, { s.outputColorSpace = it })
+                    { it.name }, { s.outputColorSpace = it }, parameterPath = "output.outputColorSpace")
                 // Opt-in gamut compression (default Off => byte-identical to the
                 // parity oracle). Output: ACES Reference Gamut Compression softens
                 // out-of-gamut chromaticities toward the achromatic axis in the
@@ -514,7 +514,7 @@ internal fun SimulationSection(
                         }
                     },
                     { s.outputGamutCompress = it },
-                )
+                 parameterPath = "output.outputGamutCompress")
                 if(LocalPhotoTool.current==null) Dropdown(
                     stringResource(R.string.editor_sim_input_gamut),
                     s.inputGamutCompress,
@@ -526,12 +526,12 @@ internal fun SimulationSection(
                         }
                     },
                     { s.inputGamutCompress = it },
-                )
+                 parameterPath = "output.inputGamutCompress")
                 EnhancedSlider(stringResource(R.string.editor_sim_gamut_compression), s.gamutCompress, 0f..100f, { s.gamutCompress = it },
                     step = 1f, decimals = 0, default = 0f,
-                    tooltip = stringResource(R.string.editor_sim_gamut_compression_tooltip))
+                    tooltip = stringResource(R.string.editor_sim_gamut_compression_tooltip), parameterPath = "grade.gamutCompress")
                 SwitchRow(stringResource(R.string.editor_sim_saving_cctf), s.savingCctfEncoding, { s.savingCctfEncoding = it },
-                    stringResource(R.string.editor_sim_saving_cctf_tooltip))
+                    stringResource(R.string.editor_sim_saving_cctf_tooltip), parameterPath = "output.savingCctfEncoding")
             }
             SimPart.SAT_VIB -> {
                 // Creative grade (post-engine Oklab chroma; parity-safe). Negative Saturation

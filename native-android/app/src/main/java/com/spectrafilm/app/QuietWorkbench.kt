@@ -18,11 +18,18 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.foundation.border
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-internal data class ParameterSearchTarget(val tool:PhotoTool,val path:String,val label:String,val groupId:String?=null)
+internal data class ParameterSearchTarget(val tool:PhotoTool,val path:String,val label:String,val groupId:String?=null,val native:Boolean=false,val requestSerial:Long=0)
+internal val ParameterSearchSaver=Saver<ParameterSearchTarget?,List<String>>(
+    save={target->target?.let{listOf(it.tool.id,it.path,it.label,it.groupId.orEmpty(),it.native.toString(),it.requestSerial.toString())}?:emptyList()},
+    restore={parts->if(parts.size !in 5..6)null else PhotoTool.entries.firstOrNull{it.id==parts[0]}?.let{
+        ParameterSearchTarget(it,parts[1],parts[2],parts[3].ifEmpty{null},parts[4]=="true",parts.getOrNull(5)?.toLongOrNull()?:0)
+    }},
+)
 internal val LocalParameterSearch=staticCompositionLocalOf<ParameterSearchTarget?> { null }
 /** Retains exact control identity across navigation, then scrolls the rendered row. */
 internal fun Modifier.parameterSearchTarget(path:String):Modifier=composed {
@@ -30,7 +37,7 @@ internal fun Modifier.parameterSearchTarget(path:String):Modifier=composed {
     val requester=remember { BringIntoViewRequester() }
     val selected=target?.path==path
     var placed by remember { mutableStateOf(false) }
-    LaunchedEffect(selected,placed){if(selected&&placed)requester.bringIntoView()}
+    LaunchedEffect(selected,placed,target?.requestSerial){if(selected&&placed)requester.bringIntoView()}
     val highlight=if(selected)Modifier.border(1.dp,MaterialTheme.colorScheme.primary,MaterialTheme.shapes.small).padding(8.dp) else Modifier
     this.then(highlight).bringIntoViewRequester(requester).onGloballyPositioned{placed=true}.testTag("parameter-$path")
 }
@@ -52,8 +59,9 @@ internal val LocalParameterFocus = staticCompositionLocalOf<ParameterFocus?> { n
 ) {
     val focus=LocalParameterFocus.current
     val requested=LocalParameterSearch.current
+    val requestedGroup=requested?.resolvedGroupId(LocalContext.current)
     var independent by rememberSaveable(id){mutableStateOf(false)}
-    LaunchedEffect(requested?.path){if(requested?.groupId==id){if(focus==null)independent=true else focus.selected=id}}
+    LaunchedEffect(requested?.path,requested?.requestSerial,requestedGroup,id){if(requestedGroup==id){if(focus==null)independent=true else focus.selected=id}}
     val expanded=if(focus==null)independent else focus.selected==id
     Column(Modifier.fillMaxWidth().testTag("parameter-group-$id")) {
         Row(Modifier.fillMaxWidth().heightIn(min=56.dp)

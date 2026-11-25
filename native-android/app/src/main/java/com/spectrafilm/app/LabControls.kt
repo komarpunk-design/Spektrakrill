@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.spectrafilm.engine.SpektraEngine
 import kotlinx.coroutines.Dispatchers
@@ -87,8 +88,9 @@ internal fun labParameterBuckets(group:String,values:List<JSONObject>):List<Pair
 @Composable internal fun LabOutputSection(s: ParamsState) {
     LabChoice(s,"outputModel.mode","Получение изображения",listOf("paper" to "Фотобумага / кинопозитив","digital" to "Digital Reference · нейтральный позитив","auto-levels" to "Auto Levels · автоматический позитив","lab-scan" to "Lab Scan · минилаб","noritsu-ls600" to "Noritsu LS-600 · реконструкция","nikon-scan" to "Nikon Scan · модель v2 (эксперимент)","negative" to "Негатив на просвет"),"paper")
     val mode=s.labString("outputModel.mode","paper")
-    if(mode=="paper") {
-        SwitchRow("Прямой спектральный скан плёнки",s.scanFilm,{s.scanFilm=it},"Исходный режим приложения: получить позитив плёнки без виртуальной фотобумаги. Digital Reference / Lab Scan выбираются отдельно в списке выше.")
+    if(mode=="paper" || LocalParameterSearch.current?.path=="output.scanFilm") {
+        SwitchRow(stringResource(R.string.native_spectral_scan),s.scanFilm,{s.scanFilm=it},"Исходный режим приложения: получить позитив плёнки без виртуальной фотобумаги. Digital Reference / Lab Scan выбираются отдельно в списке выше.",parameterPath="output.scanFilm")
+        if(mode!="paper")LabNote(stringResource(R.string.native_parameter_other_route))
         if(s.scanFilm)LabNote("Спектральный скан включён: фотобумага обходится.")
     }
     if(mode!="paper") LabNote("Этот маршрут обходит фотобумагу. Параметры съёмки и проявки сохраняются.")

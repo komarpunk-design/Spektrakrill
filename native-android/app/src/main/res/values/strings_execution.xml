@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="operator_report_heading">Last used rendering backends</string>
+    <string name="operator_report_empty">No app-consumed native render yet. Open and process a photo first.</string>
+    <string name="operator_report_identity">Render %1$d · %2$s</string>
+    <string name="operator_report_cache">Cache + CPU preparation</string>
+    <string name="operator_report_unused">No recorded work</string>
+    <string name="operator_report_times">Stage %1$.2f ms · upload %2$.2f · GPU %3$.2f · readback %4$.2f</string>
+    <string name="operator_report_reason">Route reason: %1$s</string>
+    <string name="operator_report_note">This report covers the native engine; file decoding and encoding are outside its scope. GPU + CPU means that GPU kernels ran within the stage. Other work in that stage may run on CPU. Cancelled and superseded results are excluded; no image data is retained.</string>
+    <string name="operator_report_refresh">Refresh rendering diagnostics</string>
+</resources>

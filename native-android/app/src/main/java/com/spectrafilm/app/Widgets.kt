@@ -491,12 +491,13 @@ fun SwitchRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     tooltip: String? = null,
+    parameterPath: String? = null,
 ) {
     // The whole row toggles and is ONE TalkBack node (label + tooltip + state); the inner Switch
     // is display-only (onCheckedChange = null), so the row keeps its own >= 48 dp height.
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+        modifier = Modifier.nativeParameterTarget(parameterPath)
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .clip(MaterialTheme.shapes.small)

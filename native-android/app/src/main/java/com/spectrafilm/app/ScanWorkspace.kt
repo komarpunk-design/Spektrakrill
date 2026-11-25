@@ -225,11 +225,11 @@ internal fun ScanWorkspace(s: ParamsState) {
         ScanGroup("detail", "Детализация", s.scanLensBlur != PARAM_DEFAULTS.scanLensBlur || s.scanUnsharpMask != PARAM_DEFAULTS.scanUnsharpMask) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 EnhancedSlider("Размытие сканера · px", s.scanLensBlur, 0f..20f, { s.scanLensBlur = it },
-                    step = .05f, default = PARAM_DEFAULTS.scanLensBlur,
+                    step = .05f, default = PARAM_DEFAULTS.scanLensBlur, parameterPath = "scanner.lensBlur",
                     tooltip = "Оптическая мягкость после получения позитива. Не меняет размытие объектива камеры.")
                 if(profileActive && s.labBoolean("outputModel.noritsuFilmSharp")) LabNote("Film Sharp включён: обычная нерезкая маска обходится. Её значения сохранены и вернутся при отключении Film Sharp.")
                 else PairSlider("Нерезкая маска", s.scanUnsharpMask, 0f..5f, { s.scanUnsharpMask = it },
-                    step = .05f, decimals = 2, componentLabels = "Радиус" to "Сила", default = PARAM_DEFAULTS.scanUnsharpMask,
+                    step = .05f, decimals = 2, componentLabels = "Радиус" to "Сила", default = PARAM_DEFAULTS.scanUnsharpMask, parameterPath = "scanner.unsharpMask",
                     tooltip = "Повышает локальную резкость готового скана. Сила 0 выключает эффект; разрешение изображения при этом не увеличивается.")
                 TextButton(onClick = { s.scanLensBlur = PARAM_DEFAULTS.scanLensBlur; s.scanUnsharpMask = PARAM_DEFAULTS.scanUnsharpMask }) { Text("Сбросить детализацию") }
             }

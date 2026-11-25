@@ -6,6 +6,18 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RenderLoadPolicyTest {
+    @Test fun workerPolicyRespectsHeatAndRecoveryWithoutChangingNormalConfiguration() {
+        assertEquals(0, RenderLoad().workerLimit(8))
+        assertEquals(0, RenderLoad(1).workerLimit(8))
+        assertEquals(4, RenderLoad(2).workerLimit(8))
+        assertEquals(2, RenderLoad(3).workerLimit(8))
+        assertEquals(1, RenderLoad(4).workerLimit(8))
+        assertEquals(1, RenderLoad(6).workerLimit(8))
+        assertEquals(4, RenderLoad(powerSave = true).workerLimit(8))
+        assertEquals(1, RenderLoad(2).workerLimit(1))
+        assertEquals(1, RenderLoad(3).workerLimit(0))
+        assertEquals(0, RenderLoad(0).workerLimit(8))
+    }
     @Test fun unknownTelemetryDoesNotThrottleAndHotDevicesDoNotSpeculate() {
         assertTrue(RenderLoad().allowSpeculation)
         assertTrue(RenderLoad(1).allowSpeculation)

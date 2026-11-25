@@ -83,7 +83,7 @@ internal fun parameterSearchIndex(ctx:android.content.Context):List<ParameterSea
             } else null
             ParameterSearchTarget(tool,path,row.getString("label"),subgroup)
         }
-    }
+    } + nativeParameterSearchIndex(ctx)
 }
 internal fun parameterSearchMatches(target:ParameterSearchTarget,query:String):Boolean {
     val text="${target.label} ${target.path}".lowercase(Locale.ROOT).replace('ё','е')

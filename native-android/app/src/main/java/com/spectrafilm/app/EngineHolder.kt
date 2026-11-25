@@ -89,5 +89,6 @@ object EngineHolder {
                     .onFailure { Diag.e("engine create via=extract failed", it) }
                     .getOrThrow()
             }
+            .also { ThermalScheduling.install(app) }
     }
 }

@@ -32,6 +32,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -107,7 +108,8 @@ internal fun ColumnScope.EditorBody(
         var savedPhotoTool by rememberSaveable(sourceKey) { mutableStateOf<String?>(null) }
         var lastByStage by rememberSaveable { mutableStateOf(mapOf<String,String>()) }
         val page = if (cropOpen) PhotoTool.CROP else resolvePhotoTool(savedPhotoTool, activeCategory)
-        var parameterRequest by remember { mutableStateOf<ParameterSearchTarget?>(null) }
+        var parameterRequest by rememberSaveable(stateSaver=ParameterSearchSaver) { mutableStateOf<ParameterSearchTarget?>(null) }
+        var parameterRequestSerial by rememberSaveable { mutableLongStateOf(0L) }
         val chooseTool: (PhotoTool) -> Unit = { next ->
             parameterRequest=null
             savedPhotoTool = next.id
@@ -146,7 +148,7 @@ internal fun ColumnScope.EditorBody(
             }
         }
         val resetActiveCategory: (() -> Unit)? = if (page in workflowDirty && !page.lockedByNegative(state)) ({ page.reset(state); onParamsChanged() }) else null
-        val workflowTabs: @Composable () -> Unit = { PhotoToolTabs(page, workflowDirty, resetActiveCategory, onParameter={target->chooseTool(target.tool);parameterRequest=target},onSelect=chooseTool) }
+        val workflowTabs: @Composable () -> Unit = { PhotoToolTabs(page, workflowDirty, resetActiveCategory, onParameter={target->chooseTool(target.tool);parameterRequestSerial++;parameterRequest=target.copy(requestSerial=parameterRequestSerial)},onSelect=chooseTool) }
         val workflowNavigation: @Composable (Boolean) -> Unit = { isWide ->
             PhotoStageNavigation(page, activeCategory != null || cropOpen, workflowDirty, isWide,
                 chooseStage, chooseTool, exportVisible, exportInFlight, onExport, onShare)

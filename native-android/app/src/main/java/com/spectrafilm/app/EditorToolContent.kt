@@ -152,7 +152,7 @@ internal fun ColumnScope.EditorToolContent(
                 PhotoTool.INPUT_COLOR->InputPart.COLOR;PhotoTool.SPECTRUM->InputPart.SPECTRUM
                 PhotoTool.LENS->InputPart.LENS;PhotoTool.OUTPUT_COLOR->InputPart.SIZE;else->InputPart.ALL
             })
-            if(page==PhotoTool.INPUT_COLOR)Dropdown("Входной гамут",state.inputGamutCompress,com.spectrafilm.engine.InputGamutCompress.entries,{it.name},{state.inputGamutCompress=it})
+            if(page==PhotoTool.INPUT_COLOR)Dropdown("Входной гамут",state.inputGamutCompress,com.spectrafilm.engine.InputGamutCompress.entries,{it.name},{state.inputGamutCompress=it},parameterPath="output.inputGamutCompress")
         }
         Category.RAW_WB -> ImportRawSection(state, isRaw = isRawSource,
             onPickNeutral = { toolVm.onAction(EditorToolAction.PickNeutral) })
@@ -192,13 +192,21 @@ internal fun ColumnScope.EditorToolContent(
         }
         Category.GRAIN -> {
             LabChoice(state,"grainRms","Модель зерна",listOf("false" to "Spektrafilm","true" to "RMS · Experimental / Negs"),"false")
-            if(state.labBoolean("grainRms"))LabGrainSection(state) else GrainSection(state)
+            val nativeTarget=LocalParameterSearch.current?.let{it.native&&it.path.startsWith("grain.")}==true
+            if(state.labBoolean("grainRms")&&!nativeTarget)LabGrainSection(state) else {
+                if(nativeTarget&&state.labBoolean("grainRms"))LabNote(ctx.getString(R.string.native_parameter_other_model))
+                GrainSection(state)
+            }
         }
         Category.PREFLASH -> PreflashSection(state)
         Category.CONTRAST_MASK -> ContrastMaskSection(state)
         Category.HALATION -> {
             LabChoice(state,"layeredTransport.model","Модель галяции",listOf("legacy" to "Spektrafilm","layered" to "Layered Transport"),"legacy")
-            if(state.labString("layeredTransport.model","legacy")=="layered")LabHalationSection(state) else HalationSection(state)
+            val nativeTarget=LocalParameterSearch.current?.let{it.native&&it.path.startsWith("halation.")}==true
+            if(state.labString("layeredTransport.model","legacy")=="layered"&&!nativeTarget)LabHalationSection(state) else {
+                if(nativeTarget&&state.labString("layeredTransport.model","legacy")=="layered")LabNote(ctx.getString(R.string.native_parameter_other_model))
+                HalationSection(state)
+            }
         }
         Category.COUPLERS -> {
             LabChoice(state,"dirLangmuir","Модель DIR",listOf("false" to "Классическая","true" to "Langmuir"),"false")
