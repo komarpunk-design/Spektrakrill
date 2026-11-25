@@ -364,6 +364,7 @@ target_link_libraries(prepared_cache_probe PRIVATE Threads::Threads)
 add_test(NAME prepared_cache_probe COMMAND prepared_cache_probe)
 
 add_test(NAME audit_noritsu_minimum COMMAND audit_context_probe noritsu-min "${SPK_ASSETS}")
+add_test(NAME audit_noritsu_cancellation COMMAND audit_context_probe noritsu-cancel "${SPK_ASSETS}")
 add_executable(operator_telemetry_probe operator_telemetry_probe.cpp)
 target_include_directories(operator_telemetry_probe PRIVATE ${ROOT})
 target_link_libraries(operator_telemetry_probe PRIVATE spektra_host)

@@ -7,6 +7,7 @@ package com.spectrafilm.app
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -16,11 +17,31 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 class ExportTransactionTest {
+
+    @Test fun laterSameSizeMutationStillFailsTheTransactionWriteDigest() {
+        val file = temporaryFolder.newFile()
+        lateinit var stream: ArtifactDigestOutputStream
+        FileOutputStream(file).use { output ->
+            stream = ArtifactDigestOutputStream(output)
+            stream.write(byteArrayOf(1, 2, 3))
+        }
+        val artifact = stream.finish(file)
+        file.writeBytes(byteArrayOf(3, 2, 1))
+        val backend = FakePendingExportBackend()
+        try {
+            ExportTransaction(backend, FakePendingExportJournal()).commit(artifact,
+                ExportDestinationSpec("stream.png", "image/png", "Pictures/Spektrafilm"))
+            fail("must reject changed bytes")
+        } catch (_: IOException) { }
+        assertEquals(0, backend.totalPublishCalls)
+        assertEquals(1, backend.totalDeleteCalls)
+    }
 
     @get:Rule
     val temporaryFolder = TemporaryFolder()

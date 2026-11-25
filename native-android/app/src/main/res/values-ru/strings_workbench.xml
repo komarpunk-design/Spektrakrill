@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="batch_waiting_for_cooling">Пауза для охлаждения · качество экспорта сохраняется</string>
     <string name="workbench_stage_camera">Камера</string>
     <string name="workbench_stage_film">Плёнка</string>
     <string name="workbench_stage_development">Проявка</string>

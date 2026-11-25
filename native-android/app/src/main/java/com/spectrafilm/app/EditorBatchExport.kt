@@ -204,7 +204,9 @@ internal fun BatchExportProgressEffect(
         val p = batchProgress ?: return@LaunchedEffect
         if (!p.finished) {
             setStatus(
-                if (p.pair) {
+                if (p.waitingForCooling) {
+                    ctx.getString(R.string.batch_waiting_for_cooling)
+                } else if (p.pair) {
                     ctx.getString(R.string.editor_snack_pair_running)
                 } else {
                     ctx.getString(R.string.editor_status_batch_progress, p.position, p.total)

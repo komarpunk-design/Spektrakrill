@@ -1,6 +1,7 @@
 #include "spektra.h"
 #include "model/layered_transport.h"
 #include "model/noritsu_advanced.h"
+#include "kernels/parallel.h"
 #include <iomanip>
 #include <sstream>
 #include <iostream>
@@ -9,6 +10,21 @@
 #include <string>
 int main(int argc,char**argv){
  if(argc<3)return 2;
+ if(std::string(argv[1])=="noritsu-cancel") {
+  auto job=spk::noritsu::advanced::builtin_job("ls600-g0t1-neutral-v1");
+  std::vector<float> pixels(256*128*3,20000.f);
+  int polls=0;bool cancelled=false;
+  try {
+   spk::ParallelCancellationScope scope([](void* p)->int{return ++*static_cast<int*>(p)>=2;},&polls);
+   spk::noritsu::advanced::process(pixels.data(),256,128,*job,false,false,false);
+  } catch(const spk::ParallelCancelled&) { cancelled=true; }
+  if(!cancelled||polls!=2)return 22;
+  std::fill(pixels.begin(),pixels.end(),20000.f);
+  spk::noritsu::advanced::process(pixels.data(),256,128,*job,false,false,false);
+  for(auto v:pixels)if(!std::isfinite(v))return 23;
+  std::cout<<"PASS serial Noritsu compaction cancelled by second poll, subsequent process succeeds\n";
+  return 0;
+ }
  if(std::string(argv[1])=="transport"){
   spk::transport::Params p;p.model="layered";double strengths[]={.1,.05,.025};
   std::shared_ptr<const spk::transport::Prepared> first;

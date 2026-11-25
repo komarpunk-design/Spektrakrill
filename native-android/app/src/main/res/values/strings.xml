@@ -2,4 +2,5 @@
 <!-- Spektrafilm for Android. GPLv3. -->
 <resources>
     <string name="app_name">Spektrafilm</string>
+    <string name="batch_waiting_for_cooling">Waiting for the device to cool · export quality is preserved</string>
 </resources>

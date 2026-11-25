@@ -112,6 +112,7 @@ internal data class BatchExportProgress(
     /** A half-frame pair export (HalfFramePair.kt): one picture made of two photos. */
     val pair: Boolean = false,
     val queueId: String? = null,
+    val waitingForCooling: Boolean = false,
 ) {
     /** 1-based position of the photo being rendered now. */
     val position: Int get() = (done + failed + 1).coerceAtMost(total)
@@ -211,10 +212,17 @@ internal suspend fun runBatchExport(
     var failed = (0 until total).count{queue.row(it).optString("status") in listOf("failed","blocked")}
     var lastPublished: Uri? = null
     var finished = false
+    var previousPhotoMs = 0L
     try {
         for ((index, source) in sources.withIndex()) {
             currentCoroutineContext().ensureActive()
             if(index !in runnable)continue
+            val restMs = awaitBatchCooling(previousPhotoMs, { currentRenderLoad(context) }, { waiting ->
+                BatchExportTracker.publish(BatchExportProgress(total, done, failed, source.name, finished = false,
+                    queueId = queue.id, waitingForCooling = waiting))
+            })
+            queue.row(index).put("cooldown_ms", restMs)
+            val photoStartedNs = System.nanoTime()
             val timing=BatchPhotoTiming()
             queue.row(index).put("status","running");queue.save()
             BatchExportTracker.publish(BatchExportProgress(total, done, failed, source.name, finished = false,queueId=queue.id))
@@ -240,6 +248,7 @@ internal suspend fun runBatchExport(
                 // Between photos, hand back the GPU buffers a full-resolution render holds, as
                 // the runtime does after a single export (#269).
                 releaseGpuAfterFullResRender("batch export")
+                previousPhotoMs = ((System.nanoTime() - photoStartedNs) / 1_000_000L).coerceAtLeast(0L)
             }
         }
         finished = true

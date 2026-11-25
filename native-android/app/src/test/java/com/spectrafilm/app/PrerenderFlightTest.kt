@@ -24,6 +24,45 @@ import org.junit.Test
 class PrerenderFlightTest {
     private fun flight() = PrerenderFlight(CoroutineScope(SupervisorJob() + Dispatchers.Default))
 
+    @Test fun thermalPressureCancelsSpeculationWhileItIsRunning() = runBlocking {
+        val f = flight()
+        val started = CompletableDeferred<Unit>()
+        val pressure = AtomicBoolean(false)
+        val render = f.launch("warm", mayContinue = { !pressure.get() }, monitorIntervalMs = 10L) {
+            started.complete(Unit)
+            awaitCancellation()
+        }
+        withTimeout(5_000L) { started.await() }
+        pressure.set(true)
+        withTimeout(5_000L) { render.join() }
+        assertTrue(render.isCancelled)
+        assertNull(f.inFlightKey())
+    }
+
+    @Test fun thermalPressureDoesNotCancelWorkAnExportHasAlreadyClaimed() = runBlocking {
+        val f = flight()
+        val started = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val pressure = AtomicBoolean(false)
+        val checkedWhileHot = CompletableDeferred<Unit>()
+        val render = f.launch("claimed", mayContinue = {
+            if (pressure.get()) checkedWhileHot.complete(Unit)
+            !pressure.get()
+        }, monitorIntervalMs = 10L) {
+            started.complete(Unit)
+            release.await()
+            true
+        }
+        withTimeout(5_000L) { started.await() }
+        val joining = async(start = CoroutineStart.UNDISPATCHED) { f.settle("claimed") }
+        pressure.set(true)
+        withTimeout(5_000L) { checkedWhileHot.await() }
+        assertFalse(render.isCancelled)
+        release.complete(Unit)
+        assertTrue(withTimeout(5_000L) { joining.await() })
+        assertTrue(render.await())
+    }
+
     @Test
     fun exportOfTheSameEditJoinsTheFlightAndSeesItsResult() = runBlocking {
         val f = flight()

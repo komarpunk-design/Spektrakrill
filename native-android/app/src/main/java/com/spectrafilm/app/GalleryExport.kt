@@ -242,23 +242,11 @@ suspend fun saveToGallery(
     // EXIF failure, ENOSPC and interruption fail before any public gallery item is visible.
     val stage = File.createTempFile("spectrafilm-export-", ".${format.ext}.part", ctx.cacheDir)
     try {
+        lateinit var encodedStream: ArtifactDigestOutputStream
         FileOutputStream(stage).use { fileOutput ->
             // Bitmap.compress is native, but it emits encoded chunks through this stream.
             // Poll at that boundary so cancellation cannot leave a stale public item.
-            val output = object : OutputStream() {
-                override fun write(value: Int) {
-                    ensureExportActive()
-                    fileOutput.write(value)
-                }
-
-                override fun write(buffer: ByteArray, offset: Int, length: Int) {
-                    ensureExportActive()
-                    fileOutput.write(buffer, offset, length)
-                    ensureExportActive()
-                }
-
-                override fun flush() = fileOutput.flush()
-            }
+            val output = ArtifactDigestOutputStream(fileOutput, isCancelled).also { encodedStream = it }
             val compressed = bmp.compress(compress, quality, output)
             ensureExportActive()
             if (!compressed) {
@@ -277,7 +265,10 @@ suspend fun saveToGallery(
             descriptor.metadata.exifColorSpace,
         )
         ensureExportActive()
-        val artifact = EncodedArtifact.fromCompletedFile(stage, isCancelled = isCancelled)
+        // JPEG EXIF rewrites the container, so only the unmodified stream can reuse its digest.
+        // TIFF/native writers keep their completed-file check on their own paths.
+        val artifact = if (writeExif) EncodedArtifact.fromCompletedFile(stage, isCancelled = isCancelled)
+            else encodedStream.finish(stage)
         val published = publishStagedToGallery(
             ctx,
             artifact,
@@ -500,26 +491,24 @@ private fun publishLegacyArtifact(
     var destination: File? = null
     var destinationCommitted = false
     try {
-        val copied = FileOutputStream(part).use { output ->
-            val count = artifact.file.inputStream().use { input ->
+        lateinit var copyStream: ArtifactDigestOutputStream
+        FileOutputStream(part).use { fileOutput ->
+            val output = ArtifactDigestOutputStream(fileOutput, isCancelled).also { copyStream = it }
+            artifact.file.inputStream().use { input ->
                 val buffer = ByteArray(256 * 1024)
-                var total = 0L
                 while (true) {
                     ensureExportActive()
                     val read = input.read(buffer)
                     if (read < 0) break
                     output.write(buffer, 0, read)
-                    total += read
                     ensureExportActive()
                 }
-                total
             }
             output.flush()
-            output.fd.sync()
+            fileOutput.fd.sync()
             ensureExportActive()
-            count
         }
-        val copiedArtifact = EncodedArtifact.fromCompletedFile(part, copied, isCancelled)
+        val copiedArtifact = copyStream.finish(part)
         check(copiedArtifact.length == artifact.length && copiedArtifact.sha256 == artifact.sha256) {
             "legacy export digest mismatch"
         }

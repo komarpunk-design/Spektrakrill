@@ -241,13 +241,7 @@ internal object RenderPayloads {
      * saving is hypothetical.
      */
     fun shouldPrerender(context: android.content.Context, sourcePixels: Long? = null): Boolean {
-        val power = context.getSystemService(android.os.PowerManager::class.java)
-        if (power?.isPowerSaveMode == true) return false
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q &&
-            (power?.currentThermalStatus ?: 0) > android.os.PowerManager.THERMAL_STATUS_LIGHT
-        ) {
-            return false
-        }
+        if (!currentRenderLoad(context).allowSpeculation) return false
         val activity = context.getSystemService(android.app.ActivityManager::class.java)
             ?: return true
         val info = android.app.ActivityManager.MemoryInfo()

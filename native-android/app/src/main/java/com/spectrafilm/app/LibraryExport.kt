@@ -317,7 +317,9 @@ internal fun LibraryExportProgress(modifier: Modifier = Modifier) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite }) {
                     Text(
-                        if (p.finished) libraryExportResult(p) else stringResource(R.string.library_export_progress, p.position, p.total),
+                        if (p.finished) libraryExportResult(p) else if (p.waitingForCooling)
+                            stringResource(R.string.batch_waiting_for_cooling)
+                        else stringResource(R.string.library_export_progress, p.position, p.total),
                         style = MaterialTheme.typography.titleSmall,
                     )
                     if (!p.finished) {

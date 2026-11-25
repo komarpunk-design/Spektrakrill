@@ -97,6 +97,8 @@ internal data class AbandonedExportStageRecoveryReport(
     val retained: Int,
 )
 
+internal data class ExportIoTimings(val bytes: Long, val copyAndHashMs: Long, val readbackMs: Long, val publishMs: Long)
+
 /**
  * Synchronous commit state machine. Call from Dispatchers.IO. A success is returned
  * only after destination close, readback length/SHA-256 verification, one publish
@@ -105,6 +107,7 @@ internal data class AbandonedExportStageRecoveryReport(
 internal class ExportTransaction(
     private val backend: PendingExportBackend,
     private val journal: PendingExportJournal,
+    private val onIoTimings: (ExportIoTimings) -> Unit = {},
 ) {
     fun commit(
         artifact: EncodedArtifact,
@@ -140,12 +143,15 @@ internal class ExportTransaction(
 
         try {
             throwIfExportCancelled(isCancelled)
+            val copyStarted = System.nanoTime()
             val copied = copyAndDigest(artifact.file, backend.openWrite(token), isCancelled)
+            val copyFinished = System.nanoTime()
             if (copied.length != artifact.length || copied.sha256 != artifact.sha256) {
                 throw IOException("destination write digest differs from staged artifact")
             }
 
             val readback = backend.openRead(token).use { digest(it, isCancelled) }
+            val readbackFinished = System.nanoTime()
             if (readback.length != artifact.length || readback.sha256 != artifact.sha256) {
                 throw IOException("destination readback digest differs from staged artifact")
             }
@@ -159,6 +165,11 @@ internal class ExportTransaction(
             if (backend.state(token) != StoredExportState.PUBLISHED) {
                 throw IOException("destination did not confirm published state")
             }
+            // Telemetry is advisory and cannot change an already-committed outcome.
+            runCatching { onIoTimings(ExportIoTimings(artifact.length,
+                (copyFinished - copyStarted) / 1_000_000L,
+                (readbackFinished - copyFinished) / 1_000_000L,
+                (System.nanoTime() - readbackFinished) / 1_000_000L)) }
             // This callback is inside the synchronous transaction, immediately after provider
             // confirmation and before any caller can hit a cancellable dispatcher return.
             reportPublication()
@@ -438,6 +449,10 @@ internal class SharedPreferencesPendingExportJournal(context: Context) : Pending
 internal fun mediaStoreExportTransaction(context: Context): ExportTransaction = ExportTransaction(
     AndroidPendingExportBackend(context),
     SharedPreferencesPendingExportJournal(context),
+    onIoTimings = { timing ->
+        Diag.i("export IO bytes=${timing.bytes} copy_hash_ms=${timing.copyAndHashMs} " +
+            "readback_ms=${timing.readbackMs} publish_ms=${timing.publishMs}")
+    },
 )
 
 internal fun recoverPendingMediaStoreExports(context: Context): ExportRecoveryReport =

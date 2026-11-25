@@ -338,7 +338,7 @@ internal suspend fun CoroutineScope.runSpeculativePrerender(
     // #270: the render runs as a tracked flight, not as this effect's child, so an
     // export of this very edit can join it instead of throwing it away (see
     // PrerenderFlight). Any other cancellation of this effect cancels it as before.
-    val flight = RenderPayloads.flight.launch(key) {
+    val flight = RenderPayloads.flight.launch(key, mayContinue = { currentRenderLoad(app).allowSpeculation }) {
         withContext(dispatchers.default) {
             val image = decodeSourceRequest(request, EXPORT_MAX_EDGE_PX, dispatchers.io).image
             // Ultra HDR's scene tap reads the decode, which an export served from

@@ -23,12 +23,16 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 internal class PrerenderFlight(
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + ProcessDispatchers.default),
 ) {
-    private class Flight(val key: String, val deferred: Deferred<Boolean>)
+    private class Flight(val key: String, val deferred: Deferred<Boolean>, var claimedByExport: Boolean = false)
 
     private val lock = Any()
     private var current: Flight? = null
@@ -38,8 +42,30 @@ internal class PrerenderFlight(
      * result is true when the payload was stored. The caller awaits it, and on its own
      * cancellation decides whether the flight lives on for an export to join.
      */
-    fun launch(key: String, render: suspend () -> Boolean): Deferred<Boolean> {
-        val deferred = scope.async(start = CoroutineStart.LAZY) { render() }
+    fun launch(
+        key: String,
+        mayContinue: () -> Boolean = { true },
+        monitorIntervalMs: Long = 1_000L,
+        render: suspend () -> Boolean,
+    ): Deferred<Boolean> {
+        require(monitorIntervalMs > 0L)
+        lateinit var deferred: Deferred<Boolean>
+        deferred = scope.async(start = CoroutineStart.LAZY) {
+            coroutineScope {
+                val watcher = launch(start = CoroutineStart.UNDISPATCHED) {
+                    while (true) {
+                        if (!mayContinue()) {
+                            synchronized(lock) {
+                                current?.takeIf { it.deferred === deferred && !it.claimedByExport }
+                                    ?.deferred?.cancel(CancellationException("speculative render stopped for thermal/power pressure"))
+                            }
+                        }
+                        delay(monitorIntervalMs)
+                    }
+                }
+                try { ensureActive(); render() } finally { watcher.cancel() }
+            }
+        }
         val previous = synchronized(lock) {
             val old = current
             current = Flight(key, deferred)
@@ -60,7 +86,9 @@ internal class PrerenderFlight(
      * when a flight for [key] was joined. A cancelled export cancels the flight it was joining.
      */
     suspend fun settle(key: String?): Boolean {
-        val flight = synchronized(lock) { current } ?: return false
+        val flight = synchronized(lock) {
+            current?.also { if (key != null && it.key == key) it.claimedByExport = true }
+        } ?: return false
         val joining = key != null && flight.key == key
         if (!joining) flight.deferred.cancel()
         try {

@@ -14,6 +14,12 @@ namespace spk::noritsu::advanced {
 namespace {
 using V=spk::json::Value;
 void need(bool v,const char* text){if(!v)throw std::invalid_argument(text);}
+// These in-place compaction/expansion maps must remain serial because their byte
+// windows overlap. Poll on the owning thread, never invoke its JNI callback on a worker.
+void serial_cancel_point(size_t i) {
+ if((i & (spk::kCancellationPollWork-1))==0 && spk::parallel_cancellation_requested())
+  throw spk::ParallelCancelled{};
+}
 int64_t word(const V& v,int64_t lo,int64_t hi){need(v.is_number(),"Noritsu: expected integer");double n=v.as_number();need(std::isfinite(n)&&n==std::trunc(n)&&n>=lo&&n<=hi,"Noritsu: integer outside source domain");return int64_t(n);}
 int64_t num(const V& v,const char* key,int64_t lo,int64_t hi){return word(v.at(key),lo,hi);}
 std::vector<int64_t> ints(const V& v,size_t n,int64_t lo,int64_t hi){need(v.is_array()&&v.array.size()==n,"Noritsu: wrong parameter array size");std::vector<int64_t> r;for(auto& x:v.array)r.push_back(word(*x,lo,hi));return r;}
@@ -94,8 +100,8 @@ void process(float* data,int w,int h,const Job& job,bool useLocal,bool useSharp,
  if(useLocal && (w<minimum_axis(job)||h<minimum_axis(job)))throw std::invalid_argument(
   "Noritsu Auto Contrast: this job requires at least "+std::to_string(minimum_axis(job))+" pixels on each axis; source is "+std::to_string(w)+"x"+std::to_string(h)+". Use a larger source or explicitly disable Auto Contrast.");
  need(w>0&&h>0,"Noritsu: invalid image");Raster r{reinterpret_cast<unsigned char*>(data),w,h};
- for(int i=0;i<w*h;i++){Pixel p;for(int k=0;k<3;k++)p[k]=uclip(int64_t(data[i*3+k]));std::memcpy(r.bytes+size_t(i)*6,p.data(),6);}
+ for(int i=0;i<w*h;i++){serial_cancel_point(size_t(i));Pixel p;for(int k=0;k<3;k++)p[k]=uclip(int64_t(data[i*3+k]));std::memcpy(r.bytes+size_t(i)*6,p.data(),6);}
  forward(r,job);if(useLocal){need(bool(job.local),"Noritsu: load original Auto Contrast parameters");local(r,*job.local);}if(useSharp){need(bool(job.sharp),"Noritsu: load original Film Sharp block");sharp(r,job);}correct(r,job);if(useHue)hue(r,job);
- for(int i=w*h-1;i>=0;i--){Pixel p;std::memcpy(p.data(),r.bytes+size_t(i)*6,6);p=inverse(p,job);for(int k=0;k<3;k++){double v=p[k]/65535.;data[i*3+k]=float(job.srgb?(v<=.04045?v/12.92:std::pow((v+.055)/1.055,2.4)):v);}}
+ for(int i=w*h-1;i>=0;i--){serial_cancel_point(size_t(w*h-1-i));Pixel p;std::memcpy(p.data(),r.bytes+size_t(i)*6,6);p=inverse(p,job);for(int k=0;k<3;k++){double v=p[k]/65535.;data[i*3+k]=float(job.srgb?(v<=.04045?v/12.92:std::pow((v+.055)/1.055,2.4)):v);}}
 }
 }
