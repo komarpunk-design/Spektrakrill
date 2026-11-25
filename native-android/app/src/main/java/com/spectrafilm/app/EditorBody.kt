@@ -107,7 +107,9 @@ internal fun ColumnScope.EditorBody(
         var savedPhotoTool by rememberSaveable(sourceKey) { mutableStateOf<String?>(null) }
         var lastByStage by rememberSaveable { mutableStateOf(mapOf<String,String>()) }
         val page = if (cropOpen) PhotoTool.CROP else resolvePhotoTool(savedPhotoTool, activeCategory)
+        var parameterRequest by remember { mutableStateOf<ParameterSearchTarget?>(null) }
         val chooseTool: (PhotoTool) -> Unit = { next ->
+            parameterRequest=null
             savedPhotoTool = next.id
             next.stage?.let { stage -> lastByStage = lastByStage + (stage.name to next.id) }
             if (next == PhotoTool.CROP) { if (!cropOpen) onOpenCrop() }
@@ -124,7 +126,7 @@ internal fun ColumnScope.EditorBody(
         val panelContent: @Composable ColumnScope.() -> Unit = {
             CompositionLocalProvider(LocalSliderInteraction provides sliderInteraction, LocalPhotoTool provides page,
                 LocalPhotoExport provides PhotoExportAction(exportVisible && !exportInFlight, onExport),
-                LocalPhotoNavigate provides chooseTool, LocalQuietEditor provides true) {
+                LocalPhotoNavigate provides chooseTool, LocalQuietEditor provides true, LocalParameterSearch provides parameterRequest) {
                 key(page.id) {
                     val parameterFocus=rememberSaveable(saver=ParameterFocus.saver) { ParameterFocus() }
                     CompositionLocalProvider(LocalParameterFocus provides parameterFocus) {
@@ -144,7 +146,7 @@ internal fun ColumnScope.EditorBody(
             }
         }
         val resetActiveCategory: (() -> Unit)? = if (page in workflowDirty && !page.lockedByNegative(state)) ({ page.reset(state); onParamsChanged() }) else null
-        val workflowTabs: @Composable () -> Unit = { PhotoToolTabs(page, workflowDirty, resetActiveCategory, chooseTool) }
+        val workflowTabs: @Composable () -> Unit = { PhotoToolTabs(page, workflowDirty, resetActiveCategory, onParameter={target->chooseTool(target.tool);parameterRequest=target},onSelect=chooseTool) }
         val workflowNavigation: @Composable (Boolean) -> Unit = { isWide ->
             PhotoStageNavigation(page, activeCategory != null || cropOpen, workflowDirty, isWide,
                 chooseStage, chooseTool, exportVisible, exportInFlight, onExport, onShare)

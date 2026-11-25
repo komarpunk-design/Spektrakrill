@@ -297,6 +297,7 @@ struct spk_engine {
     struct FilmCacheEntry {
         int width = 0;
         int height = 0;
+        spk::memory::MemoryReservation reservation;
         std::vector<float> film_density_cmy;
     };
     struct FilmMemoSlot {
@@ -311,6 +312,7 @@ struct spk_engine {
     enum FilmMemoRoute { kMemoPrint = 0, kMemoScan = 1 };
     std::mutex film_cache_mutex;
     FilmMemoSlot film_memo[2];
+    FilmMemoSlot grain_memo[2];
 
     // SPECTRAL 3D-LUT memo (PERF), shared by the opt-in scanner LUT (scan()) and
     // the opt-in enlarger LUT (print_expose()). Both are pure functions of the
@@ -423,6 +425,10 @@ uint64_t spk_test_scan_film_cache_misses(spk_engine* eng) {
     if (!eng) return 0;
     std::lock_guard<std::mutex> g(eng->film_cache_mutex);
     return eng->film_memo[spk_engine::kMemoScan].misses;
+}
+uint64_t spk_test_grain_cache_hits(spk_engine* eng,int scan) {
+    if(!eng)return 0;std::lock_guard<std::mutex> lock(eng->film_cache_mutex);
+    return eng->grain_memo[scan?spk_engine::kMemoScan:spk_engine::kMemoPrint].hits;
 }
 uint64_t spk_test_pregrain_cache_hits(spk_engine* eng, int scan) {
     if (!eng) return 0;
@@ -610,7 +616,7 @@ class ProfileInvalid final : public std::runtime_error {
 static std::shared_ptr<const spk::NdArray> engine_experimental_spectra(spk_engine* eng,const std::string& method){
     std::lock_guard<std::mutex> guard(eng->lut_mutex);
     if(eng->experimental_spectra_id==method&&eng->experimental_spectra)return eng->experimental_spectra;
-    const std::string path="luts/experimental/"+method+".npy";
+    const std::string path=method=="hanatos2025"?kSpectraLutRel:"luts/experimental/"+method+".npy";
     std::vector<char> bytes;
     if(!spk_read_asset(eng,path.c_str(),bytes,spk::kMaxNpyFileBytes))throw std::runtime_error("Missing experimental spectral basis");
     auto array=std::make_shared<spk::NdArray>(spk::parse_npy(bytes.data(),bytes.size(),path.c_str()));
@@ -1359,6 +1365,61 @@ struct PreprocessedInput {
     double gain = 1.0;
 };
 
+// Optional raster residency is admitted against the same process budget as GPU
+// and decode memory. Strong devices can retain a full 2048 square; small budgets
+// skip caching without lowering preview quality. At most five slots per engine.
+static size_t raster_cache_limit() {
+    const auto limit=spk::memory::process_memory_budget().limit_bytes();
+    return size_t(std::min<uint64_t>(64ull<<20,limit/16));
+}
+template<class Buffer> static bool store_density(spk_engine::FilmMemoSlot& slot,
+        uint64_t key,int w,int h,const Buffer& values) {
+    slot.valid=false;
+    slot.entry=spk_engine::FilmCacheEntry{};
+    const size_t bytes=values.size()*sizeof(float);
+    if(bytes>raster_cache_limit())return false;
+    auto reservation=spk::memory::process_memory_budget().try_reserve(bytes,
+        spk::memory::MemoryDomain::Cache,spk::memory::MemoryStage::Filming);
+    if(!reservation)return false;
+    try {
+        slot.entry.film_density_cmy.assign(values.begin(),values.end());
+    } catch(const std::bad_alloc&){return false;}
+    slot.entry.reservation=std::move(reservation);
+    slot.entry.width=w;slot.entry.height=h;slot.key=key;slot.valid=true;
+    return true;
+}
+template<class Buffer> static void apply_grain_cached(spk_engine* eng,int route,
+        uint64_t key,int w,int h,const spk::Profile& film,
+        const spk::FilmingParams& params,const spk_params* p,Buffer& density) {
+    const auto& grain=params.grain;
+    // Never hash struct padding. Include every effective sampler, layer, physical
+    // scale, RMS and finishing control, plus conservative Lab dependencies.
+#define GRAIN_KEY(field) key=fnv1a64(key,&grain.field,sizeof(grain.field))
+    GRAIN_KEY(rms_mode);GRAIN_KEY(rms_granularity);GRAIN_KEY(mult_usm_sigma);GRAIN_KEY(mult_usm_amount);
+    GRAIN_KEY(active);GRAIN_KEY(sublayers_active);GRAIN_KEY(agx_particle_area_um2);
+    GRAIN_KEY(agx_particle_scale);GRAIN_KEY(agx_particle_scale_layers);GRAIN_KEY(density_min);
+    GRAIN_KEY(density_max_curves);GRAIN_KEY(uniformity);GRAIN_KEY(blur);GRAIN_KEY(blur_dye_clouds_um);
+    GRAIN_KEY(micro_structure);GRAIN_KEY(n_sub_layers);GRAIN_KEY(seed_base);GRAIN_KEY(seed_offset);
+    GRAIN_KEY(fast_sampler);GRAIN_KEY(allow_gpu_sampler);
+#undef GRAIN_KEY
+    key=fnv1a64(key,&params.pixel_size_um,sizeof(params.pixel_size_um));
+    const auto lab=spk::lab_dependencies::key(p->experimental_json,false,false);
+    key=fnv1a64(key,lab.data(),lab.size());
+    {
+        std::lock_guard<std::mutex> lock(eng->film_cache_mutex);
+        auto& slot=eng->grain_memo[route];
+        if(slot.valid&&slot.key==key&&slot.entry.width==w&&slot.entry.height==h&&slot.entry.film_density_cmy.size()==density.size()) {
+            density.assign(slot.entry.film_density_cmy.begin(),slot.entry.film_density_cmy.end());
+            ++slot.hits;spk::stage_timing_note_cache(spk::STG_GRAIN,true);return;
+        }
+        ++slot.misses;spk::stage_timing_note_cache(spk::STG_GRAIN,false);
+    }
+    spk::apply_film_grain(w,h,film,params,density.data());
+    if(spk::parallel_cancellation_requested())return;
+    std::lock_guard<std::mutex> lock(eng->film_cache_mutex);
+    store_density(eng->grain_memo[route],key,w,h,density);
+}
+
 // ONE predicate for both halves of one invariant, because they are not
 // independent: the direct form leaves `pin.rgb` EMPTY, and every buffer memo
 // keys off those bytes. The existing comments spell the coupling out -- "the
@@ -1377,7 +1438,7 @@ struct PreprocessedInput {
 // test_simulate_e2e scenario G's flag-on vs flag-off byte identity.
 inline bool one_shot_render(const spk_params* p) noexcept {
     return p->disable_buffer_memos != 0 || (p->gpu_export != 0 &&
-        (!g_interactive_preview || g_preview_pixels > 2u * 1024u * 1024u));
+        (!g_interactive_preview || g_preview_pixels * 12u > raster_cache_limit()));
 }
 
 // One horizontal band of a frame too large to render whole (see
@@ -2366,7 +2427,8 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
                          int* out_w = nullptr, int* out_h = nullptr,
                          spk_cancel_check cancel = nullptr,
                          void* cancel_user_data = nullptr,
-                         const BandFrame* band = nullptr) try {
+                         const BandFrame* band = nullptr,
+                         double* meter_ev = nullptr) try {
     if (!eng || !p || !valid_preprocess_geometry(in, p)) {
         return SPK_ERR_BAD_ARGS;
     }
@@ -2472,6 +2534,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
     fparams.transport_stock=p->film_profile?p->film_profile:"";
     fparams.raw_auto_exposure=!film.experimental_method.empty() && p->auto_exposure!=0;
     fparams.raw_auto_exposure_method=p->auto_exposure_method;
+    fparams.raw_meter_ev_out=meter_ev;
     apply_user_dir_couplers(fparams.dir_couplers, p);
     spk::configure_experimental_couplers(fparams.dir_couplers, p->experimental_json, &film);
     if(film.monochrome&&film.experimental_source){
@@ -2590,7 +2653,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
     // Large/one-shot exports and persisted virtual negatives retain their old
     // paths; a 2 MiPixel interactive frame needs at most 24 MiB per route.
     const bool cache_before_grain = grain && !converter && !band &&
-        out_elems <= 2u * 1024u * 1024u * 3u &&
+        out_elems * sizeof(float) <= raster_cache_limit() &&
         !(p->experimental_json && std::strstr(p->experimental_json, "\"virtualNegative\""));
     // Also skipped for one-shot renders (disable_buffer_memos, EXPORT_FASTPATH
     // item 2): no key hash, no lookup, no store — the warm slot stays intact.
@@ -2607,9 +2670,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
     auto store_scan_film = [&] {
         std::lock_guard<std::mutex> g(eng->film_cache_mutex);
         auto& slot = eng->film_memo[spk_engine::kMemoScan];
-        slot.entry.width = width; slot.entry.height = height;
-        slot.entry.film_density_cmy.assign(density_cmy.begin(), density_cmy.end());
-        slot.key = scan_film_key; slot.valid = true;
+        store_density(slot,scan_film_key,width,height,density_cmy);
         if (cache_before_grain) ++slot.pregrain_misses; else ++slot.misses;
     };
     if (use_scan_film_cache) {
@@ -2628,6 +2689,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
         }
         // MISS path is handled after unlocking (we don't compute under the lock).
     }
+    if(use_scan_film_cache){spk::stage_timing_note_cache(spk::STG_FILMING_EXPOSE,scan_film_cache_hit);spk::stage_timing_note_cache(spk::STG_DEVELOP,scan_film_cache_hit);}
     if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
 
     const auto negative_directory = std::atomic_load(&g_lab_profile_directory);
@@ -2664,7 +2726,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
             converter->convert(pin.direct?in->data:nullptr,pin.direct?nullptr:pin.rgb.data(),pin.gain,npix,density_cmy.data());
             std::vector<double>().swap(pin.rgb);
         }else{
-        spk::FloatBuffer log_raw(out_elems);
+        spk::FloatBuffer log_raw(meter_ev?0:out_elems);
         if (pin.direct) {
             spk::expose_f32_gain(in->data, pin.gain, width, height, fparams,
                                  tc_lut, log_raw.data());
@@ -2672,6 +2734,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
             spk::expose(pin.rgb.data(), width, height, fparams, tc_lut,
                         log_raw.data());
         }
+        if(meter_ev)return SPK_OK;
         // The highlight-boost and camera-diffusion pre-passes of a banded render
         // end here (BandFrame).
         if (band && (band->boost_max_out || band->camera_far_accumulate)) return SPK_OK;
@@ -2690,7 +2753,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
         if (use_scan_film_cache && cache_before_grain) {
             if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
             store_scan_film();
-            spk::apply_film_grain(width, height, film, fparams, density_cmy.data());
+            apply_grain_cached(eng,spk_engine::kMemoScan,scan_film_key,width,height,film,fparams,p,density_cmy);
         }
         }
         if (!cancellation_requested(cancel, cancel_user_data)) virtual_negative.store(density_cmy);
@@ -2700,7 +2763,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
     } else {
         { std::vector<double>().swap(pin.rgb); }
         if (cache_before_grain)
-            spk::apply_film_grain(width, height, film, fparams, density_cmy.data());
+            apply_grain_cached(eng,spk_engine::kMemoScan,scan_film_key,width,height,film,fparams,p,density_cmy);
     }
     if (tap_density_cmy) tap_density_cmy->assign(density_cmy.begin(), density_cmy.end());
 
@@ -3568,7 +3631,7 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
     const size_t out_elems = static_cast<size_t>(npix) * 3;
     const bool tap_bypass = (tap_log_raw != nullptr) || (tap_film_density_cmy != nullptr);
     const bool cache_before_grain = print_stochastic && !converter && !band &&
-        out_elems <= 2u * 1024u * 1024u * 3u;
+        out_elems * sizeof(float) <= raster_cache_limit();
     const bool use_film_cache =
         !tap_bypass && (!print_stochastic || cache_before_grain) && !one_shot_render(p);
 
@@ -3599,6 +3662,7 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
     }
     if (cancellation_requested(cancel, cancel_user_data)) return SPK_ERR_CANCELLED;
 
+    if(use_film_cache){spk::stage_timing_note_cache(spk::STG_FILMING_EXPOSE,film_cache_hit);spk::stage_timing_note_cache(spk::STG_DEVELOP,film_cache_hit);}
     if (band && band->film_in_rest) {
         // Banded film-density reuse: an earlier pass already ran the film side.
         const size_t row_elems = static_cast<size_t>(width) * 3;
@@ -3660,19 +3724,15 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
             // Store {width, height, film_density_cmy} + key under the lock, count miss.
             std::lock_guard<std::mutex> g(eng->film_cache_mutex);
             auto& slot = eng->film_memo[spk_engine::kMemoPrint];
-            slot.entry.width = width;
-            slot.entry.height = height;
-            slot.entry.film_density_cmy.assign(film_density_cmy.begin(), film_density_cmy.end());
-            slot.key = film_key;
-            slot.valid = true;
+            store_density(slot,film_key,width,height,film_density_cmy);
             if (cache_before_grain) ++slot.pregrain_misses; else ++slot.misses;
         }
         if (use_film_cache && cache_before_grain)
-            spk::apply_film_grain(width, height, film, fparams, film_density_cmy.data());
+            apply_grain_cached(eng,spk_engine::kMemoPrint,film_key,width,height,film,fparams,p,film_density_cmy);
     } else {
         { std::vector<double>().swap(pin.rgb); }
         if (cache_before_grain)
-            spk::apply_film_grain(width, height, film, fparams, film_density_cmy.data());
+            apply_grain_cached(eng,spk_engine::kMemoPrint,film_key,width,height,film,fparams,p,film_density_cmy);
     }
     if (tap_film_density_cmy) {
         tap_film_density_cmy->assign(film_density_cmy.begin(), film_density_cmy.end());
@@ -3756,12 +3816,7 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
         if (!pd_bypass) {
             std::lock_guard<std::mutex> g(eng->film_cache_mutex);
             auto& slot = eng->print_density_memo;
-            slot.entry.width = width;
-            slot.entry.height = height;
-            slot.entry.film_density_cmy.assign(print_density_cmy.begin(),
-                                               print_density_cmy.end());  // holds print density
-            slot.key = pd_key;
-            slot.valid = true;
+            store_density(slot,pd_key,width,height,print_density_cmy);
             ++slot.misses;
         }
     } else {
@@ -4898,6 +4953,10 @@ spk_status spk_engine_forget_profile(spk_engine* eng, const char* id) {
     }
     {
         std::lock_guard<std::mutex> g(eng->film_cache_mutex);
+        eng->film_memo[0].entry={};eng->film_memo[1].entry={};
+        eng->grain_memo[0].entry={};eng->grain_memo[1].entry={};
+        eng->grain_memo[0].valid=eng->grain_memo[1].valid=false;
+        eng->print_density_memo.entry={};eng->print_density_memo.valid=false;
         eng->film_memo[0].valid = false;
         eng->film_memo[1].valid = false;
         eng->film_memo[0].key = 0;
@@ -5112,6 +5171,19 @@ spk_status spk_simulate_preview_cancellable(spk_engine* eng, const spk_image* in
     p = &pp;
     int max_size = p->preview_max_size > 0 ? p->preview_max_size : 640;
     int longest = in->width > in->height ? in->width : in->height;
+    // Do not feed the OEM local-map kernel an invalid tiny draft. Increase only
+    // the preview sampling size, preserving aspect and all effects. Never upscale
+    // a genuinely unsupported original or silently turn Auto Contrast off.
+    try {
+        const auto receiver=spk::outputs::read_params(p->experimental_json);
+        if(receiver.mode=="noritsu-ls600" && receiver.jobEnabled && receiver.local && receiver.job) {
+            const int minimum=spk::noritsu::advanced::minimum_axis(*receiver.job);
+            const int shortest=std::min(in->width,in->height);
+            if(shortest<minimum){set_last_error_message(("Noritsu Auto Contrast: source must have at least "+std::to_string(minimum)+" pixels on each axis").c_str());return timing.finish(SPK_ERR_BAD_ARGS);}
+            max_size=std::max(max_size,int(std::ceil(double(minimum)*longest/shortest)));
+        }
+    } catch(const std::bad_alloc&){return timing.finish(SPK_ERR_OOM);}
+      catch(const std::exception& error){set_last_error_message(error.what());return timing.finish(SPK_ERR_BAD_ARGS);}
     if (longest <= max_size) {
         g_preview_pixels = uint64_t(in->width) * in->height;
         // Already small enough: run the full simulate on the original.
@@ -5213,6 +5285,23 @@ spk_status spk_simulate_tap(spk_engine* eng, const spk_image* in,
     return timing.finish(SPK_ERR_BAD_ARGS);  // unknown tap
 }
 
+spk_status spk_meter_scanner_context(spk_engine* eng,const spk_image* in,const spk_params* p,double out[2]) {
+    return spk_meter_scanner_context_cancellable(eng,in,p,out,nullptr,nullptr);
+}
+spk_status spk_meter_scanner_context_cancellable(spk_engine* eng,const spk_image* in,const spk_params* p,double out[2],spk_cancel_check cancel,void* user) try {
+    clear_last_error_message();
+    if(cancellation_requested(cancel,user))return SPK_ERR_CANCELLED;
+    if(!eng||!p||!out||!valid_rgb_shape(in))return SPK_ERR_BAD_ARGS;
+    out[0]=1;out[1]=0;
+    const int longest=std::max(in->width,in->height),edge=std::clamp(p->preview_max_size,64,2048);
+    spk_image sample=*in;std::vector<float> pixels;
+    if(longest>edge){const double scale=double(edge)/longest;sample.width=std::max(1,int(std::lround(in->width*scale)));sample.height=std::max(1,int(std::lround(in->height*scale)));downscale_bilinear(in->data,in->width,in->height,sample.width,sample.height,&pixels);sample.data=pixels.data();}
+    struct Capture {double* old=spk::outputs::frame_context_capture;Capture(double* p){spk::outputs::frame_context_capture=p;}~Capture(){spk::outputs::frame_context_capture=old;}} capture(out);
+    spk_params params=*p;params.disable_buffer_memos=1;params.allow_gpu_scan=0;params.gpu_export=params.gpu_preview=0;
+    spk::FloatBuffer result;return run_scan_film(eng,&sample,&params,&result,nullptr,nullptr,nullptr,nullptr,cancel,user);
+} catch(const std::bad_alloc&){return SPK_ERR_OOM;}
+  catch(const std::exception& error){set_last_error_message(error.what());return SPK_ERR_BAD_ARGS;}
+
 spk_status spk_meter_exposure_ev(spk_engine* eng, const spk_image* in,
                                  const spk_params* p, double* out_ev) {
     return spk_meter_exposure_ev_cancellable(
@@ -5233,6 +5322,23 @@ spk_status spk_meter_exposure_ev_cancellable(spk_engine* eng,
     // AE off => the render applies no gain, so the caller's gain is unity (0 EV).
     *out_ev = 0.0;
     if (p->auto_exposure == 0) return SPK_OK;
+
+    // Experimental models meter film raw, not ProPhoto luminance. Reuse the
+    // exact exposure preparation with a bounded input, before grain/effects.
+    try {
+        auto film=load_engine_profile(eng,p->film_profile?p->film_profile:"");
+        spk::prepare_experimental_profile(film,p->experimental_json,true,p->density_curve_gamma);
+        if(!spk::negative_settings(p->experimental_json).active()&&
+            ( !film.experimental_method.empty() || p->rgb_to_raw_method==SPK_RGB2RAW_MALLETT2019)) {
+            spk_params meter=*p;meter.disable_buffer_memos=1;meter.allow_gpu_scan=0;
+            meter.gpu_export=meter.gpu_preview=0;meter.crop=0;meter.upscale_factor=1;
+            meter.grain_active=meter.halation_active=meter.glare_active=meter.dir_couplers_active=0;
+            spk_image sample=*in;
+            return run_scan_film(eng,&sample,&meter,nullptr,nullptr,nullptr,
+                nullptr,nullptr,cancel,cancel_user_data,nullptr,out_ev);
+        }
+    } catch(const std::bad_alloc&){return SPK_ERR_OOM;}
+      catch(const std::exception& error){set_last_error_message(error.what());return SPK_ERR_BAD_ARGS;}
 
     const int w = in->width, h = in->height;
 

@@ -5,6 +5,7 @@ package com.spectrafilm.app
 
 import com.spectrafilm.app.masks.LocalAdjustment
 import com.spectrafilm.engine.SpektraParams
+import org.json.JSONObject
 
 /** One edit generation used unchanged by every worker pass and its final grade. */
 internal data class InteractiveRenderSnapshot(
@@ -19,6 +20,7 @@ internal data class InteractiveRenderSnapshot(
     fun paramsForCrop(
         cropFraction: Float,
         previewMaxSize: Int? = null,
+        scannerContext: DoubleArray? = null,
     ): SpektraParams {
         require(cropFraction.isFinite() && cropFraction > 0f) {
             "crop fraction must be finite and positive"
@@ -30,6 +32,7 @@ internal data class InteractiveRenderSnapshot(
             params.settings.copy(previewMaxSize = previewMaxSize)
         }
         return params.copy(
+            experimentalJson = roiScannerJson(params.experimentalJson, scannerContext),
             camera = params.camera.copy(
                 filmFormatMm = params.camera.filmFormatMm * cropFraction,
                 // Auto-exposure meters the image the engine is given. On a crop that is only
@@ -75,3 +78,12 @@ internal fun ParamsState.captureInteractiveRenderSnapshot(
 /** Final fit view is a complete render; only the drag draft may omit film effects. */
 internal fun ParamsState.settledPreviewParams(cropOpen: Boolean = false): SpektraParams =
     toParams().let { if (cropOpen) it.withoutCrop() else it }
+
+internal fun roiScannerJson(text: String, context: DoubleArray?): String {
+    if(context==null)return text
+    require(context.size==2 && context.all{it.isFinite()})
+    val root=JSONObject(text.ifBlank{"{}"})
+    val receiver=root.optJSONObject("outputModel") ?: return text
+    receiver.put("frameScale",context[0]);receiver.put("frameShift",context[1])
+    return root.toString()
+}

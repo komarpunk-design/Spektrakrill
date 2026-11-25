@@ -128,7 +128,7 @@ internal suspend fun CoroutineScope.runDraftPreviewPass(
                     val draftStartNs = System.nanoTime()
                     e.simulatePreview(
                         lease.image,
-                        state.toParams(previewMaxSizeOverride = draftEdge, skipGrainHalation = true),
+                        state.toParams(previewMaxSizeOverride = draftEdge, skipGrainHalation = false),
                         cancellation = cancellation,
                     ).also {
                         // Only a completed native render reaches here (cancel/failure
@@ -185,6 +185,7 @@ internal suspend fun CoroutineScope.runFinalPreviewPass(
     cropFreePreviewState: MutableState<Bitmap?>,
     decodingState: MutableState<Boolean>,
     lastRenderMsState: MutableState<Long?>,
+    interacting: State<Boolean>,
     previewBusyState: MutableState<Boolean>,
     renderErrState: MutableState<String?>,
     statusState: MutableState<String>,
@@ -202,11 +203,11 @@ internal suspend fun CoroutineScope.runFinalPreviewPass(
     if (!sourceRenderAllowed) return
     val e = engine ?: return
     val previewProbeLabel = editorProbe.sourceProbeLabel(sourceState.value.uri)
-    // Settle debounce, raised from 350ms. Each preview render maxes all CPU cores for
-    // ~1s, so waiting a bit longer for the user to pause means fewer renders that start
-    // then get cancelled mid-flight on the next edit ("coroutine scope left the
-    // composition" in the logcat) — wasted all-core CPU that drains battery.
-    delay(500)
+    // Live gestures are served by draft. Release restarts this effect and goes
+    // straight to settle; short coalescing only avoids redundant discrete edits.
+    if (interacting.value) return
+    delay(settleDelayMs(lastRenderMs))
+    if (interacting.value) return
     val publicationTicket = publicationGate.begin(
         previewRevision,
         RenderPublicationPriority.SETTLE,

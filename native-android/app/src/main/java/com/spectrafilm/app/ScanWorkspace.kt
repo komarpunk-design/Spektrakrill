@@ -69,6 +69,7 @@ private fun ScanSlider(s: ParamsState, key: String, label: String? = null) {
     val neutral = row.getDouble("default").toFloat()
     val limits = row.getDouble("min").toFloat()..row.getDouble("max").toFloat()
     val current = s.labNumber("outputModel.$key").coerceIn(limits).let { if (step >= 1f) it.toInt().toFloat() else it }
+    Column(Modifier.parameterSearchTarget("outputModel.$key")) {
     EnhancedSlider(
         label ?: row.getString("label"), current,
         limits,
@@ -77,6 +78,7 @@ private fun ScanSlider(s: ParamsState, key: String, label: String? = null) {
         tooltip = row.getString("help"), default = row.getDouble("default").toFloat(),
         modifier = Modifier.testTag("scan-control-$key"),
     )
+    }
 }
 
 @Composable

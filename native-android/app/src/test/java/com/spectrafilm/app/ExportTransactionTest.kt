@@ -25,6 +25,28 @@ class ExportTransactionTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
 
+    @Test fun durableBatchReceiptIsRecordedBeforeFirstWriteAndPublication() {
+        val backend=FakePendingExportBackend();val journal=FakePendingExportJournal()
+        val transaction=ExportTransaction(backend,journal);var receipt:String?=null
+        backend.afterFirstWrite={assertTrue(receipt!=null)}
+        val published=transaction.commit(artifact("receipt.bin"),destination(),onReserved={token->
+            assertEquals(StoredExportState.PENDING,backend.state(token))
+            assertEquals(setOf(token),journal.tokens())
+            receipt=token
+        })
+        assertEquals(receipt,published)
+        assertEquals(1,backend.totalPublishCalls)
+    }
+    @Test fun failedBatchReceiptPreventsPublicationAndRecoveryRetiresItsReservation() {
+        val backend=FakePendingExportBackend();val journal=FakePendingExportJournal()
+        val transaction=ExportTransaction(backend,journal)
+        expectFailure{transaction.commit(artifact("receipt-failure.bin"),destination(),onReserved={throw IOException("Cannot persist batch receipt")})}
+        assertEquals(0,backend.totalPublishCalls)
+        assertEquals(1,backend.totalDeleteCalls)
+        transaction.recover()
+        assertTrue(journal.tokens().isEmpty())
+    }
+
     @Test
     fun completedArtifact_rejectsEncoderByteCountMismatch() {
         val completedFile = completedFile("encoder-count.bin", byteArrayOf(1, 2, 3, 4))

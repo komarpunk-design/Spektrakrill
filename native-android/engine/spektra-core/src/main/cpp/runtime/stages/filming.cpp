@@ -125,6 +125,8 @@ bool gpu_diffusion_pass(double* raw, int width, int height,
 // invisible: the CPU loop runs, the picture is right, and the only symptom is a
 // stage timing that did not move.
 static void note_gpu_filming(const char* what, const gpu::FilmingStageDiagnostics& d) {
+    const int slot=std::strstr(what,"develop")?STG_DEVELOP:std::strstr(what,"layer")?STG_GRAIN:std::strstr(what,"subc")?STG_DIR_COUPLERS:STG_FILMING_EXPOSE;
+    stage_timing_note_operator(slot,d.engaged,d.reason,d.upload_ms,d.gpu_ms,d.readback_ms,d.table_cache_hit||d.curve_cache_hit);
     const char* dbg = std::getenv("SPK_GPU_DEBUG");
     if (!dbg || dbg[0] != '1') return;
     std::fprintf(stderr,
@@ -659,6 +661,16 @@ void expose_impl(const Src& src, int width, int height,
     int L = tc_lut.shape[0];
     double scale = static_cast<double>(L - 1);
     double exp_mult = std::pow(2.0, params.exposure_compensation_ev);  // 1.0 under goldens
+    if(params.raw_auto_exposure&&params.raw_meter_ev_out) {
+        *params.raw_meter_ev_out=measure_raw_autoexposure_ev_stream(width,height,params.raw_auto_exposure_method,[&](int p){
+            double in[3],rr[3],b;Vec2 tc;src.load(p,in);
+            prophoto_rgb_to_tc_b(in,&tc,&b,params.experimental_projection_active?params.experimental_projection:nullptr);
+            cubic_interp_lut_at_2d(tc_lut,tc.x*scale,tc.y*scale,rr);
+            const double r=rr[0]*b,g=rr[1]*b,blue=rr[2]*b;
+            return (r+g+blue)/3;
+        });
+        return;
+    }
 
     // When every effect between the irradiance computation and the log10 is
     // inert — each gate below mirrors that effect's own self-gate exactly —
@@ -789,6 +801,7 @@ void expose_impl(const Src& src, int width, int height,
     double prep_auto_gain=1;
     if(params.raw_auto_exposure){
         const double ev=measure_raw_autoexposure_ev(raw,width,height,params.raw_auto_exposure_method),gain=std::pow(2.,ev);
+        if(params.raw_meter_ev_out){*params.raw_meter_ev_out=ev;return;}
         prep_auto_gain=gain;
         parallel_for(0,npix,[&](int lo,int hi){for(int i=lo;i<hi;i++)for(int c=0;c<3;c++){raw[i*3+c]*=gain;raw[i*3+c]*=exp_mult;}});
     }

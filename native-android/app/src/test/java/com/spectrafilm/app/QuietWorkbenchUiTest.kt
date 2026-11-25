@@ -53,6 +53,22 @@ class QuietWorkbenchUiTest {
         compose.runOnIdle{assertEquals(PhotoTool.SCAN,selected);assertEquals(before,Presets.encode(s).toString())}
         compose.onNodeWithTag("tool-directory-search").assertDoesNotExist()
     }
+    @Test fun parameterSearchOpensAndScrollsToActualScannerControl(){
+        s.chooseScanReceiver("lab-scan")
+        compose.setContent{MaterialTheme{
+            var target by remember{mutableStateOf<ParameterSearchTarget?>(null)}
+            if(target==null)ToolDirectory(PhotoTool.FILMS,emptySet(),true,{},onParameter={target=it},onSelect={})
+            else CompositionLocalProvider(LocalQuietEditor provides true,LocalParameterFocus provides remember{ParameterFocus()},LocalParameterSearch provides target){
+                Column(Modifier.verticalScroll(rememberScrollState())){ScanWorkspace(s)}
+            }
+        }}
+        compose.onNodeWithTag("tool-directory-search").performTextInput("Чёрная точка")
+        compose.onNodeWithTag("search-parameter-outputModel.blackPoint").performClick()
+        compose.waitForIdle()
+        capture("parameter-search.png")
+        compose.onNodeWithTag("parameter-outputModel.blackPoint").assertIsDisplayed()
+        compose.runOnIdle{assertEquals(0f,s.labNumber("outputModel.blackPoint"),0f)}
+    }
     @Test fun onlyOneScanGroupIsOpenAndExactValuesSurviveSwitching(){
         s.chooseScanReceiver("noritsu-ls600");s.useBuiltinFactoryNoritsuJob();showScan()
         compose.onNodeWithText("Тон и уровни").performScrollTo().performClick()

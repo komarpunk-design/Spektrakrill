@@ -1,3 +1,4 @@
+#include "runtime/prepared_cache.h"
 /*
  * Spektrafilm for Android — native engine: output gamut compression.
  * Copyright (C) 2026 Spektrafilm Android contributors. GPLv3.
@@ -1097,18 +1098,9 @@ PreparedOutputGamut::PreparedOutputGamut(OutputGamutCompress mode,int space,doub
     if(space<0||space>5)throw std::invalid_argument("Unknown output color space");
     // C_max geometry depends ONLY on model and output space, never the knee.
     // Four entries bound residency to about 1.5 MiB, even during slider drags.
-    static std::mutex mutex;
-    static std::map<std::pair<int,int>,std::shared_ptr<const Impl>> geometries;
+    static PreparedCache<std::pair<int,int>,Impl> geometries(4);
     const auto key=std::make_pair(int(mode),space);
-    if(mode>=OutputGamutCompress::kOklch) {
-        std::shared_ptr<const Impl> cached;
-        { std::lock_guard<std::mutex> lock(mutex);auto it=geometries.find(key);if(it!=geometries.end())cached=it->second; }
-        if(cached) {
-            if(cached->threshold==threshold&&cached->limit==limit&&cached->power==power)impl_=cached;
-            else {auto adjusted=std::make_shared<Impl>(*cached);adjusted->threshold=threshold;adjusted->limit=limit;adjusted->power=power;impl_=std::move(adjusted);}
-            return;
-        }
-    }
+    auto build=[&]() {
     auto p=std::make_shared<Impl>();p->mode=mode;p->space=space;p->threshold=threshold;p->limit=limit;p->power=power;
     if(mode>=OutputGamutCompress::kOklch)p->table.resize(size_t(kOklchNL)*kOklchNH);
     switch(mode){
@@ -1119,12 +1111,14 @@ PreparedOutputGamut::PreparedOutputGamut(OutputGamutCompress mode,int space,doub
         case OutputGamutCompress::kCam16ucs:p->viewing=build_cam16_context(space);build_cam16ucs_cmax_table(space,p->viewing,p->table.data(),p->lightness,p->hue);break;
         default:throw std::invalid_argument("Unknown output gamut mode");
     }
+    if(mode>=OutputGamutCompress::kOklch)++prepared_gamut_builds;
+    return p;
+    };
     if(mode>=OutputGamutCompress::kOklch) {
-        std::lock_guard<std::mutex> lock(mutex);
-        if(geometries.size()>=4)geometries.erase(geometries.begin());
-        ++prepared_gamut_builds;geometries[key]=p;
-    }
-    impl_=std::move(p);
+        const auto cached=geometries.get(key,build);
+        if(cached->threshold==threshold&&cached->limit==limit&&cached->power==power)impl_=cached;
+        else {auto adjusted=std::make_shared<Impl>(*cached);adjusted->threshold=threshold;adjusted->limit=limit;adjusted->power=power;impl_=std::move(adjusted);}
+    } else impl_=build();
 }
 void PreparedOutputGamut::apply(double* rgb,int npix) const {
     const auto& p=*impl_;

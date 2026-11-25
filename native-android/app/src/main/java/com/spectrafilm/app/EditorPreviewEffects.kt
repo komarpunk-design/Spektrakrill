@@ -183,7 +183,7 @@ internal fun EditorPreviewEffects(
     // to the full-resolution result instead of a separate coarse pass.
     // Keyed on engine for the same reason as the draft effect above: without it a cold
     // start that composes before the native engine is ready never renders at all.
-    LaunchedEffect(previewTick, sourceRenderAllowed, engine) {
+    LaunchedEffect(previewTick, sourceRenderAllowed, engine, interacting.value) {
         runFinalPreviewPass(
             dispatchers,
             ctx = ctx,
@@ -203,6 +203,7 @@ internal fun EditorPreviewEffects(
             cropFreePreviewState = screen.cropFreePreviewState,
             decodingState = decodingState,
             lastRenderMsState = lastRenderMsState,
+            interacting = interacting,
             previewBusyState = previewBusyState,
             renderErrState = renderErrState,
             statusState = statusState,

@@ -63,8 +63,35 @@ internal fun toolDirectoryResults(query:String,stage:PhotoStage?,dirtyOnly:Boole
     }
 }
 
+internal fun parameterSearchIndex(ctx:android.content.Context):List<ParameterSearchTarget> {
+    val mapping=mapOf("prep" to PhotoTool.PREP,"grain" to PhotoTool.GRAIN,"transport" to PhotoTool.HALATION,
+        "dir" to PhotoTool.DIR,"chemistry" to PhotoTool.CHEMISTRY,"film-base" to PhotoTool.FILM_BASE,
+        "paper-base" to PhotoTool.PAPER_BASE,"negative" to PhotoTool.NEGATIVE,"output" to PhotoTool.SCAN)
+    return mapping.flatMap{(group,tool)->
+        val rows=LabCatalog.controls(ctx,group)
+        val buckets=labParameterBuckets(group,rows.filter{it.getString("kind")!="switch"}).filter{it.second.isNotEmpty()}
+        rows.map { row->
+            val path=row.getString("path")
+            val bucket=buckets.indexOfFirst{(_,controls)->controls.any{it.getString("path")==path}}
+            val subgroup=if(group in listOf("grain","chemistry","prep")&&bucket>0)"lab-$group-$bucket" else if(group=="output") when(path.substringAfter("outputModel.")) {
+                "contrast","blackPoint","whitePoint"->"scan-tone"
+                "cyan","magenta","yellow"->"scan-colour"
+                "noritsuGamma","noritsuLow","noritsuMid","noritsuHigh"->"scan-noritsu-gradation"
+                "noritsuSaturation","noritsuRed","noritsuGreen","noritsuBlue"->"scan-noritsu-colour"
+                "look"->"scan-character"
+                else->null
+            } else null
+            ParameterSearchTarget(tool,path,row.getString("label"),subgroup)
+        }
+    }
+}
+internal fun parameterSearchMatches(target:ParameterSearchTarget,query:String):Boolean {
+    val text="${target.label} ${target.path}".lowercase(Locale.ROOT).replace('ё','е')
+    return query.trim().lowercase(Locale.ROOT).replace('ё','е').split(Regex("\\s+")).all{it in text}
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable internal fun ToolDirectory(page:PhotoTool,dirty:Set<PhotoTool>,global:Boolean,onDismiss:()->Unit,onSelect:(PhotoTool)->Unit) {
+@Composable internal fun ToolDirectory(page:PhotoTool,dirty:Set<PhotoTool>,global:Boolean,onDismiss:()->Unit,onParameter:(ParameterSearchTarget)->Unit={},onSelect:(PhotoTool)->Unit) {
     var query by rememberSaveable{mutableStateOf("")}
     var scope by rememberSaveable{mutableStateOf(if(global)"all" else "stage")}
     var changedOnly by rememberSaveable{mutableStateOf(false)}
@@ -83,6 +110,8 @@ internal fun toolDirectoryResults(query:String,stage:PhotoStage?,dirtyOnly:Boole
     // A search is global by default: a newcomer need not know the stage in advance.
     val selectedStage=if(query.isNotBlank()||scope=="all")null else page.stage
     val results=toolDirectoryResults(query,selectedStage,changedOnly,dirty,extra)
+    val parameterIndex=remember(ctx){parameterSearchIndex(ctx)}
+    val parameters=if(query.isBlank())emptyList() else parameterIndex.filter{parameterSearchMatches(it,query)&&(!changedOnly||it.tool in dirty)}
     ModalBottomSheet(onDismissRequest=onDismiss,sheetState=rememberModalBottomSheetState(skipPartiallyExpanded=true)){
         Column(Modifier.fillMaxWidth().fillMaxHeight(.85f).imePadding().padding(horizontal=16.dp)) {
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
@@ -97,8 +126,12 @@ internal fun toolDirectoryResults(query:String,stage:PhotoStage?,dirtyOnly:Boole
                 FilterChip(selected=scope=="all"||query.isNotBlank(),onClick={scope="all"},label={Text("Все инструменты")})
                 FilterChip(selected=changedOnly,onClick={changedOnly=!changedOnly},label={Text("Изменённые · ${dirty.size}")})
             }
-            if(results.isEmpty())Text(if(changedOnly)"Изменённых инструментов не найдено. Отключите фильтр или измените запрос." else "Ничего не найдено. Попробуйте название эффекта или параметра.",Modifier.padding(vertical=16.dp))
+            if(results.isEmpty()&&parameters.isEmpty())Text(if(changedOnly)"Изменённых инструментов не найдено. Отключите фильтр или измените запрос." else "Ничего не найдено. Попробуйте название эффекта или параметра.",Modifier.padding(vertical=16.dp))
             LazyColumn(Modifier.weight(1f).testTag("tool-directory-list"),contentPadding=PaddingValues(bottom=24.dp)){
+                items(parameters,key={"parameter-${it.path}"}){target->
+                    ListItem(headlineContent={Text(target.label)},supportingContent={Text("${target.tool.stage?.title} → ${target.tool.title}")},
+                        modifier=Modifier.testTag("search-parameter-${target.path}").clickable(role=Role.Button){onParameter(target);onDismiss()})
+                }
                 items(results,key={it.id}){tool->
                     Row(Modifier.fillMaxWidth().testTag("workflow-tool-${tool.id}").clickable(role=Role.Button){onSelect(tool);onDismiss()}.padding(vertical=12.dp),verticalAlignment=Alignment.CenterVertically){
                         Icon(categoryIcon(tool.category),null,Modifier.size(22.dp))

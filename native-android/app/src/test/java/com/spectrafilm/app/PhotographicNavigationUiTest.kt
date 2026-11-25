@@ -75,6 +75,23 @@ class PhotographicNavigationUiTest {
    file.outputStream().use { stream -> assertTrue(compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG,100,stream)) }
   }
  }
+ @Test @Config(sdk=[35],qualifiers="w320dp-h640dp") fun largeFontKeepsEveryStageReadableAndReachable(){
+  compose.setContent{
+   val base=androidx.compose.ui.platform.LocalDensity.current
+   CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(base.density,2f)){
+    MaterialTheme{Column(Modifier.fillMaxSize()){
+     Spacer(Modifier.weight(1f))
+     PhotoStageNavigation(PhotoTool.GRAIN,true,emptySet(),false,{},{})
+    }}
+   }
+  }
+  for(stage in PhotoStage.entries){
+   compose.onNodeWithTag("workflow-stage-${stage.name}").performScrollTo().assertIsDisplayed()
+   val layouts=mutableListOf<TextLayoutResult>()
+   compose.onNodeWithText(stage.title,useUnmergedTree=true).performSemanticsAction(SemanticsActions.GetTextLayoutResult){it(layouts)}
+   assertTrue("Large-font label must fit: ${stage.title}",layouts.isNotEmpty()&&layouts.none{it.hasVisualOverflow})
+  }
+ }
  @Test fun paperlessScanIsTheFirstScanPageAndPrintLinksToIt(){
   show();stage("SCAN")
   compose.onNodeWithText("Page: scan").assertIsDisplayed()

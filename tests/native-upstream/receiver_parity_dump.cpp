@@ -9,6 +9,7 @@
 #include <vector>
 int main(int argc, char** argv) try {
     if (argc != 4) return 2;
+    const bool all_spectra = std::string(argv[2]) == "--spectra";
     const bool bench = std::string(argv[2]) == "--bench";
     const int w = bench ? 384 : 96, h = bench ? 256 : 80;
     std::vector<float> pixels(w * h * 3);
@@ -26,6 +27,7 @@ int main(int argc, char** argv) try {
     p.halation_active = bench;
     if (bench) p.gpu_export = p.gpu_preview = 1;
     int renders = 0;
+    for (const char* spectrum : (all_spectra ? std::vector<const char*>{"arctic2026beta04","hanatos2025","mallett2019"} : std::vector<const char*>{"arctic2026beta04"}))
     for (const char* film : (bench ? std::vector<const char*>{"kodak_portra_400"} :
          std::vector<const char*>{"kodak_portra_400", "kodak_gold_200", "negs_ilford_hp5_plus_6p5min"}))
     for (const char* mode : (bench ? std::vector<const char*>{"nikon-scan"} :
@@ -34,7 +36,7 @@ int main(int argc, char** argv) try {
     for (bool automatic : {false, true}) {
         p.film_profile = film; p.grain_active = grain;
         for (int edit = 0; edit < (bench ? 4 : 1); ++edit) {
-            const auto json = std::string(R"({"spectralMethod":"arctic2026beta04","grainRms":true,"dirLangmuir":true,"layeredTransport":{"model":"layered"},"outputModel":{"mode":")") + mode +
+            const auto json = std::string(R"({"spectralMethod":")") + spectrum + R"(","grainRms":true,"dirLangmuir":true,"layeredTransport":{"model":"layered"},"outputModel":{"mode":")" + mode +
                 R"(","autoSetup":)" + (automatic ? "true" : "false") + R"(,"exposure":)" + std::to_string(edit * .15) + "}}";
             p.experimental_json = json.c_str(); spk_image out{};
             const auto start = std::chrono::steady_clock::now();

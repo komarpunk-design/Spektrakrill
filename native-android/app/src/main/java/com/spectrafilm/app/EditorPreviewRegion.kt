@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -217,6 +218,7 @@ internal fun PreviewRegion(
             // Edge to edge: no side gutter. A 16dp gutter on each side cost a landscape
             // photo (the common case on a portrait phone) 32dp of width and therefore
             // ~8% of its displayed size. The overlays below carry their own insets.
+            .then(if(preview!=null&&!compareMode)Modifier.testTag("editor-rendered-preview") else Modifier)
             .semantics {
                 contentDescription = previewDesc
                 customActions = previewActions

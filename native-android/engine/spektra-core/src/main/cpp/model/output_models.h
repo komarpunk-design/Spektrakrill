@@ -1,3 +1,4 @@
+#include "model/lab_json.h"
 /* Fotufilm LabScanFinish / PrintPaperTables @b9049f3 (Apache-2.0, MUAStudio Inc.).
  * Modified: C++ port, Spektrafilm receiver calibration and frame timing adapter.
  * Source notices and scope: docs/OUTPUT_MODELS.md. */
@@ -43,11 +44,13 @@ inline RGB finish(RGB rgb,double strength=1,bool chromatic=true,double floor=0){
  double ll=std::pow(L+.3963377774*a+.2158037573*B,3),mm=std::pow(L-.1055613458*a-.0638541728*B,3),ss=std::pow(L-.0894841775*a-1.291485548*B,3);
  return {4.0767416621*ll-3.3077115913*mm+.2309699292*ss,-1.2684380046*ll+2.6097574011*mm-.3413193965*ss,-.0041960863*ll-.7034186147*mm+1.707614701*ss};
 }
-struct Params {std::string mode="paper";bool automatic=true;double exposure=0,look=1;RGB keys={0,0,0};double contrast=1,black=0,white=1;noritsu::Controls noritsu;bool jobEnabled=false,local=false,sharp=false,hue=false,jobNormalize=false;std::shared_ptr<const noritsu::advanced::Job> job;};
-inline Params read_params(const char* text){Params p;if(!text||!*text)return p;auto j=json::parse(text);if(j->has("workflow")){auto route=j->at("workflow").as_string();if(route=="negative-clear"||route=="negative-print")return p;}if(!j->has("outputModel"))return p;auto& o=j->at("outputModel");if(!o.is_object())return p;
+inline thread_local double* frame_context_capture=nullptr;
+struct Params {double frameScale=std::nan(""),frameShift=std::nan("");std::string mode="paper";bool automatic=true;double exposure=0,look=1;RGB keys={0,0,0};double contrast=1,black=0,white=1;noritsu::Controls noritsu;bool jobEnabled=false,local=false,sharp=false,hue=false,jobNormalize=false;std::shared_ptr<const noritsu::advanced::Job> job;};
+inline Params read_params_uncached(const char* text){Params p;if(!text||!*text)return p;auto j=parse_lab_json(text);if(j->has("workflow")){auto route=j->at("workflow").as_string();if(route=="negative-clear"||route=="negative-print")return p;}if(!j->has("outputModel"))return p;auto& o=j->at("outputModel");if(!o.is_object())return p;
  if(o.has("mode")){auto s=o.at("mode").as_string();if(s!="paper"&&s!="negative"&&s!="digital"&&s!="auto-levels"&&s!="lab-scan"&&s!="noritsu-ls600"&&s!="nikon-scan")throw std::runtime_error("Unknown output model");p.mode=s;}
  auto num=[&](const char* key,double fallback,double low,double high){if(!o.has(key))return fallback;double v=o.at(key).as_number();if(!std::isfinite(v))throw std::runtime_error("Nonfinite output control");return clamp(v,low,high);};
  p.exposure=num("exposure",0,-6,6);p.look=num("look",1,0,1);p.keys={num("cyan",0,-1,1),num("magenta",0,-1,1),num("yellow",0,-1,1)};if(o.has("autoSetup")&&o.at("autoSetup").type==json::Type::Bool)p.automatic=o.at("autoSetup").boolean;
+ p.frameScale=num("frameScale",std::nan(""),0,8);p.frameShift=num("frameShift",std::nan(""),-16,16);
  p.contrast=num("contrast",1,.5,2);p.black=num("blackPoint",0,-.05,.1);p.white=num("whitePoint",1,.5,1.5);
  p.noritsu.low=int(num("noritsuLow",100,0,300));p.noritsu.mid=int(num("noritsuMid",100,0,300));p.noritsu.high=int(num("noritsuHigh",100,0,300));p.noritsu.uo=int(num("noritsuUo",0,0,3));
  p.noritsu.gamma=num("noritsuGamma",1,.2,3);p.noritsu.saturation=num("noritsuSaturation",1,0,2);
@@ -58,6 +61,12 @@ inline Params read_params(const char* text){Params p;if(!text||!*text)return p;a
  if(j->has("noritsuJob")&&j->has("noritsuJobId"))throw std::invalid_argument("Noritsu: ambiguous job source");
  if(p.mode=="noritsu-ls600"&&p.jobEnabled){if(j->has("noritsuJobId"))p.job=noritsu::advanced::builtin_job(j->at("noritsuJobId").as_string());else {if(!j->has("noritsuJob"))throw std::invalid_argument("Noritsu: import original job parameters first");p.job=noritsu::advanced::read_job(j->at("noritsuJob"));}}
  return p;}
+
+inline Params read_params(const char* text){
+ if(!text||!*text)return {};
+ static PreparedCache<std::string,Params> recipes(4);
+ return *recipes.get(text,[&]{return std::make_shared<Params>(read_params_uncached(text));});
+}
 
 /** Operator tone AFTER receiver inversion/finish and BEFORE scanner optics/output
  * conversion. A monotonic S-curve pivots at 18% linear luminance and retains
@@ -102,6 +111,8 @@ inline bool scan(const Profile& f,const Params& p,const float* density,int w,int
   parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){auto v=pixel_read(i);for(int c=0;c<3;c++)result[i*3+c]=float((v[c]-ref[c])/slope[c]);}});
   double shift=0;
   if(p.automatic){std::vector<double> values;int step=std::max(1,count/16384);for(int i=0;i<count;i+=step)values.push_back((result[i*3]+result[i*3+1]+result[i*3+2])/3.);std::sort(values.begin(),values.end());shift=std::clamp(values[values.size()/2],-1.,1.);}
+  if(std::isfinite(p.frameShift))shift=p.frameShift;
+  if(frame_context_capture){frame_context_capture[0]=1;frame_context_capture[1]=shift;}
   // Immutable spectral anchors and color basis are cached. The neutral-axis
   // balance still uses THIS frame's automatic timing, with the original math.
   auto model_linear=[&](RGB q){RGB adapted{};for(int c=0;c<3;c++)for(int k=0;k<3;k++)adapted[c]+=calibration->basis[c][k]*q[k];return calibration->source_linear(adapted,shift);};
@@ -143,6 +154,9 @@ inline bool scan(const Profile& f,const Params& p,const float* density,int w,int
   for(int c=0;c<3;c++){noritsuGray[c]=noritsu::response_input(c,.18);whiteHeadroom=std::min(whiteHeadroom,std::log10(noritsu::response_input(c,.98)/noritsuGray[c]));}
   scale=1;shift=automatic?std::min(-median,whiteHeadroom-highValue):0;
  }
+ if(std::isfinite(p.frameScale))scale=p.frameScale;
+ if(std::isfinite(p.frameShift))shift=p.frameShift;
+ if(frame_context_capture){frame_context_capture[0]=scale;frame_context_capture[1]=shift;}
  parallel_for(0,count,[&](int begin,int end){for(int i=begin;i<end;i++){RGB value;for(int c=0;c<3;c++)value[c]=useNoritsu?noritsu::response(c,noritsuGray[c]*std::pow(10.,result[i*3+c]*scale+shift+p.exposure*std::log10(2.)-p.keys[c]*.5)):std::pow(10.,-curve(middle-(result[i*3+c]*scale+shift+p.exposure*std::log10(2.)-p.keys[c]*.5)));if(p.mode=="lab-scan")value=finish(value,p.look,!f.monochrome);if(useNoritsuOperators)value=noritsuOperator.apply(value);value=operator_tone(value,p);double gray=(value[0]+value[1]+value[2])/3;for(int c=0;c<3;c++)result[i*3+c]=f.monochrome?gray:value[c];}});
  }
 

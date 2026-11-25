@@ -1,3 +1,4 @@
+#include "model/lab_json.h"
 /* GPLv3. Port of Negs core/prep.rs and prep/guided.rs @26c903b.
  * Original integration by yosoyelchris (d2a144d), maintained by Noah Haasis.
  * Control math parity, not a claim of a complete Resolve RAW pipeline. */
@@ -37,7 +38,7 @@ void core(const float* rgb,float base,const NegsPrep& s,const Prepared& p,float*
  for(int k=0;k<3;k++)out[k]=((2.f*out[k]-.5f)*p.contrast+.5f)*p.mul+p.add;
 }
 }
-NegsPrep read_negs_prep(const char* text){NegsPrep p;if(!text||!*text)return p;auto root=json::parse(text);if(!root->has("negsPrep"))return p;const auto& j=root->at("negsPrep");if(!j.is_object())throw std::runtime_error("Prep must be an object");
+NegsPrep read_negs_prep(const char* text){NegsPrep p;if(!text||!*text)return p;auto root=parse_lab_json(text);if(!root->has("negsPrep"))return p;const auto& j=root->at("negsPrep");if(!j.is_object())throw std::runtime_error("Prep must be an object");
  auto read=[&](const char* name,float& x,float low,float high){if(!j.has(name))return;const auto& v=j.at(name);if(!v.is_number()||!std::isfinite(v.number)||v.number<low||v.number>high)throw std::runtime_error(std::string("Invalid Prep parameter: ")+name);x=v.number;};
  read("exposure",p.exposure,-3,3);read("highlights",p.highlights,-180,100);read("shadows",p.shadows,-100,100);read("contrast",p.contrast,-100,100);read("lift",p.lift,-100,100);read("gain",p.gain,-100,100);read("colorBoost",p.color_boost,-100,100);read("saturation",p.saturation,-100,100);read("detail",p.detail,-100,100);return p;
 }

@@ -12,6 +12,7 @@ uint64_t spk_test_film_cache_hits(spk_engine*);
 uint64_t spk_test_film_cache_misses(spk_engine*);
 uint64_t spk_test_scan_film_cache_hits(spk_engine*);
 uint64_t spk_test_scan_film_cache_misses(spk_engine*);
+uint64_t spk_test_grain_cache_hits(spk_engine*, int);
 uint64_t spk_test_pregrain_cache_hits(spk_engine*, int);
 uint64_t spk_test_pregrain_cache_misses(spk_engine*, int);
 uint64_t spk_test_print_density_cache_hits(spk_engine*);
@@ -68,6 +69,9 @@ int main(int argc, char** argv) try {
         const auto original = assert_cold();
         const auto first_hits = hits(); assert_cold();
         check(hits() > first_hits, "unchanged frame reuses deterministic density");
+        const auto grain_hits = spk_test_grain_cache_hits(engine,scan);
+        assert_cold();
+        if(grain)check(spk_test_grain_cache_hits(engine,scan)>grain_hits,"finished grain is reused without a new sampling pass");
         auto before = hits();
         json = recipe(R"("noritsuJobId":"ls600-g0t1-neutral-v1")", scan);
         assert_cold(); check(hits() > before, "receiver job does not invalidate filming");

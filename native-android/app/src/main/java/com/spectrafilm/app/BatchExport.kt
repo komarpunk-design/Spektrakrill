@@ -111,6 +111,7 @@ internal data class BatchExportProgress(
     val cancelled: Boolean = false,
     /** A half-frame pair export (HalfFramePair.kt): one picture made of two photos. */
     val pair: Boolean = false,
+    val queueId: String? = null,
 ) {
     /** 1-based position of the photo being rendered now. */
     val position: Int get() = (done + failed + 1).coerceAtMost(total)
@@ -153,6 +154,7 @@ internal fun resolveBatchSources(context: Context, uris: List<Uri>): List<BatchE
         }.getOrNull()?.takeIf { it.isNotBlank() }
             ?: uri.lastPathSegment?.substringAfterLast('/')
             ?: "photo"
+        runCatching { resolver.takePersistableUriPermission(uri,android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
         val mime = runCatching { resolver.getType(uri) }.getOrNull()
         batchSourceKind(name, mime)?.let { BatchExportSource(uri, name, it) }
     }
@@ -192,30 +194,47 @@ internal suspend fun runBatchExport(
     options: ExportOptions,
     keepGps: Boolean,
     startedAtMillis: Long,
+    queueId: String? = null,
+    retryFailed: Boolean = false,
 ): ExportTerminalOutcome {
     require(batchSupports(options)) { "batch export does not support ${options.format}" }
+    val queue = withContext(ProcessDispatchers.io) {
+        if(queueId==null)BatchQueue.create(context,sources,edits,options,keepGps)
+        else BatchQueue.load(context,queueId).also{it.reconcile(context)}
+    }
+    require(queue.sources==sources&&queue.options==options&&queue.keepGps==keepGps){"Resume inputs differ from persisted batch"}
+    val runnable=queue.runnableIndices(retryFailed)
+    if(retryFailed)for(i in 0 until queue.rows.length())if(queue.row(i).optString("status")=="failed")queue.row(i).put("status","pending").remove("error")
+    queue.document.put("state","running");queue.save()
     val total = sources.size
-    var done = 0
-    var failed = 0
+    var done = (0 until total).count{queue.row(it).optString("status")=="done"}
+    var failed = (0 until total).count{queue.row(it).optString("status") in listOf("failed","blocked")}
     var lastPublished: Uri? = null
     var finished = false
     try {
         for ((index, source) in sources.withIndex()) {
             currentCoroutineContext().ensureActive()
-            BatchExportTracker.publish(BatchExportProgress(total, done, failed, source.name, finished = false))
+            if(index !in runnable)continue
+            val timing=BatchPhotoTiming()
+            queue.row(index).put("status","running");queue.save()
+            BatchExportTracker.publish(BatchExportProgress(total, done, failed, source.name, finished = false,queueId=queue.id))
             // Set by the writer once the file is in the gallery, so a photo that was published
             // still counts when cancellation (or a later step) wins the race back from IO.
             var committed = false
             try {
                 lastPublished = exportBatchPhoto(
-                    context, engine, source, edits, options, keepGps, index, total,
+                    context, engine, source, BatchEditSource.OwnEdits { queue.edit(index) }, options, keepGps, index, total,
+                    timing=timing,onReserved={token,length,digest->queue.reserved(index,token,length,digest)},
                 ) { committed = true }
+                queue.complete(index,"done",timing,uri=lastPublished)
                 done++
             } catch (cancel: CancellationException) {
                 if (committed) done++
+                queue.complete(index,if(committed)"done" else "pending",timing,cancel)
                 throw cancel
             } catch (failure: Throwable) {
                 if (committed) done++ else failed++
+                queue.complete(index,if(committed)"done" else "failed",timing,failure)
                 Diag.w("batch export: photo ${index + 1} of $total failed: ${failure.javaClass.simpleName}")
             } finally {
                 // Between photos, hand back the GPU buffers a full-resolution render holds, as
@@ -224,11 +243,13 @@ internal suspend fun runBatchExport(
             }
         }
         finished = true
-        BatchExportTracker.publish(BatchExportProgress(total, done, failed, null, finished = true))
+        queue.document.put("state",if(queue.runnableIndices(false).isEmpty())"finished" else "paused");queue.save()
+        BatchExportTracker.publish(BatchExportProgress(total, done, failed, null, finished = true,queueId=queue.id))
     } finally {
         if (!finished) {
+            queue.document.put("state","paused");queue.save()
             BatchExportTracker.publish(
-                BatchExportProgress(total, done, failed, null, finished = true, cancelled = true),
+                BatchExportProgress(total, done, failed, null, finished = true, cancelled = true,queueId=queue.id),
             )
         }
     }
@@ -247,7 +268,7 @@ internal suspend fun runBatchExport(
             renderId = 0L,
             bitmap = null,
             totalMs = elapsed,
-            phases = ExportPhaseSnapshot(0L, 0L, 0L, 0L, 0L, 0L),
+            phases = queue.phases(),
             publishedUri = lastPublished?.toString(),
             publishedMimeType = options.format.mime,
         )
@@ -268,6 +289,8 @@ private suspend fun exportBatchPhoto(
     keepGps: Boolean,
     index: Int,
     total: Int,
+    timing: BatchPhotoTiming,
+    onReserved: (String,Long,String) -> Unit,
     onCommitted: () -> Unit,
 ): Uri {
     val app = context.applicationContext
@@ -323,8 +346,10 @@ private suspend fun exportBatchPhoto(
         rawChromaNoise = state.rawChromaNoise,
         straightenDegrees = state.straightenDegrees,
     )
+    timing.enter(ExportStage.EXIF)
     val srcExif = withContext(io) { readSourceExif(app, source.uri, keepGps = keepGps) }
     val frameCaption = FrameCaptions.text(border.look, srcExif.tags, StockCatalog.displayName(app, state.filmProfile))
+    timing.enter(ExportStage.DECODE)
     val image = decodeSourceRequest(request, EXPORT_MAX_EDGE_PX, io).image
     var sceneTap: SceneLuma? = null
     // Skin masks are bound to skin found on this photo, before the render, while the decode
@@ -332,6 +357,7 @@ private suspend fun exportBatchPhoto(
     // edit carries its shape masks too, which are already this photo's.
     var adjustments: List<LocalAdjustment> = emptyList()
     val res = try {
+        timing.enter(ExportStage.SIMULATE)
         adjustments = edit.adjustments.withSkinFoundOn(app, image, params.io)
         runCancellableNative(
             onLateResult = { late ->
@@ -353,6 +379,7 @@ private suspend fun exportBatchPhoto(
         check(res.colorSpace == descriptor.engineColorSpace) {
             "Engine result color space disagrees with output contract"
         }
+        timing.enter(ExportStage.GRADE)
         val published = when (descriptor.encoder) {
             OutputEncoder.ANDROID_BITMAP_PNG,
             OutputEncoder.ANDROID_BITMAP_JPEG,
@@ -391,10 +418,11 @@ private suspend fun exportBatchPhoto(
                         attachRenderedGainmap(res, framed, descriptor, layout, sceneTap)
                     }.onFailure { Diag.w("batch gain map failed; exporting SDR base: $it") }
                 }
+                timing.enter(ExportStage.ENCODE)
                 withContext(io) {
                     saveToGallery(
                         app, framed, descriptor, options.jpegQuality, srcExif,
-                        displayName = baseName, onCommitted = onCommitted,
+                        displayName = baseName, onCommitted = onCommitted,onReserved=onReserved,
                     )
                 }
             }
@@ -413,11 +441,12 @@ private suspend fun exportBatchPhoto(
                         )
                     }
                 }
+                timing.enter(ExportStage.ENCODE)
                 withContext(io) {
                     if (descriptor.encoder == OutputEncoder.NATIVE_PNG16) {
-                        saveSimResultAsPng16(app, res, descriptor, displayName = baseName, onCommitted = onCommitted)
+                        saveSimResultAsPng16(app, res, descriptor, displayName = baseName, onCommitted = onCommitted,onReserved=onReserved)
                     } else {
-                        saveSimResultAsTiff(app, res, descriptor, displayName = baseName, onCommitted = onCommitted)
+                        saveSimResultAsTiff(app, res, descriptor, displayName = baseName, onCommitted = onCommitted,onReserved=onReserved)
                     }
                 }
             }

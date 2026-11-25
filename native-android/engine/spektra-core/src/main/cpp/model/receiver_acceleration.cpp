@@ -30,7 +30,7 @@ uint64_t hash(const void* p,size_t n,uint64_t h=1469598103934665603ull){auto b=s
 ReceiverGpuStats receiver_gpu_stats(){return {checks.load(),frames.load(),refusals.load(),lastReason};}
 bool receiver_gpu_integral(const Profile& f,const float* in,int count,float* out,
  const std::vector<std::array<double,3>>& bands,const std::array<double,3>& sums)try{
- auto refuse=[](const char* reason){++refusals;note(reason);return false;};
+ auto refuse=[](const char* reason){++refusals;note(reason);stage_timing_note_operator(STG_SCAN,false,reason);return false;};
  // Diagnostic override for isolating this stage without changing Fast RNG.
  const char* enabled=std::getenv("SPK_RECEIVER_GPU");
  if(enabled&&enabled[0]=='0')return refuse("disabled");
@@ -96,6 +96,7 @@ bool receiver_gpu_integral(const Profile& f,const float* in,int count,float* out
  ++frames;note("gpu");
  const double elapsed=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-dispatch).count();
  stage_timing_note_gpu_scan_add(1,guard_ms,elapsed,0,uint64_t(count)*12,uint64_t(count)*12);
+ stage_timing_note_operator(STG_SCAN,true,"",0,elapsed,0);
  return true;
 }catch(...){++refusals;note("exception");return false;}
 }

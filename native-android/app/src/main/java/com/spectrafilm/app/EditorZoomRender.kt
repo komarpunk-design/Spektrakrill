@@ -76,6 +76,7 @@ internal fun startMagnifierRender(
                 loadSourceCachedForZoom(MAX_EDGE_PX).use { fullLease ->
                     val full = fullLease.image
                     val frameGain = frameExposureGain(e, full, renderSnapshot.params)
+                    val scannerContext = frameScannerContext(e, full, renderSnapshot.params)
                     cropLinearImage(full, nx, ny, MAGNIFIER_CROP_PX, frameGain).use { crop ->
                         // Effective film format so the crop's pixel_size_um matches the proxy it was
                         // cut from (the crop spans only cropFrac of the frame). Without it the engine
@@ -93,7 +94,7 @@ internal fun startMagnifierRender(
                         ) { cancellation ->
                             e.simulate(
                                 crop,
-                                renderSnapshot.paramsForCrop(cropFrac),
+                                renderSnapshot.paramsForCrop(cropFrac, scannerContext = scannerContext),
                                 RenderKind.MAGNIFIER,
                                 cancellation,
                             )
@@ -206,6 +207,7 @@ internal fun startRoiPatchRender(
             loadSourceCachedForZoom(MAX_EDGE_PX).use { fullLease ->
                 timing.sourceMs = timing.sinceStartMs()
                 val full = fullLease.image
+                val scannerContext = frameScannerContext(e, full, renderSnapshot.params)
                 // Render a grid-snapped patch around the viewport, not the viewport
                 // itself (RoiPatch): the margin keeps halation/blur light from just off
                 // screen, and a later pan inside the patch reuses this render.
@@ -260,6 +262,7 @@ internal fun startRoiPatchRender(
                                     renderSnapshot.paramsForCrop(
                                         cropFraction = cropFrac,
                                         previewMaxSize = edge,
+                                        scannerContext = scannerContext,
                                     ),
                                     RenderKind.ROI,
                                     cancellation,
@@ -355,6 +358,7 @@ internal fun frameExposureGain(e: SpektraEngine, full: LinearImage, params: Spek
     val key = FrameExposureKey(
         method = params.camera.autoExposureMethod,
         inputCctfDecoding = params.io.inputCctfDecoding,
+        recipe = params.toString(),
     )
     FrameExposureCache.lookup(full, key)?.let { return it }
     val gain = e.exposureGain(full, params)
@@ -365,7 +369,7 @@ internal fun frameExposureGain(e: SpektraEngine, full: LinearImage, params: Spek
 }
 
 /** The metering inputs besides the pixels: what [frameExposureGain] caches on. */
-internal data class FrameExposureKey(val method: String, val inputCctfDecoding: Boolean)
+internal data class FrameExposureKey(val method: String, val inputCctfDecoding: Boolean, val recipe: String = "")
 
 /** One-entry cache of the last whole-frame meter, held weakly so it never pins a source. */
 internal object FrameExposureCache {
@@ -383,4 +387,29 @@ internal object FrameExposureCache {
         key = k
         gain = g
     }
+}
+
+/** Frame-global receiver timing. Never persists into the editable recipe. */
+private object ScannerFrameCache {
+    var image: WeakReference<LinearImage>? = null
+    var key: String? = null
+    var context: DoubleArray? = null
+}
+internal suspend fun frameScannerContext(e: SpektraEngine, full: LinearImage, params: SpektraParams): DoubleArray? {
+    val root=org.json.JSONObject(params.experimentalJson.ifBlank{"{}"})
+    val output=root.optJSONObject("outputModel") ?: return null
+    val mode=output.optString("mode","paper")
+    if(mode !in listOf("nikon-scan","noritsu-ls600","lab-scan","auto-levels"))return null
+    if(output.optBoolean("noritsuJobEnabled",false))return null
+    if(mode!="auto-levels" && !output.optBoolean("autoSetup",true))return null
+    val key=params.toString()
+    synchronized(ScannerFrameCache){
+        if(ScannerFrameCache.image?.get()===full && ScannerFrameCache.key==key)
+            return ScannerFrameCache.context?.copyOf()
+    }
+    val context=runCancellableNative { cancellation -> e.scannerContext(full,params,cancellation) }
+    synchronized(ScannerFrameCache){
+        ScannerFrameCache.image=WeakReference(full);ScannerFrameCache.key=key;ScannerFrameCache.context=context.copyOf()
+    }
+    return context
 }

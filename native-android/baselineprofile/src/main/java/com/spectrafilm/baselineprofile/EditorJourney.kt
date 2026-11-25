@@ -11,7 +11,7 @@ import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 
-const val TARGET_PACKAGE = "com.spectrafilm.app"
+const val TARGET_PACKAGE = "app.spektrafilm.lab"
 
 private const val WAIT_MS = 10_000L
 
@@ -52,7 +52,7 @@ fun MacrobenchmarkScope.dismissFirstRun() {
  */
 fun MacrobenchmarkScope.awaitFirstPreview() {
     checkNotNull(
-        device.wait(Until.findObject(By.descStartsWith(FILM_PREVIEW_DESC_PREFIX)), PREVIEW_WAIT_MS),
+        device.wait(Until.findObject(By.res("editor-rendered-preview")), PREVIEW_WAIT_MS),
     ) { "First preview not drawn within ${PREVIEW_WAIT_MS} ms" }
 }
 
@@ -75,19 +75,17 @@ private fun MacrobenchmarkScope.slider(timeoutMs: Long): UiObject2? =
  * the Film stage blindly: use the panel as found if it already shows Grain or a slider.
  */
 private fun MacrobenchmarkScope.openGrainSlider(): UiObject2 {
-    slider(1_000L)?.let { return it }
-    device.findObject(label(TOOL_GRAIN))?.let { grain ->
-        grain.click()
-        slider(WAIT_MS)?.let { return it }
-    }
-    checkNotNull(find(STAGE_FILM)) { "Film stage not found" }.click()
+    // Stable semantics from the photographic workspace. Never accept an
+    // arbitrary slider from a restored unrelated tool or rely on UI language.
+    val effects=checkNotNull(device.wait(Until.findObject(By.res("workflow-stage-EFFECTS")),WAIT_MS)) { "Effects stage not found" }
+    if(!effects.isSelected)effects.click()
     device.waitForIdle()
-    slider(1_000L)?.let { return it }
-    checkNotNull(find(TOOL_GRAIN)) { "Grain tool not found under Film" }.click()
-    return checkNotNull(slider(WAIT_MS)) { "No slider under Film > Grain" }
+    checkNotNull(device.wait(Until.findObject(By.res("tool-directory-open")),WAIT_MS)) { "Tool directory not found" }.click()
+    checkNotNull(device.wait(Until.findObject(By.res("workflow-tool-grain")),WAIT_MS)) { "Grain tool not found" }.click()
+    return checkNotNull(slider(WAIT_MS)) { "No slider under Effects > Grain" }
 }
 
-/** Open Film > Grain, drag a slider both ways, then open and close the export sheet. */
+/** Open Effects > Grain, drag a slider both ways, then open and close the export sheet. */
 fun MacrobenchmarkScope.editJourney() {
     val slider = openGrainSlider()
     slider.setGestureMargin(device.displayWidth / 10)
@@ -96,7 +94,7 @@ fun MacrobenchmarkScope.editJourney() {
     slider.swipe(Direction.LEFT, 0.6f)
     device.waitForIdle()
 
-    checkNotNull(find(EXPORT)) { "Export button not found" }.click()
+    checkNotNull(device.wait(Until.findObject(By.res("export-pill-export")),WAIT_MS)) { "Export button not found" }.click()
     device.waitForIdle()
     device.pressBack()
     device.waitForIdle()

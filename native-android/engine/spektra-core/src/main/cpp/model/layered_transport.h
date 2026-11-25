@@ -1,8 +1,10 @@
+#include "model/lab_json.h"
 /* Apache-2.0, port of Fotufilm LayeredTransport.swift / HalationModel.swift /
  * TransportKernelCompiler.swift @b9049f3. MUAStudio Inc. Modifications: C++ CPU
  * implementation, checked Vulkan stencils and three-record Spektrafilm adapter.
  * See docs/LAYERED_TRANSPORT.md. */
 #pragma once
+#include "runtime/prepared_cache.h"
 #include "profiles/json_min.h"
 #include "model/layered_transport_data.h"
 #include "kernels/gaussian.h"
@@ -17,12 +19,12 @@
 #include <cmath>
 namespace spk { namespace transport {
 struct Params {std::string model="legacy";double anti=1,thickness=1,plate=0,haze=0;};
-inline Params read_params(const char* text){Params p;if(!text||!*text)return p;auto j=json::parse(text);if(!j->has("layeredTransport"))return p;auto& o=j->at("layeredTransport");if(!o.is_object())throw std::runtime_error("Invalid Layered Transport controls");if(o.has("model")){p.model=o.at("model").as_string();if(p.model!="legacy"&&p.model!="layered")throw std::runtime_error("Invalid halation model");}auto number=[&](const char* key,double base,double low,double high){if(!o.has(key))return base;double x=o.at(key).as_number();if(!std::isfinite(x)||x<low||x>high)throw std::runtime_error(std::string("Invalid transport ")+key);return x;};p.anti=number("antiHalation",1,0,4);p.thickness=number("baseThickness",1,.25,3);p.plate=number("pressurePlate",0,0,1);p.haze=number("hazeUm",0,0,500);return p;}
+inline Params read_params(const char* text){Params p;if(!text||!*text)return p;auto j=parse_lab_json(text);if(!j->has("layeredTransport"))return p;auto& o=j->at("layeredTransport");if(!o.is_object())throw std::runtime_error("Invalid Layered Transport controls");if(o.has("model")){p.model=o.at("model").as_string();if(p.model!="legacy"&&p.model!="layered")throw std::runtime_error("Invalid halation model");}auto number=[&](const char* key,double base,double low,double high){if(!o.has(key))return base;double x=o.at(key).as_number();if(!std::isfinite(x)||x<low||x>high)throw std::runtime_error(std::string("Invalid transport ")+key);return x;};p.anti=number("antiHalation",1,0,4);p.thickness=number("baseThickness",1,.25,3);p.plate=number("pressurePlate",0,0,1);p.haze=number("hazeUm",0,0,500);return p;}
 inline double sample(const json::Value& array,int band){if(!array.is_array()||(array.array.size()!=1&&array.array.size()!=81))throw std::runtime_error("Invalid construction spectrum");double v=array.array[array.array.size()==1?0:band]->as_number();if(!std::isfinite(v))throw std::runtime_error("Nonfinite construction spectrum");return v;}
 struct Layer{std::string id;double depth,n,absorption;};
 struct Model{std::vector<Layer> layers;double source=.0155,q=2,capture=.5,ratio=.004,core=.005,nFront=1,nRear=1,rear=-1,plate=-1;};
 inline Model construction(const std::string& film,int receiver,const double* strengths){Model m;const char* text=construction_json(film);if(!text){m.layers={{"blue-coating",.006,1.52,.4},{"green-coating",.006,1.52,.4},{"red-coating",.006,1.52,.4},{"support",.13,1.48,.2}};double depths[]={.0155,.0094,.0052},q[]={2.2,2,1.8},capture[]={.35,.4,.5};m.source=depths[receiver];m.q=q[receiver];m.capture=capture[receiver];m.ratio=strengths[receiver];return m;}
- auto j=json::parse(text);const int bands[]={50,33,17};int band=bands[receiver]; // 630/545/465 nm record adapter
+ auto j=parse_lab_json(text);const int bands[]={50,33,17};int band=bands[receiver]; // 630/545/465 nm record adapter
  for(auto& l:j->at("layers").array){double d=l->at("thicknessMM").as_number(),n=sample(l->at("refractiveIndex"),band),a=sample(l->at("absorptionPerMM"),band);if(d<=0||d>2||n<1||n>4||a<0||a>100000)throw std::runtime_error("Invalid construction layer");m.layers.push_back({l->at("id").as_string(),d,n,a});}
  m.source=j->at("recordDepthMM").array[receiver]->as_number();m.q=sample(*j->at("angularExponent").array[receiver],band);m.capture=sample(*j->at("captureProbability").array[receiver],band);m.ratio=sample(*j->at("returnedToDirect").array[receiver],band);m.core=j->at("coreSigmaMM").array[receiver]->as_number();m.nFront=sample(j->at("frontIndex"),band);m.nRear=sample(j->at("rearIndex"),band);if(j->has("rearReflectance"))m.rear=sample(j->at("rearReflectance"),band);if(j->has("rearPlateReflectance"))m.plate=sample(j->at("rearPlateReflectance"),band);return m;}
 inline Model adjusted(Model m,const Params& p){for(auto& l:m.layers){if(l.id=="support")l.depth*=p.thickness;else l.absorption*=p.anti;}if(m.rear<0&&p.plate>0)m.plate=p.plate;return m;}
@@ -54,9 +56,9 @@ inline std::vector<Stencil> stencils(const std::vector<std::pair<double,double>>
  }return out;
 }
 struct Prepared{std::array<std::vector<Stencil>,3> kernels;std::array<double,3> ratio,core;};
-inline std::shared_ptr<const Prepared> prepare(const std::string& film,const Params& p,const double* strengths,double pitch){std::string key=film+"|"+std::to_string(p.anti)+"|"+std::to_string(p.thickness)+"|"+std::to_string(p.plate)+"|"+std::to_string(pitch);for(int c=0;c<3;c++)key+='|'+std::to_string(strengths[c]);static std::mutex mutex;static std::map<std::string,std::shared_ptr<Prepared>> cache;{std::lock_guard<std::mutex> lock(mutex);auto it=cache.find(key);if(it!=cache.end())return it->second;}auto out=std::make_shared<Prepared>();
+inline std::shared_ptr<const Prepared> prepare(const std::string& film,const Params& p,const double* strengths,double pitch){std::string key=film;auto append=[&](double v){if(!std::isfinite(v))throw std::invalid_argument("Non-finite transport parameter");if(v==0)v=0;key.append(reinterpret_cast<const char*>(&v),sizeof(v));};append(p.anti);append(p.thickness);append(p.plate);append(pitch);for(int c=0;c<3;c++)append(strengths[c]);static PreparedCache<std::string,Prepared> cache(12);return cache.get(key,[&]{auto out=std::make_shared<Prepared>();
  for(int c=0;c<3;c++){auto original=construction(film,c,strengths),model=adjusted(original,p);auto solved=solve(model);double factor=1;if(p.anti!=1||p.thickness!=1||p.plate!=0){auto reference=solve(original);Params lossless;lossless.anti=0;auto bare=solve(adjusted(original,lossless));factor=adjusted_return(original.ratio,reference.captured,solved.captured,bare.captured,(1-original.capture)/original.capture);}out->ratio[c]=original.ratio*factor;out->core[c]=original.core;out->kernels[c]=stencils(coarsen(solved.nodes),pitch);}
- {std::lock_guard<std::mutex> lock(mutex);if(cache.size()>=12)cache.erase(cache.begin());cache[key]=out;}return out;
+ return out;});
 }
 inline std::vector<float> spread(const std::vector<float>& source,int w,int h,const std::vector<Stencil>& kernels,bool allow_gpu=false){std::vector<float> out(w*h,0),owned;const std::vector<float>* level=&source;int lw=w,lh=h,stride=1;for(auto& s:kernels){while(stride<s.stride){int nw=(lw+1)/2,nh=(lh+1)/2;std::vector<float> coarse(nw*nh);for(int y=0;y<nh;y++)for(int x=0;x<nw;x++){double sum=0;for(int dy=0;dy<2;dy++)for(int dx=0;dx<2;dx++)sum+=(*level)[std::min(2*y+dy,lh-1)*lw+std::min(2*x+dx,lw-1)];coarse[y*nw+x]=sum*.25;}owned.swap(coarse);level=&owned;lw=nw;lh=nh;stride*=2;}
  std::vector<float> convolved(lw*lh);int side=2*s.radius+1;

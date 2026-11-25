@@ -1,0 +1,35 @@
+name: Native photographic regressions
+on:
+  push:
+    branches: [main, 'fix/audit-*']
+    paths: ['native-android/engine/**', 'tests/native-upstream/**', '.github/workflows/native-audit.yml']
+  pull_request:
+    paths: ['native-android/engine/**', 'tests/native-upstream/**', '.github/workflows/native-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        vulkan: ['OFF', 'ON']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build libvulkan-dev mesa-vulkan-drivers
+      - run: cmake -S tests/native-upstream -B /tmp/native-audit -G Ninja -DSPK_HOST_VULKAN=${{ matrix.vulkan }}
+      - run: cmake --build /tmp/native-audit --parallel 3
+      - name: CPU and actual software Vulkan dispatch
+        env:
+          SPK_NUM_THREADS: '4'
+        run: ctest --test-dir /tmp/native-audit --output-on-failure --output-junit results.xml --parallel 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-audit-${{ matrix.vulkan }}
+          path: |
+            /tmp/native-audit/results.xml
+            /tmp/native-audit/Testing/Temporary/LastTest.log

@@ -1,3 +1,5 @@
+#include "runtime/prepared_cache.h"
+#include "runtime/lab_dependencies.h"
 /* MIT (c) 2026 noritsu-tool contributors, vendor.py @9c9298644c21.
  * C++ transcription + explicit Spektrafilm adapter. No default/fitted OEM job.
  * Compile with -fno-fast-math -ffp-contract=off to retain float32 operation order. */
@@ -63,6 +65,9 @@ void hue(Raster r,const Job& j){need(j.hue.size()==9*33*33*3,"Hue/Saturation: mi
 Pixel inverse(Pixel p,const Job& j){float a=float(p[0])-32768.f,b=float(p[1])-32768.f,y=p[2];float v[3]={y*j.inverse[6]+(b*j.inverse[8]+a*j.inverse[7]),y*j.inverse[3]+(b*j.inverse[5]+a*j.inverse[4]),y*j.inverse[0]+(b*j.inverse[2]+a*j.inverse[1])};int64_t n[3];for(int i=0;i<3;i++)n[i]=even(v[i]);int64_t mn=std::min({n[0],n[1],n[2]}),mx=std::max({n[0],n[1],n[2]});if(mn<0||mx>4095){if(mx==mn)for(auto& a:v)a=float(std::clamp<int64_t>(mx,0,4095));else{int64_t maximum=mx;if(mx>4095){float rec=float(1./double(mx-mn));for(auto& a:v)a=((a-float(mn))*(4095.f-float(mn)))*rec+float(mn);maximum=4095;}if(mn<0){float rec=float(1./double(maximum-mn));for(auto& a:v)a=((a-float(mn))*float(maximum))*rec;}}for(int i=0;i<3;i++)n[i]=even(std::clamp(v[i],0.f,4095.f));}return {j.gamma[2][n[2]],j.gamma[1][n[1]],j.gamma[0][n[0]]};}
 } // internal
 std::shared_ptr<const Job> read_job(const V& p){
+ static PreparedCache<std::string,Job> jobs(4);
+ std::string identity;lab_dependencies::value(identity,p);
+ return jobs.get(identity,[&]{
  need(num(p,"schema",1,1)==1,"Noritsu: unsupported job schema");auto job=std::make_shared<Job>();auto& j=*job;
  auto enc=p.at("encoding").as_string();need(enc=="srgb"||enc=="linear","Noritsu: declare output RGB encoding");j.srgb=enc=="srgb";j.bits=num(p,"outputBits",8,16);need(j.bits==8||j.bits==16,"Noritsu: output depth must be 8 or 16");
  const auto& rgb=p.at("rgbToYcc");j.forward=matrix(rgb.at("matrix"));auto offsets=ints(rgb.at("offsets"),3,-32768,65535),counts=ints(rgb.at("counts"),3,1,20);auto& xs=rgb.at("x");auto& ys=rgb.at("y");need(xs.is_array()&&ys.is_array()&&xs.array.size()==3&&ys.array.size()==3,"Noritsu: three transfer curves required");for(int k=0;k<3;k++){j.offsets[k]=signed16(offsets[k]);auto a=piece(*xs.array[k],*ys.array[k],counts[k],false,true,false);j.transfer[2-k].resize(65536);for(int n=0;n<65536;n++)j.transfer[2-k][n]=uint16_t(a[n]);}
@@ -81,9 +86,13 @@ std::shared_ptr<const Job> read_job(const V& p){
   auto response=[&](int64_t a,bool narrow){int64_t quotient=a/65535;if(narrow)quotient=signed16(quotient);return wrap32(quotient*gain)/2047;};auto store=[&](int64_t v){return signed16(std::clamp<int64_t>(v,-limit,limit));};auto pair=[&](int index,int64_t v){if(index<32768)s.response[32768+index]=store(v);s.response[32768-index]=store(wrap32(-v));};int i=0,left=center-half;if(left>=0){int32_t a=0;while(i<=left){pair(i,response(a,false));a=wrap32(int64_t(a)+inner);i++;}}int right=std::min(center+half,32768);if(i<=right){int32_t a=wrap32(int64_t(i-center+half)*(outer-inner));while(i<=right){int64_t slope=(a/half)/2+inner;pair(i,response(wrap32(slope*i),true));a=wrap32(int64_t(a)+outer-inner);i++;}}if(i<32768){int32_t a=wrap32(int64_t(i)*outer);while(i<32768){pair(i,response(a,true));a=wrap32(int64_t(a)+outer);i++;}}s.response[0]=store(response(wrap32(-32768LL*outer),true));
  }
  return job;
+ });
 }
 void stage(uint16_t* data,int w,int h,const Job& job,int which){need(w>0&&h>0,"Noritsu: invalid image shape");Raster r{reinterpret_cast<unsigned char*>(data),w,h};switch(which){case 0:forward(r,job);break;case 1:need(bool(job.local),"Auto Contrast: profile has no parameters");local(r,*job.local);break;case 2:need(bool(job.sharp),"Film Sharp: profile has no parameters");sharp(r,job);break;case 3:correct(r,job);break;case 4:hue(r,job);break;case 5:parallel_rows(h,w,[&](int y){for(int x=0;x<w;x++)r.put(y,x,inverse(r.get(y,x),job));});break;default:throw std::invalid_argument("Noritsu: unknown stage");}}
+int minimum_axis(const Job& job){return job.local?std::max(2,(job.local->size/2)*job.local->factor+1):1;}
 void process(float* data,int w,int h,const Job& job,bool useLocal,bool useSharp,bool useHue){
+ if(useLocal && (w<minimum_axis(job)||h<minimum_axis(job)))throw std::invalid_argument(
+  "Noritsu Auto Contrast: this job requires at least "+std::to_string(minimum_axis(job))+" pixels on each axis; source is "+std::to_string(w)+"x"+std::to_string(h)+". Use a larger source or explicitly disable Auto Contrast.");
  need(w>0&&h>0,"Noritsu: invalid image");Raster r{reinterpret_cast<unsigned char*>(data),w,h};
  for(int i=0;i<w*h;i++){Pixel p;for(int k=0;k<3;k++)p[k]=uclip(int64_t(data[i*3+k]));std::memcpy(r.bytes+size_t(i)*6,p.data(),6);}
  forward(r,job);if(useLocal){need(bool(job.local),"Noritsu: load original Auto Contrast parameters");local(r,*job.local);}if(useSharp){need(bool(job.sharp),"Noritsu: load original Film Sharp block");sharp(r,job);}correct(r,job);if(useHue)hue(r,job);

@@ -8,6 +8,12 @@
  */
 package com.spectrafilm.app
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -146,7 +152,7 @@ class MainActivity : ComponentActivity() {
                 settings.awaitLoaded()
                 value = true
             }
-            if (loaded) AppContent(host, settings)
+            if (loaded) Box(Modifier.fillMaxSize().semantics { testTagsAsResourceId=true }) { AppContent(host, settings) }
         }
     }
 }

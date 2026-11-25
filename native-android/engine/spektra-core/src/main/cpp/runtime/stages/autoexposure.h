@@ -1,3 +1,4 @@
+#include <functional>
 /*
  * Spektrafilm for Android — native engine: auto-exposure metering stage.
  * Copyright (C) 2026 Spektrafilm Android contributors.
@@ -120,3 +121,8 @@ double measure_auto_exposure_ev_f32(const float* image, int w, int h,
 }  // namespace spk
 
 #endif  // SPK_RUNTIME_STAGES_AUTOEXPOSURE_H
+
+namespace spk {
+// Exact full-frame raw meter with bounded pointwise preparation memory.
+double measure_raw_autoexposure_ev_stream(int w,int h,const char* method,const std::function<double(int)>& value);
+}

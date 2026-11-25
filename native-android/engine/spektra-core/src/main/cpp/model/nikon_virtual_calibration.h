@@ -1,5 +1,6 @@
 /* GPL-3.0. Exact immutable preparation for the virtual Nikon input adapter. */
 #pragma once
+#include "runtime/prepared_cache.h"
 #include "model/nikon_scan.h"
 #include "model/color_output.h"
 #include "profiles/profile.h"
@@ -28,7 +29,7 @@ struct NikonVirtualCalibration {
 };
 struct NikonVirtualCalibrationCache {
     std::mutex mutex;
-    std::map<std::string, std::shared_ptr<const NikonVirtualCalibration>> entries;
+    PreparedCache<std::string,NikonVirtualCalibration> entries{4};
     uint64_t builds = 0;
 };
 inline NikonVirtualCalibrationCache& nikon_virtual_calibration_cache() {
@@ -52,11 +53,7 @@ inline std::shared_ptr<const NikonVirtualCalibration> prepare_nikon_virtual_cali
     vector(anchor.wavelengths); vector(anchor.base_density); vector(anchor.channel_density);
     vector(anchor.log_exposure); vector(anchor.density_curves);
     auto& cache = nikon_virtual_calibration_cache();
-    {
-        std::lock_guard<std::mutex> lock(cache.mutex);
-        const auto found = cache.entries.find(key);
-        if (found != cache.entries.end()) return found->second;
-    }
+    return cache.entries.get(key,[&]{
     auto p = std::make_shared<NikonVirtualCalibration>();
     std::vector<RGB> bands(anchor.n_samples); RGB sums{};
     for (int i = 0; i < anchor.n_samples; ++i) for (int c = 0; c < 3; ++c) {
@@ -111,9 +108,7 @@ inline std::shared_ptr<const NikonVirtualCalibration> prepare_nikon_virtual_cali
         p->neutral_q.push_back(q);
     }
     std::lock_guard<std::mutex> lock(cache.mutex);
-    // Exact table bytes, bounded to four nominal profiles. No image statistics,
-    // operator edits, or mutable pointers can become a calibration identity.
-    if (cache.entries.size() >= 4) cache.entries.erase(cache.entries.begin());
-    ++cache.builds; cache.entries[key] = p; return p;
+    ++cache.builds; return p;
+    });
 }
 } // namespace spk::outputs

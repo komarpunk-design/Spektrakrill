@@ -12,10 +12,28 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.composed
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.foundation.border
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+
+internal data class ParameterSearchTarget(val tool:PhotoTool,val path:String,val label:String,val groupId:String?=null)
+internal val LocalParameterSearch=staticCompositionLocalOf<ParameterSearchTarget?> { null }
+/** Retains exact control identity across navigation, then scrolls the rendered row. */
+internal fun Modifier.parameterSearchTarget(path:String):Modifier=composed {
+    val target=LocalParameterSearch.current
+    val requester=remember { BringIntoViewRequester() }
+    val selected=target?.path==path
+    var placed by remember { mutableStateOf(false) }
+    LaunchedEffect(selected,placed){if(selected&&placed)requester.bringIntoView()}
+    val highlight=if(selected)Modifier.border(1.dp,MaterialTheme.colorScheme.primary,MaterialTheme.shapes.small).padding(8.dp) else Modifier
+    this.then(highlight).bringIntoViewRequester(requester).onGloballyPositioned{placed=true}.testTag("parameter-$path")
+}
 
 /** Presentation only. Never stores or changes processing parameters. */
 internal val LocalQuietEditor = staticCompositionLocalOf { false }
@@ -33,7 +51,9 @@ internal val LocalParameterFocus = staticCompositionLocalOf<ParameterFocus?> { n
     content:@Composable ()->Unit,
 ) {
     val focus=LocalParameterFocus.current
+    val requested=LocalParameterSearch.current
     var independent by rememberSaveable(id){mutableStateOf(false)}
+    LaunchedEffect(requested?.path){if(requested?.groupId==id){if(focus==null)independent=true else focus.selected=id}}
     val expanded=if(focus==null)independent else focus.selected==id
     Column(Modifier.fillMaxWidth().testTag("parameter-group-$id")) {
         Row(Modifier.fillMaxWidth().heightIn(min=56.dp)

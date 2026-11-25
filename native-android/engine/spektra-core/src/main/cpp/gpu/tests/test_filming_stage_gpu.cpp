@@ -634,6 +634,27 @@ void subc_case() {
 
 }  // namespace
 
+void table_reuse_case() {
+    if(!spk::gpu::available())return;
+    const int count=64;const auto rgb=make_scene(count);auto table=make_tc_lut(8);
+    std::vector<float> first(count*3),warm(count*3),after(count*3);
+    spk::gpu::release_resources();
+    auto run=[&](std::vector<float>& out){spk::gpu::FilmingStageDiagnostics d{};
+        check(spk::gpu::filming_expose(rgb.data(),nullptr,1.,count,count,1,table.data.data(),8,1.,nullptr,out.data(),&d),"table reuse dispatch succeeds");return d;};
+    auto cold=run(first),cached=run(warm);
+    check(!cold.table_cache_hit&&cached.table_cache_hit,"unchanged exact tc table skips upload/conversion");
+    check(first==warm,"table reuse is pixel exact");
+    table.data[7]+=.0123;
+    check(!run(after).table_cache_hit,"table byte edit invalidates upload");
+    table.data[7]-=.0123;
+    spk::gpu::release_resources();
+    auto rebuilt=run(after);
+    check(!rebuilt.table_cache_hit,"released buffer cannot inherit table identity");
+    // Subtraction need not reproduce the original double byte; use current
+    // bytes for two independent renders after pipeline-preserving trim.
+    run(warm);check(after==warm,"pipeline survives buffer release without stale descriptors");
+}
+
 int main() {
     std::printf("== test_filming_stage_gpu ==\n");
     std::printf("gpu available: %s\n", spk::gpu::available() ? "yes" : "NO");
@@ -643,6 +664,7 @@ int main() {
     // gain != 1 so a gain applied in the wrong place cannot hide.
     expose_case("expose fused, f32 source with gain 2^1.5", false, true, 2.8284271247461903);
 
+    table_reuse_case();
     develop_case();
     log10_case();
     layers_case(/*positive=*/false);

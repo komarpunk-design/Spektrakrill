@@ -50,6 +50,7 @@ struct FilmingParams {
     std::string transport_stock;
     bool raw_auto_exposure = false;
     const char* raw_auto_exposure_method = nullptr;
+    double* raw_meter_ev_out = nullptr; // meter-only call: return before effects/development
     bool experimental_projection_active = false;
     double experimental_projection[9] = {};
     InputColorSpace input_color_space = InputColorSpace::kProPhotoRGB;

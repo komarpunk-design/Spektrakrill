@@ -747,6 +747,10 @@ spk_status spk_bake_cube_lut_cancellable(spk_engine*, const spk_params*,
  * PURE READ: no engine state is mutated and `in` is not modified. Additive — no
  * existing code path changed, so the parity goldens are untouched by construction.
  */
+/* Full-frame receiver statistics for consistent ROI renders. out[0]=scale,
+ * out[1]=timing; input is bounded to the requested preview size. */
+spk_status spk_meter_scanner_context(spk_engine*, const spk_image*, const spk_params*, double out[2]);
+spk_status spk_meter_scanner_context_cancellable(spk_engine*, const spk_image*, const spk_params*, double out[2], spk_cancel_check, void*);
 spk_status spk_meter_exposure_ev(spk_engine*, const spk_image* in,
                                  const spk_params*, double* out_ev);
 spk_status spk_meter_exposure_ev_cancellable(spk_engine*, const spk_image* in,

@@ -46,6 +46,51 @@ internal enum class PhotoTool(val id:String,val title:String,val stage:PhotoStag
     DISPLAY("display","Предпросмотр",null,Category.DISPLAY);
     val category:Category get()=categories.first()
 }
+@androidx.compose.runtime.Composable internal fun PhotoStage.displayTitle():String = androidx.compose.ui.res.stringResource(when(this){
+    PhotoStage.CAMERA -> R.string.workbench_stage_camera
+    PhotoStage.FILM -> R.string.workbench_stage_film
+    PhotoStage.DEVELOPMENT -> R.string.workbench_stage_development
+    PhotoStage.EFFECTS -> R.string.workbench_stage_effects
+    PhotoStage.PRINT -> R.string.workbench_stage_print
+    PhotoStage.SCAN -> R.string.workbench_stage_scan
+    PhotoStage.FINISH -> R.string.workbench_stage_finish
+})
+@androidx.compose.runtime.Composable internal fun PhotoTool.displayTitle():String = androidx.compose.ui.res.stringResource(when(this){
+    PhotoTool.EXPOSURE -> R.string.workbench_tool_exposure
+    PhotoTool.BALANCE -> R.string.workbench_tool_balance
+    PhotoTool.PREP -> R.string.workbench_tool_prep
+    PhotoTool.LENS -> R.string.workbench_tool_lens
+    PhotoTool.FILTER -> R.string.workbench_tool_filter
+    PhotoTool.INPUT_COLOR -> R.string.workbench_tool_input_color
+    PhotoTool.RAW_CLEANUP -> R.string.workbench_tool_raw_cleanup
+    PhotoTool.SOURCE -> R.string.workbench_tool_source
+    PhotoTool.FILMS -> R.string.workbench_tool_films
+    PhotoTool.FORMAT -> R.string.workbench_tool_format
+    PhotoTool.SPECTRUM -> R.string.workbench_tool_spectrum
+    PhotoTool.FILM_BASE -> R.string.workbench_tool_film_base
+    PhotoTool.PROFILE -> R.string.workbench_tool_profile
+    PhotoTool.DEVELOP -> R.string.workbench_tool_develop
+    PhotoTool.CHEMISTRY -> R.string.workbench_tool_chemistry
+    PhotoTool.DIR -> R.string.workbench_tool_dir
+    PhotoTool.GRAIN -> R.string.workbench_tool_grain
+    PhotoTool.HALATION -> R.string.workbench_tool_halation
+    PhotoTool.DATE -> R.string.workbench_tool_date
+    PhotoTool.OUTPUT -> R.string.workbench_tool_output
+    PhotoTool.PAPER -> R.string.workbench_tool_paper
+    PhotoTool.PAPER_BASE -> R.string.workbench_tool_paper_base
+    PhotoTool.TEST_PRINT -> R.string.workbench_tool_test_print
+    PhotoTool.SCAN -> R.string.workbench_tool_scan
+    PhotoTool.NEGATIVE -> R.string.workbench_tool_negative
+    PhotoTool.SPECTRAL_SCAN -> R.string.workbench_tool_spectral_scan
+    PhotoTool.CROP -> R.string.workbench_tool_crop
+    PhotoTool.FRAME -> R.string.workbench_tool_frame
+    PhotoTool.TONE -> R.string.workbench_tool_tone
+    PhotoTool.OUTPUT_COLOR -> R.string.workbench_tool_output_color
+    PhotoTool.FILE -> R.string.workbench_tool_file
+    PhotoTool.PRESETS -> R.string.workbench_tool_presets
+    PhotoTool.MASKS -> R.string.workbench_tool_masks
+    PhotoTool.DISPLAY -> R.string.workbench_tool_display
+})
 internal val LocalPhotoNavigate=staticCompositionLocalOf<(PhotoTool)->Unit>{{}}
 internal val LocalPhotoTool=staticCompositionLocalOf<PhotoTool?>{null}
 internal fun photoTools(stage:PhotoStage)=PhotoTool.entries.filter{it.stage==stage}

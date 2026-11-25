@@ -449,6 +449,7 @@ struct FilmingStageDiagnostics {
     const char* reason = "";     // process-lifetime literal
     // True when the pass ran against the resident frame and moved nothing.
     bool resident = false;
+    bool table_cache_hit = false, curve_cache_hit = false;
     double upload_ms = 0.0;
     double gpu_ms = 0.0;
     double readback_ms = 0.0;

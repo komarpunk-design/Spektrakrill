@@ -335,6 +335,11 @@ void log_completed_stage_timing(uint64_t expected_render_id) noexcept {
                             spk::render_timing_kind_name(snapshot.kind),
                             static_cast<unsigned long long>(snapshot.render_id), heap);
     }
+    {
+        char operators[8192];
+        if(spk::operator_timings_json_format(operators,sizeof(operators))>0)
+            __android_log_print(ANDROID_LOG_INFO,"Spektra","operator timings json: %s",operators);
+    }
     if (timing_automation_enabled()) {
         char json[2048];
         if (spk_stage_timings_json(json, sizeof(json)) > 0) {
@@ -1722,6 +1727,60 @@ JNI(jdouble, nativeMeterExposureEv)(JNIEnv* env, jobject /*thiz*/, jlong handle,
 } catch (...) {
     throw_unknown_cpp_exception(env);
     return 0.0;
+}
+
+JNI(jdoubleArray, nativeScannerContext)(JNIEnv* env, jobject /*thiz*/, jlong handle,
+                                    jobject inBuf, jint w, jint h,
+                                    jstring inCs,
+                                    jobject paramsObj,
+                                    jobject cancellation) try {
+    spk_engine* eng = reinterpret_cast<spk_engine*>(handle);
+    if (!eng) { throw_runtime(env, "spektra: engine handle is null"); return nullptr; }
+    if (!inBuf) { throw_runtime(env, "spektra: input ByteBuffer is null"); return nullptr; }
+    if (w <= 0 || h <= 0) {
+        throw_runtime(env, "spektra: invalid image dimensions");
+        return nullptr;
+    }
+    float* in_data = nullptr;
+    if (!direct_float_input(env, inBuf, w, h, &in_data)) return nullptr;
+
+    // Match nativeSimulate's input contract. Metering feeds the same ProPhoto
+    // luminance transform as rendering, so silently dropping LinearImage's tag
+    // would produce a plausible but physically wrong exposure value.
+    const std::string in_cs = jstr(env, inCs);
+    if (!in_cs.empty() && in_cs != "ProPhoto RGB") {
+        throw_runtime(env,
+            ("spektra: unsupported input color space '" + in_cs +
+             "' (the engine accepts linear ProPhoto RGB only)").c_str());
+        return nullptr;
+    }
+
+    spk_params params;
+    ParamStorage store;
+    if (!marshal_params(env, paramsObj, &params, &store)) {
+        throw_runtime(env, "spektra: failed to marshal params");
+        return nullptr;
+    }
+    JniCancellation cancellation_probe(env, cancellation);
+    if (!cancellation_probe.initialize()) return nullptr;
+
+    spk_image img{in_data, w, h, static_cast<int32_t>(SPK_CS_PROPHOTO)};
+    double values[2]={1,0};
+    spk_status st=spk_meter_scanner_context_cancellable(eng,&img,&params,values,
+        cancellation_probe.callback(),cancellation_probe.context());
+    if(st!=SPK_OK){throw_status(env,st);return nullptr;}
+    jdoubleArray result=env->NewDoubleArray(2);
+    if(result)env->SetDoubleArrayRegion(result,0,2,values);
+    return result;
+} catch (const std::bad_alloc&) {
+    throw_native_oom(env);
+    return nullptr;
+} catch (const std::exception& e) {
+    throw_cpp_exception(env, e);
+    return nullptr;
+} catch (...) {
+    throw_unknown_cpp_exception(env);
+    return nullptr;
 }
 
 /*

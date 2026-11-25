@@ -256,3 +256,7 @@ internal object AdaptivePreview {
         )
     }
 }
+
+/** Small event coalescing, bounded independently of slow cold-start renders. */
+internal fun settleDelayMs(lastRenderMs: Long?): Long =
+    ((lastRenderMs ?: 400L) / 5L).coerceIn(40L, 160L)

@@ -711,6 +711,13 @@ class SpektraEngine private constructor(
         cancellation: RenderCancellation? = null,
     ): Float = Math.pow(2.0, meterExposureEv(image, params, cancellation)).toFloat()
 
+    fun scannerContext(image: LinearImage, params: SpektraParams, cancellation: RenderCancellation? = null): DoubleArray =
+        withEngineLease("scannerContext") { handle ->
+            image.acquireDataLease().use { lease ->
+                nativeScannerContext(handle, lease.data, image.width, image.height, image.colorSpace, params, cancellation)
+            }
+        }
+
     /** Destroy the native engine. Idempotent — a second call is a no-op (no double free). */
     override fun close() {
         lifecycle.close(::nativeDestroy)
@@ -732,6 +739,10 @@ class SpektraEngine private constructor(
         params: SpektraParams, preview: Boolean, renderKind: Int,
         cancellation: RenderCancellation?,
     ): SimResult?
+    private external fun nativeScannerContext(
+        handle: Long, inBuf: ByteBuffer, w: Int, h: Int, inCs: String,
+        params: SpektraParams, cancellation: RenderCancellation?,
+    ): DoubleArray
     private external fun nativeMeterExposureEv(
         handle: Long, inBuf: ByteBuffer, w: Int, h: Int, inCs: String,
         params: SpektraParams, cancellation: RenderCancellation?,

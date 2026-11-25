@@ -267,7 +267,7 @@ static double measure_field_ev(std::vector<double> Y,int w,int h,AeMethod method
 double measure_autoexposure_ev(const double* image,int w,int h,AeColorSpace cs,bool decoding,AeMethod method,bool known){
     return measure_field_ev(luminance_y(image,w,h,cs,decoding),w,h,method,known,kMidgray);
 }
-double measure_raw_autoexposure_ev(const double* raw,int w,int h,const char* name){
+template<class Reader> double measure_raw_reader(int w,int h,const char* name,const Reader& read){
     AeMethod method=AeMethod::kCenterWeighted;const bool known=!name||ae_method_from_string(name,&method);
     if(!known)return 0;
     const size_t count=static_cast<size_t>(w)*h;
@@ -277,7 +277,8 @@ double measure_raw_autoexposure_ev(const double* raw,int w,int h,const char* nam
         std::vector<double> x,y;normalized_coords(w,h,&x,&y);
         double weighted=0,total=0,all=0;
         for(int row=0;row<h;row++)for(int col=0;col<w;col++){
-            const size_t i=static_cast<size_t>(row)*w+col;const double v=(raw[i*3]+raw[i*3+1]+raw[i*3+2])/3;all+=v;
+            if(col==0&&parallel_cancellation_requested())throw ParallelCancelled{};
+            const size_t i=static_cast<size_t>(row)*w+col;const double v=read(i);all+=v;
             double weight=1;
             if(method==AeMethod::kCenterWeighted)weight=std::exp(-(x[col]*x[col]+y[row]*y[row])/(2*.2*.2));
             else if(method==AeMethod::kPartial)weight=std::sqrt(x[col]*x[col]+y[row]*y[row])<.15?1:0;
@@ -288,8 +289,24 @@ double measure_raw_autoexposure_ev(const double* raw,int w,int h,const char* nam
         const double ev=-std::log2(value);return std::isinf(ev)?0:ev;
     }
     std::vector<double> field(count);
-    for(size_t i=0;i<field.size();i++)field[i]=(raw[i*3]+raw[i*3+1]+raw[i*3+2])/3;
+    for(size_t i=0;i<field.size();i++)field[i]=read(i);
     return measure_field_ev(std::move(field),w,h,method,known,1.);
+}
+
+double measure_raw_autoexposure_ev(const double* raw,int w,int h,const char* name){
+    return measure_raw_reader(w,h,name,[&](size_t i){return (raw[i*3]+raw[i*3+1]+raw[i*3+2])/3;});
+}
+double measure_raw_autoexposure_ev_stream(int w,int h,const char* name,const std::function<double(int)>& rawValue){
+    constexpr int block=65536;
+    const int count=w*h;std::vector<double> values(std::min(block,count));int first=-1,last=-1;
+    auto read=[&](size_t index){
+        const int i=int(index);
+        if(i>=last||i<first){first=i;last=std::min(count,first+block);
+            parallel_for(first,last,[&](int lo,int hi){for(int p=lo;p<hi;p++)values[p-first]=rawValue(p);});
+        }
+        return values[i-first];
+    };
+    return measure_raw_reader(w,h,name,read);
 }
 
 namespace {

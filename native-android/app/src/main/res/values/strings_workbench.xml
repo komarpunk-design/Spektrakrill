@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workbench_stage_camera">Камера</string>
+    <string name="workbench_stage_film">Плёнка</string>
+    <string name="workbench_stage_development">Проявка</string>
+    <string name="workbench_stage_effects">Эффекты</string>
+    <string name="workbench_stage_print">Печать</string>
+    <string name="workbench_stage_scan">Скан</string>
+    <string name="workbench_stage_finish">Финиш</string>
+    <string name="workbench_tool_exposure">Экспозиция</string>
+    <string name="workbench_tool_balance">Баланс белого</string>
+    <string name="workbench_tool_prep">Подготовка</string>
+    <string name="workbench_tool_lens">Оптика</string>
+    <string name="workbench_tool_filter">Цветной фильтр</string>
+    <string name="workbench_tool_input_color">Входной цвет</string>
+    <string name="workbench_tool_raw_cleanup">Очистка RAW</string>
+    <string name="workbench_tool_source">Исходник</string>
+    <string name="workbench_tool_films">Каталог</string>
+    <string name="workbench_tool_format">Формат</string>
+    <string name="workbench_tool_spectrum">Спектр</string>
+    <string name="workbench_tool_film_base">Основа и маска</string>
+    <string name="workbench_tool_profile">Профиль</string>
+    <string name="workbench_tool_develop">Push / Pull</string>
+    <string name="workbench_tool_chemistry">Химия</string>
+    <string name="workbench_tool_dir">DIR</string>
+    <string name="workbench_tool_grain">Зерно</string>
+    <string name="workbench_tool_halation">Галяция</string>
+    <string name="workbench_tool_date">Дата на плёнке</string>
+    <string name="workbench_tool_output">Вывод</string>
+    <string name="workbench_tool_paper">Бумага и печать</string>
+    <string name="workbench_tool_paper_base">Основа бумаги</string>
+    <string name="workbench_tool_test_print">Пробная печать</string>
+    <string name="workbench_tool_scan">Скан без бумаги</string>
+    <string name="workbench_tool_negative">Настоящий негатив</string>
+    <string name="workbench_tool_spectral_scan">Спектральный скан</string>
+    <string name="workbench_tool_crop">Кадрирование</string>
+    <string name="workbench_tool_frame">Рамка</string>
+    <string name="workbench_tool_tone">Цифровой тон</string>
+    <string name="workbench_tool_output_color">Цвет и размер</string>
+    <string name="workbench_tool_file">Файл</string>
+    <string name="workbench_tool_presets">Рецепты</string>
+    <string name="workbench_tool_masks">Маски</string>
+    <string name="workbench_tool_display">Предпросмотр</string>
+</resources>

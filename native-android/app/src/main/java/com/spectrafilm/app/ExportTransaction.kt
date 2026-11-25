@@ -110,6 +110,7 @@ internal class ExportTransaction(
         artifact: EncodedArtifact,
         spec: ExportDestinationSpec,
         isCancelled: () -> Boolean = { false },
+        onReserved: (String) -> Unit = {},
         onPublished: (String) -> Unit = {},
     ): String {
         throwIfExportCancelled(isCancelled)
@@ -124,6 +125,7 @@ internal class ExportTransaction(
         }
         try {
             journal.add(token)
+            onReserved(token)
         } catch (failure: Throwable) {
             val deleted = runCatching { backend.delete(token) }
             deleted.exceptionOrNull()?.let(failure::addSuppressed)
@@ -542,6 +544,7 @@ internal fun publishStagedImage(
     displayName: String,
     mimeType: String,
     isCancelled: () -> Boolean = { false },
+    onReserved: (String,Long,String) -> Unit = {_,_,_->},
     onPublished: (Uri) -> Unit = {},
 ): Uri {
     check(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
@@ -561,6 +564,7 @@ internal fun publishStagedImage(
                 relativePath = MEDIASTORE_EXPORT_RELATIVE_PATH,
             ),
             isCancelled = isCancelled,
+            onReserved = { token -> onReserved(token,artifact.length,artifact.sha256) },
             onPublished = { token -> onPublished(Uri.parse(token)) },
         )
     }

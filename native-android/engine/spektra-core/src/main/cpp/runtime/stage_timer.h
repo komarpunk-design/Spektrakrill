@@ -233,7 +233,13 @@ struct GpuScanTimingSnapshot {
 
 // Immutable once published. `stages_ms` contains inclusive durations: the two
 // documented sub-measures remain nested inside scan and must not be added to it.
+struct OperatorTiming {
+    uint64_t gpu_passes=0,refusals=0,cache_hits=0,cache_misses=0,table_hits=0;
+    double upload_ms=0,compute_ms=0,readback_ms=0;
+    const char* reason="";
+};
 struct StageTimingSnapshot {
+    OperatorTiming operators[STG_COUNT];
     uint64_t render_id = 0;
     RenderTimingKind kind = RTK_UNKNOWN;
     RenderTimingOutcome outcome = RTO_NONE;
@@ -361,6 +367,17 @@ inline uint64_t stage_timing_render_id() {
     return stage_timing_snapshot().render_id;
 }
 
+inline void stage_timing_note_operator(int slot,bool engaged,const char* reason,double up=0,double compute=0,double back=0,bool table_hit=false) {
+    auto& state=stage_timing_state();if(state.depth<=0||state.stage_suppression_depth>0||slot<0||slot>=STG_COUNT)return;
+    auto& item=state.current.operators[slot];
+    if(engaged)++item.gpu_passes;else{++item.refusals;item.reason=reason?reason:"unspecified";}
+    item.upload_ms+=up;item.compute_ms+=compute;item.readback_ms+=back;if(table_hit)++item.table_hits;
+}
+inline void stage_timing_note_cache(int slot,bool hit) {
+    auto& state=stage_timing_state();if(state.depth<=0||state.stage_suppression_depth>0||slot<0||slot>=STG_COUNT)return;
+    auto& item=state.current.operators[slot];if(hit)++item.cache_hits;else ++item.cache_misses;
+}
+
 // One diffusion convolution's transform choice. `unclamped_n` is what the
 // selector would have picked against the ceiling alone, so n < unclamped_n is
 // exactly "the memory budget made this slower".
@@ -395,6 +412,7 @@ inline void stage_timing_note_gpu_grain(bool attempted, bool engaged,
     StageTimingThreadState& state = stage_timing_state();
     if (state.depth <= 0) return;
     StageTimingSnapshot& c = state.current;
+    if(attempted)stage_timing_note_operator(STG_GRAIN,engaged,reason,0,gpu_ms,0);
     c.gpu_grain_attempted = attempted;
     c.gpu_grain_engaged = engaged;
     c.gpu_grain_reason = reason ? reason : "";
@@ -412,6 +430,7 @@ inline void stage_timing_note_gpu_halation(
     uint32_t dispatches, double upload_ms, double gpu_ms, double readback_ms) {
     StageTimingThreadState& state = stage_timing_state();
     if (state.depth <= 0) return;
+    if(attempted)stage_timing_note_operator(STG_HALATION,engaged,reason,upload_ms,gpu_ms,readback_ms);
     stage_timing_fill_gpu_halation(state.current.gpu_halation, attempted, engaged, reason,
                                    bands, dispatches, upload_ms, gpu_ms, readback_ms);
 }
@@ -909,6 +928,25 @@ inline int stage_timings_json_format(char* buf, int cap) {
             snapshot.gpu_pointwise.self_test_static_upload_bytes));
     buf[off < cap ? off : cap - 1] = '\0';
     return off;
+}
+
+// Separate additive schema: existing stage_timings.v1 and its buffer-size ABI
+// stay intact. "gpu-assisted" describes dispatched operators, not an assertion
+// that every operation in the photographic stage ran on GPU.
+inline int operator_timings_json_format(char* buf,int cap) {
+    if(!buf||cap<8192){if(buf&&cap>0)buf[0]=0;return 0;}
+    const auto& snapshot=stage_timing_snapshot();int off=0;
+    stage_timing_append(buf,cap,&off,"{\"schema\":\"spk.operators.v1\",\"render_id\":%llu,\"operators\":[",static_cast<unsigned long long>(snapshot.render_id));
+    bool first=true;
+    for(int i=0;i<STG_COUNT;i++) {
+        const auto& item=snapshot.operators[i];
+        if(snapshot.stages_ms[i]==0&&!item.gpu_passes&&!item.refusals&&!item.cache_hits&&!item.cache_misses)continue;
+        const char* backend=item.gpu_passes?"gpu-assisted":item.cache_hits?"cache":snapshot.stages_ms[i]>0?"cpu":"unused";
+        stage_timing_append(buf,cap,&off,"%s{\"stage\":\"%s\",\"backend\":\"%s\",\"gpu_passes\":%llu,\"refusals\":%llu,\"cache_hits\":%llu,\"cache_misses\":%llu,\"table_hits\":%llu,\"upload_ms\":%.3f,\"compute_ms\":%.3f,\"readback_ms\":%.3f,\"reason\":",first?"":",",stage_name(i),backend,
+            static_cast<unsigned long long>(item.gpu_passes),static_cast<unsigned long long>(item.refusals),static_cast<unsigned long long>(item.cache_hits),static_cast<unsigned long long>(item.cache_misses),static_cast<unsigned long long>(item.table_hits),item.upload_ms,item.compute_ms,item.readback_ms);
+        stage_timing_append(buf,cap,&off,"\"");stage_timing_append_json_string(buf,cap,&off,item.reason);stage_timing_append(buf,cap,&off,"\"}");first=false;
+    }
+    stage_timing_append(buf,cap,&off,"]}");buf[off<cap?off:cap-1]=0;return off;
 }
 
 // App-level disposition is deliberately a separate keyed event: native work can

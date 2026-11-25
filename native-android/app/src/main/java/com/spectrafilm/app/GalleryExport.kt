@@ -184,6 +184,7 @@ suspend fun saveToGallery(
     sourceExif: SourceExif = SourceExif(emptyMap()),
     displayName: String? = null,
     onCommitted: () -> Unit = {},
+    onReserved: (String,Long,String) -> Unit = {_,_,_->},
     /**
      * Invoked with the staged, verified artifact AFTER it has published successfully, so the
      * export cache (#179) can adopt the exact bytes that reached the gallery without re-encoding
@@ -284,6 +285,7 @@ suspend fun saveToGallery(
             format.mime,
             isCancelled,
             onCommitted,
+            onReserved = onReserved,
         )
         onStaged(artifact.file, artifact.length, artifact.sha256)
         return published
@@ -326,6 +328,7 @@ suspend fun saveSimResultAsTiff(
     descriptor: OutputDescriptor,
     displayName: String? = null,
     onCommitted: () -> Unit = {},
+    onReserved: (String,Long,String) -> Unit = {_,_,_->},
     /**
      * Invoked with the staged, verified artifact AFTER it has published successfully, so the
      * export cache (#179) can adopt the exact bytes that reached the gallery without re-encoding
@@ -415,6 +418,7 @@ suspend fun saveSimResultAsTiff(
             descriptor.format.mime,
             isCancelled,
             onCommitted,
+            onReserved = onReserved,
         )
         onStaged(artifact.file, artifact.length, artifact.sha256)
         return published
@@ -457,6 +461,7 @@ private fun publishStagedToGallery(
     mime: String,
     isCancelled: () -> Boolean = { false },
     onCommitted: () -> Unit = {},
+    onReserved: (String,Long,String) -> Unit = {_,_,_->},
 ): Uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
     publishStagedImage(
         ctx,
@@ -464,10 +469,11 @@ private fun publishStagedToGallery(
         name,
         mime,
         isCancelled,
+        onReserved = onReserved,
         onPublished = { onCommitted() },
     )
 } else {
-    publishLegacyArtifact(ctx, artifact, name, mime, isCancelled, onCommitted)
+    publishLegacyArtifact(ctx, artifact, name, mime, isCancelled, onCommitted,onReserved)
 }
 
 /** API 24–28: sibling `.part` + fsync + digest + non-overwriting rename. */
@@ -479,6 +485,7 @@ private fun publishLegacyArtifact(
     mime: String,
     isCancelled: () -> Boolean = { false },
     onCommitted: () -> Unit = {},
+    onReserved: (String,Long,String) -> Unit = {_,_,_->},
 ): Uri {
     fun ensureExportActive() {
         if (isCancelled()) throw CancellationException("legacy export publication cancelled")
@@ -517,7 +524,7 @@ private fun publishLegacyArtifact(
             "legacy export digest mismatch"
         }
         ensureExportActive()
-        destination = renameWithoutOverwrite(part, dir, requestedName, isCancelled)
+        destination = renameWithoutOverwrite(part, dir, requestedName, isCancelled) { file -> onReserved(Uri.fromFile(file).toString(),artifact.length,artifact.sha256) }
         // Rename is the legacy publication linearization point. A late cancellation must
         // not turn the already-visible file into a retryable duplicate.
         destinationCommitted = true
@@ -553,6 +560,7 @@ private fun renameWithoutOverwrite(
     dir: File,
     requestedName: String,
     isCancelled: () -> Boolean = { false },
+    onReserved: (File) -> Unit = {},
 ): File {
     require('/' !in requestedName && '\\' !in requestedName && '\u0000' !in requestedName)
     return synchronized(legacyExportNameLock) {
@@ -568,6 +576,7 @@ private fun renameWithoutOverwrite(
             // reservation with the already-fsynced sibling stage.
             if (!candidate.createNewFile()) continue
             try {
+                onReserved(candidate)
                 Os.rename(part.absolutePath, candidate.absolutePath)
                 return@synchronized candidate
             } catch (failure: Throwable) {
@@ -700,6 +709,7 @@ suspend fun saveSimResultAsPng16(
     descriptor: OutputDescriptor,
     displayName: String? = null,
     onCommitted: () -> Unit = {},
+    onReserved: (String,Long,String) -> Unit = {_,_,_->},
     /**
      * Invoked with the staged, verified artifact AFTER it has published successfully, so the
      * export cache (#179) can adopt the exact bytes that reached the gallery without re-encoding
@@ -768,6 +778,7 @@ suspend fun saveSimResultAsPng16(
             descriptor.format.mime,
             isCancelled,
             onCommitted,
+            onReserved = onReserved,
         )
         onStaged(artifact.file, artifact.length, artifact.sha256)
         return published

@@ -5,6 +5,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AdaptivePreviewTest {
+    @org.junit.Test fun settleLatencyTracksWarmCostAndIsBounded() {
+        org.junit.Assert.assertEquals(40L, settleDelayMs(20L))
+        org.junit.Assert.assertEquals(80L, settleDelayMs(null))
+        org.junit.Assert.assertEquals(160L, settleDelayMs(20_000L))
+    }
+
     private val gib = 1_073_741_824L
 
     private fun profile(

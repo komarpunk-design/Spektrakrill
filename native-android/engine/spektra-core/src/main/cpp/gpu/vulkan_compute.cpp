@@ -268,6 +268,22 @@ struct Ctx {
     // The full-chain (scan_spectral.comp) and linear (scan_spectral_lin.comp)
     // kernels share this shape — identical bindings + push-constant layout —
     // but keep separate pipelines and buffers.
+    struct TableSnapshot {
+        spk::memory::MemoryReservation reservation;
+        std::vector<unsigned char> bytes;
+        bool matches(const void* data,size_t size) const {
+            return size==bytes.size()&&size&&std::memcmp(bytes.data(),data,size)==0;
+        }
+        void forget(){std::vector<unsigned char>().swap(bytes);reservation.reset();}
+        void remember(const void* data,size_t size) noexcept {
+            forget();if(size>(8u<<20)||!size)return;
+            auto admitted=spk::memory::process_memory_budget().try_reserve(size,
+                spk::memory::MemoryDomain::Cache,spk::memory::MemoryStage::Gpu);
+            if(!admitted)return;
+            try {const auto* first=static_cast<const unsigned char*>(data);bytes.assign(first,first+size);reservation=std::move(admitted);}
+            catch(const std::bad_alloc&){forget();}
+        }
+    };
     struct Kernel {
         VkShaderModule shader = VK_NULL_HANDLE;
         VkDescriptorSetLayout dsl = VK_NULL_HANDLE;
@@ -280,6 +296,7 @@ struct Ctx {
         VkFence fence = VK_NULL_HANDLE;
         Buf in, out, dyeB, cmfB;                // in/out grow-only; tables fixed
         bool pipelineReady = false;
+        TableSnapshot tableSource, curveSource;
         // Whether the descriptor set currently names the RESIDENT frame
         // planes rather than the mapped in/out pair (#220). Switching
         // between them changes which buffers the set points at, so it has
@@ -745,6 +762,7 @@ struct Ctx {
         destroyBuf(s.out);
         destroyBuf(s.dyeB);
         destroyBuf(s.cmfB);
+        s.tableSource.forget();s.curveSource.forget();
         s.pipelineReady = false;
     }
 
@@ -946,7 +964,7 @@ void note_scoped_reclaim(std::uint64_t freed) {
 #endif
 }
 Ctx* g_ctx = nullptr;  // guarded by gpu_mutex(); see ctx()
-bool release_resources_locked();
+bool release_resources_locked(bool preserve_pipelines = false);
 bool reclaim_for_budget() noexcept;
 Ctx& ctx() {
     if (!g_ctx) {
@@ -1633,14 +1651,30 @@ bool available() {
 }
 
 namespace {
-bool release_resources_locked() {
+bool release_resources_locked(bool preserve_pipelines) {
     // Never create a context just to tear it down.
     Ctx* c = g_ctx;
     if (!c || !c->ok || !c->device) return false;
     // A caller between frame_open and frame_close owns the resident planes.
     if (c->frame.open) return false;
-    // The same teardown the failure-recovery paths use; each resets its
-    // pipelineReady/pipelinesReady latch so the next call rebuilds lazily.
+    if(preserve_pipelines) {
+        // All submissions are synchronous and no frame is open. Descriptor sets
+        // are rewritten on buffer growth; retain pipeline/command objects only.
+        auto trim=[&](Ctx::Kernel& k){c->destroyBuf(k.in);c->destroyBuf(k.out);c->destroyBuf(k.dyeB);c->destroyBuf(k.cmfB);k.boundResident=false;k.tableSource.forget();k.curveSource.forget();};
+        trim(c->scanFused);trim(c->scanLin);trim(c->grainK);trim(c->glareK);
+        trim(c->maskK);trim(c->fftK);trim(c->filmK);
+        for(auto& b:c->fftWork)c->destroyResidentBuf(b);
+        c->destroyFrame();
+        c->destroyBuf(c->halation.staging);c->destroyBuf(c->halation.frame);
+        for(auto& b:c->halation.work)c->destroyResidentBuf(b);
+        auto& p=c->pointwise;c->destroyResidentBuf(p.frameStaging);
+        for(auto& b:p.ping)c->destroyResidentBuf(b);
+        c->destroyResidentBuf(p.staticStaging);
+        for(auto& b:p.tables)c->destroyResidentBuf(b);
+        p.cachedTableBytes={};p.cachedTableKey=0;
+        return true;
+    }
+    // Memory pressure and failure recovery retain the full teardown.
     c->destroyScan();
     c->destroyHalation();
     c->destroyPointwise();
@@ -1675,7 +1709,7 @@ bool reclaim_for_budget() noexcept {
 
 bool release_resources() {
     std::lock_guard<GpuMutex> lk(gpu_mutex());
-    return release_resources_locked();
+    return release_resources_locked(true);
 }
 
 bool low_priority_queue() {
@@ -1931,6 +1965,7 @@ static bool dispatch_scan(Ctx& c, Ctx::Kernel& s, const uint32_t* spv, size_t sp
             si.pCommandBuffers = &s.cmd;
             if (vkQueueSubmit(c.queue, 1, &si, s.fence) != VK_SUCCESS) { slice_ok = false; break; }
             if (vkWaitForFences(c.device, 1, &s.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS) { slice_ok = false; break; }
+            if(parallel_cancellation_requested())throw ParallelCancelled{};
             if (vkResetFences(c.device, 1, &s.fence) != VK_SUCCESS) { slice_ok = false; break; }
             gpu_ms += std::chrono::duration<double, std::milli>(
                           std::chrono::steady_clock::now() - t_gpu).count();
@@ -2724,6 +2759,7 @@ bool run_filming_stage(const FilmingStageRun& r, FilmingStageDiagnostics* diagno
     d.resident = resident;
     const VkPhysicalDeviceLimits& limits = c.properties.limits;
     Ctx::Kernel& s = c.filmK;
+    if(r.mode==kFilmModeMax)s.tableSource.forget();
 
     const PointwiseDispatchGrid grid =
         plan_pointwise_dispatch(r.npix, limits.maxComputeWorkGroupCount[0],
@@ -2814,17 +2850,31 @@ bool run_filming_stage(const FilmingStageRun& r, FilmingStageDiagnostics* diagno
             if (r.tc_count) {
                 float* tc = static_cast<float*>(s.dyeB.mapped);
                 const double* srcTable = r.second_f64 ? r.second_f64 : r.tc_table;
-                parallel_for(0, static_cast<int>(r.tc_count), [&](int lo, int hi) {
-                    for (int i = lo; i < hi; ++i)
-                        tc[i] = static_cast<float>(srcTable[i]);
-                });
+                const size_t size=r.tc_count*sizeof(double);
+                d.table_cache_hit=hadA&&!r.second_f64&&s.tableSource.matches(srcTable,size);
+                if(!d.table_cache_hit) {
+                    s.tableSource.forget();
+                    parallel_for(0, static_cast<int>(r.tc_count), [&](int lo, int hi) {
+                        for (int i = lo; i < hi; ++i)tc[i] = static_cast<float>(srcTable[i]);
+                    });
+                    if(!r.second_f64)s.tableSource.remember(srcTable,size);else s.tableSource.forget();
+                }
             }
             if (r.curve_count) {
                 float* cv = static_cast<float*>(s.cmfB.mapped);
-                std::memcpy(cv, r.curve_axis, r.curve_count * sizeof(float));
-                if (!r.curve_single_block)
-                    std::memcpy(cv + r.curve_count, r.curve_values,
-                                r.curve_count * sizeof(float));
+                const size_t axisBytes=r.curve_count*sizeof(float);
+                // The source axis and values may be disjoint. Compare the exact
+                // concatenation; mode/shape changes cannot alias a previous table.
+                const auto& saved=s.curveSource.bytes;
+                const size_t total=axisBytes*(r.curve_single_block?1:2);
+                d.curve_cache_hit=hadB&&saved.size()==total&&
+                    std::memcmp(saved.data(),r.curve_axis,axisBytes)==0&&
+                    (r.curve_single_block||std::memcmp(saved.data()+axisBytes,r.curve_values,axisBytes)==0);
+                if(!d.curve_cache_hit) {
+                    std::memcpy(cv,r.curve_axis,axisBytes);
+                    if(!r.curve_single_block)std::memcpy(cv+r.curve_count,r.curve_values,axisBytes);
+                    s.curveSource.remember(cv,total);
+                }
             }
         }
         d.upload_ms = std::chrono::duration<double, std::milli>(
@@ -2869,6 +2919,7 @@ bool run_filming_stage(const FilmingStageRun& r, FilmingStageDiagnostics* diagno
             si.pCommandBuffers = &s.cmd;
             if (vkQueueSubmit(c.queue, 1, &si, s.fence) != VK_SUCCESS) { dispatch_ok = false; break; }
             if (vkWaitForFences(c.device, 1, &s.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS) { dispatch_ok = false; break; }
+            if(parallel_cancellation_requested())throw ParallelCancelled{};
             if (vkResetFences(c.device, 1, &s.fence) != VK_SUCCESS) { dispatch_ok = false; break; }
         } while (false);
         d.gpu_ms = std::chrono::duration<double, std::milli>(
@@ -2894,6 +2945,7 @@ bool run_filming_stage(const FilmingStageRun& r, FilmingStageDiagnostics* diagno
         }
         d.readback_ms = std::chrono::duration<double, std::milli>(
                             std::chrono::steady_clock::now() - t_back).count();
+        if(r.mode==kFilmModeMax)s.tableSource.forget();
         ok = true;
     } while (false);
 
@@ -2969,7 +3021,7 @@ bool transport_convolve(const float* source, int width, int height,
     r.width=width;r.height=height;r.L=width;r.n=height;r.raw_x0=float(radius);
     r.src_f32=source;r.tc_table=kernel;r.tc_count=size_t(side*side);r.dst_f32=result;
     FilmingStageDiagnostics d;
-    if(!run_filming_stage(r,&d))return false;
+    if(!run_filming_stage(r,&d)){stage_timing_note_operator(STG_HALATION,false,d.reason);return false;}
     // Preserve the clamped boundary operator and its arbitrary original stencil;
     // no Gaussian substitute, shortened radius, or reflection is introduced.
     for(int sample=0;sample<65;sample++) {
@@ -2980,6 +3032,7 @@ bool transport_convolve(const float* source, int width, int height,
         const double actual=result[pixel];
         if(!std::isfinite(actual)||std::abs(actual-expected)>2e-5*std::max(std::abs(expected),1e-5))return false;
     }
+    stage_timing_note_operator(STG_HALATION,true,"",d.upload_ms,d.gpu_ms,d.readback_ms,d.table_cache_hit);
     ++transport_passes;return true;
 }
 
@@ -5284,6 +5337,7 @@ bool glare_field(float* field, int width, int height, const GlareRequest& reques
             si.pCommandBuffers = &s.cmd;
             if (vkQueueSubmit(c.queue, 1, &si, s.fence) != VK_SUCCESS) { dispatch_ok = false; break; }
             if (vkWaitForFences(c.device, 1, &s.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS) { dispatch_ok = false; break; }
+            if(parallel_cancellation_requested())throw ParallelCancelled{};
             if (vkResetFences(c.device, 1, &s.fence) != VK_SUCCESS) { dispatch_ok = false; break; }
         } while (false);
         d.gpu_ms = std::chrono::duration<double, std::milli>(

@@ -45,8 +45,10 @@ internal fun labParameterBuckets(group:String,values:List<JSONObject>):List<Pair
             if(monochrome && group=="grain" && (path.endsWith("Green")||path.endsWith("Blue")))return
             if(group=="dir" && (if(LabCatalog.stock(s.filmProfile)?.optString("type")=="positive") path.startsWith("dirDonor") else path.startsWith("dirReceiver")))return
             val label=row.getString("label")
+            Column(Modifier.parameterSearchTarget(path)) {
             if(row.getString("kind")=="switch") SwitchRow(label,s.labBoolean(path),{s.setLab(path,it)},row.optString("help").ifBlank { null })
             else EnhancedSlider(label,s.labNumber(path),row.getDouble("min").toFloat()..row.getDouble("max").toFloat(),{s.setLab(path,it)},step=row.getDouble("step").toFloat(),decimals=if(row.getDouble("step")<.01)3 else if(row.getDouble("step")<1)2 else 0,tooltip=row.optString("help").ifBlank { null },default=row.getDouble("default").toFloat())
+            }
         }
         if(LocalQuietEditor.current && group in listOf("grain","chemistry","prep")) {
             val visible=rows.filterNot{monochrome && group=="grain" && (it.getString("path").endsWith("Green")||it.getString("path").endsWith("Blue"))}

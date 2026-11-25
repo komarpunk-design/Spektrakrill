@@ -20,7 +20,7 @@
 namespace spk {
 namespace {
 using J=json::Value;
-json::ValuePtr tree(const char* text) {
+std::shared_ptr<const json::Value> tree(const char* text) {
     if(!text||!*text)return {};
 
     auto p=parse_lab_json(text);if(!p->is_object())throw std::runtime_error("experimental parameters must be an object");return p;
