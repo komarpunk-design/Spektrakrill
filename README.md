@@ -1,8 +1,8 @@
 # Spektrafilm Lab · Spektrakrill
 
-Текущая нативная версия: **9.67 / 137**, ARM64, Android 7.0 и выше.
+Текущая нативная версия: **9.78 / 148**, ARM64, Android 7.0 и выше.
 
-[Скачать APK 9.67](https://github.com/komarpunk-design/Spektrakrill/releases/download/v9.67.0/Spektrafilm-v9.67.0.apk) · [Расположение инструментов](docs/NATIVE_WORKSPACE_956.md).
+[Скачать APK 9.78](https://github.com/komarpunk-design/Spektrakrill/releases/download/v9.78.0/Spektrafilm-v9.78.0.apk) · [Расположение инструментов](docs/NATIVE_WORKSPACE_956.md).
 
 Основное приложение находится в `native-android/`. Оно построено на полном исходном коде
 [Spektrafilm for Android v1.0.0](https://github.com/thetechgeekko/Spektrafilm-android/tree/v1.0.0):
@@ -33,6 +33,10 @@ Compose UI, движок C++, LibRaw, просмотр, маски, библио
 [История перехода на нативную основу 9.57](docs/NATIVE_UPSTREAM_MIGRATION.md).
 [Происхождение файлов](docs/upstream/native-v1/source-manifest.json).
 Лицензия — GPLv3; оригинальные авторские уведомления сохранены.
+
+## Приложение для ChatGPT
+
+[Сервер и инструкция](chatgpt-app/README.md): камерный RAW → наш нативный движок → превью, JPEG/PNG и TIFF 16 бит. MCP-сервер и Docker-контейнер проверены на настоящих RAW; добавлена OAuth-защита. Публичный хостинг, провайдер входа и подключение к аккаунту ChatGPT ещё не настроены. Android-приложение сохранено.
 
 ## Сборка
 

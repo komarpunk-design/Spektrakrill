@@ -1,0 +1,14 @@
+{$SPEKTRA_DOMAIN} {
+    request_body {
+        max_size 2MB
+    }
+    reverse_proxy app:8765 {
+        flush_interval -1
+        transport http {
+            read_timeout 330s
+            write_timeout 330s
+        }
+    }
+    header Referrer-Policy no-referrer
+    header X-Content-Type-Options nosniff
+}

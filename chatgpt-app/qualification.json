@@ -1,0 +1,135 @@
+{
+  "camera_cases": [
+    {
+      "fixture": "1182.CR2",
+      "look": "warm",
+      "max_edge": 1024,
+      "width": 1024,
+      "height": 682,
+      "tiff_sha256": "7f3f077b7d7f882cf5607a259df48bccdf31c0dfa6c3b381cc44b034e2f819a2",
+      "all_pixels_finite": true,
+      "bw_rgb_spread": null,
+      "bw_channels_exactly_equal": null
+    },
+    {
+      "fixture": "2414.ARW",
+      "look": "bw",
+      "max_edge": 1024,
+      "width": 1024,
+      "height": 682,
+      "tiff_sha256": "1f051f31ae8d220060cc58c93b26da8856999c1bdada9483fbcdf9d54bb3e41a",
+      "all_pixels_finite": true,
+      "bw_rgb_spread": 0.0008866637945175171,
+      "bw_channels_exactly_equal": false
+    },
+    {
+      "fixture": "2249.NEF",
+      "look": "natural",
+      "width": 1024,
+      "height": 679,
+      "max_edge": 1024,
+      "tiff_sha256": "7c8dec5d78ac49bc051cf2d47f637bbe6576d694a51922a261861cf35bd30f3b"
+    },
+    {
+      "fixture": "2783.RAF",
+      "look": "natural",
+      "width": 3072,
+      "height": 2045,
+      "max_edge": 3072,
+      "tiff_sha256": "534c9035a7b3dd00c26b753b0a113a3eef192e33f5affba6c4cc8abd456b9f6e"
+    }
+  ],
+  "chatgpt_account_connected": false,
+  "chatgpt_cdn_download_tested": false,
+  "raw_input_in_mcp_test": "real NEF, supplied by local mock attachment download",
+  "native_engine": "unmodified Spektrafilm Android 9.78 CPU engine",
+  "raw_decoder": "production hardened LibRaw 0.22.2 wrapper, full demosaic",
+  "mcp_tests": {
+    "run": 19,
+    "failed": 0,
+    "skipped": 0,
+    "transport": "production SSE Streamable HTTP, including OAuth middleware, ASGI/TestClient"
+  },
+  "network_protocol_check": {
+    "transport": "real Streamable HTTP over localhost",
+    "server": "Spektrafilm",
+    "tools": [
+      "develop_raw"
+    ],
+    "fileParams": [
+      "file"
+    ],
+    "widget_read": true,
+    "chatgpt_connected": false
+  },
+  "docker_image_built": true,
+  "android_engine_commit": "384aceb9d7fb44a762618b197b836199f0c5c1de",
+  "native_library_build": "Release from pinned LibRaw archive with verified SHA-256",
+  "warnings": [
+    "MCP/Pydantic emits a forward-reference warning; ASGI SSE teardown reports MemoryObjectStream ResourceWarnings. Tests and actual localhost SDK transport completed successfully."
+  ],
+  "checked_on": "2026-11-25",
+  "checked_timezone": "Europe/Moscow",
+  "source_branch": "feat/chatgpt-raw-app",
+  "docker_registry_published": false,
+  "publicly_deployed": false,
+  "live_oauth_provider_configured": false,
+  "actual_chatgpt_widget_ui_tested": false,
+  "oauth_jwt_verified": true,
+  "container": {
+    "image": "spektrafilm-chatgpt:prototype-a1f07c4f",
+    "image_id": "sha256:3b4c20f60d09a44ee128b88490faa829ded170ab204b99f431cf13236f720a74",
+    "publicly_deployed": false,
+    "chatgpt_account_connected": false,
+    "unauthenticated_public_listener_refused": true,
+    "native_and_exports": {
+      "uid": 10001,
+      "width": 1024,
+      "height": 679,
+      "native_float_sha256": "62a1607a5ba9670fa13a606ef95d747a671089cfa1bfaff498f8660bcd4316f4",
+      "files": {
+        "result.jpg": {
+          "bytes": 497199,
+          "sha256": "149a1ab41e770a09a609b3fb9f32fadd283617b51da1119255f0eeae5518ef1b"
+        },
+        "result.png": {
+          "bytes": 1304482,
+          "sha256": "8ffb748e4bf01d25429ea2922c7c7d538efb2cb3fdf83a7483e1dbe17afa99d6"
+        },
+        "result.tiff": {
+          "bytes": 4081548,
+          "sha256": "cf610f80333b5d8c7e45a0cd756a8b86961dcffc767ba4092600f97e676cde5d"
+        },
+        "preview.jpg": {
+          "bytes": 264530,
+          "sha256": "be3c1e198262b3260c6ce21237f6bfb8f83aa16221ac0ed23b1d97eff2afa189"
+        },
+        "recipe.json": {
+          "bytes": 685,
+          "sha256": "0a4096697beea897b7116fbf5c082c398d3b436ec226205148debcfb9e910dd9"
+        }
+      },
+      "tiff_bits_per_sample": 16
+    },
+    "host_pixel_bytes_identical": true,
+    "container_http_sdk_discovery_and_widget": true,
+    "compose_config_valid": true
+  },
+  "container_raf26": {
+    "uid": 10001,
+    "width": 3072,
+    "height": 2045,
+    "native_float_sha256": "76981588ddcf95c99ef03106e55efe7113b117d8652955e9534d040bb0abfbed",
+    "tiff_sha256": "109dea415fcd269e89f09a43f7a914edf504b0c80fa001ea6824488532b7376d",
+    "tiff_bytes": 36653225,
+    "host_pixel_bytes_identical": true,
+    "container_memory_limit_gib": 4,
+    "native_address_space_limit_gib": 3
+  },
+  "https_proxy": {
+    "image": "caddy:2.10.2-alpine",
+    "configuration_valid": true,
+    "public_tls_certificate_issued": false,
+    "public_ports_opened": false
+  }
+}

@@ -1,0 +1,48 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: chatgpt-app/Dockerfile
+    environment:
+      SPEKTRA_PUBLIC_URL: https://${SPEKTRA_DOMAIN:?Set the public domain}
+      SPEKTRA_OAUTH_ISSUER: ${SPEKTRA_OAUTH_ISSUER:?Set the OAuth issuer}
+      SPEKTRA_OAUTH_JWKS_URL: ${SPEKTRA_OAUTH_JWKS_URL:?Set the provider JWKS URL}
+      SPEKTRA_ALLOWED_SUBJECTS: ${SPEKTRA_ALLOWED_SUBJECTS:?Set your allowed provider subject ID}
+      SPEKTRA_UPLOAD_HOSTS: ${SPEKTRA_UPLOAD_HOSTS:-files.oaiusercontent.com,files.openai.com,*.oaiusercontent.com}
+    volumes:
+      - photos:/data
+    tmpfs:
+      - /tmp:size=1g,mode=1777,noexec,nosuid,nodev
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 4g
+    cpus: 4
+    pids_limit: 128
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/health', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  https:
+    image: caddy:2.10.2-alpine
+    environment:
+      SPEKTRA_DOMAIN: ${SPEKTRA_DOMAIN:?Set the public domain}
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - tls:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  photos:
+  tls:
+  caddy_config:
