@@ -1,4 +1,5 @@
 #include "runtime/prepared_cache.h"
+#include "runtime/memory_budget.h"
 /*
  * Spektrafilm for Android — native engine: output gamut compression.
  * Copyright (C) 2026 Spektrafilm Android contributors. GPLv3.
@@ -804,6 +805,8 @@ struct Cam16Context {
     double N_bb;  // == N_cb
     double A_w;
     double Jp_white;  // _cam16ucs_white_Jp for the lightness knee
+    double chromaFactor;
+    double flQuarter;
 };
 
 // colour.appearance: post-adaptation non-linear response compression (forward).
@@ -844,8 +847,8 @@ void cam16ucs_from_xyz_unit(const double xyz_unit[3], int space, const Cam16Cont
                      sdiv(e_t * std::sqrt(a * a + b * b),
                           rgb_a[0] + rgb_a[1] + 21.0 * rgb_a[2] / 20.0);
     const double C = spow(t, 0.9) * spow(J / 100.0, 0.5) *
-                     std::pow(1.64 - std::pow(0.29, vc.n), 0.73);
-    const double M = C * spow(vc.F_L, 0.25);
+                     vc.chromaFactor;
+    const double M = C * vc.flQuarter;
     // JMh -> CAM16-UCS (Li 2017): J' = (1+100 c1) J / (1 + c1 J); M' = log1p(c2 M)/c2.
     const double Jp = ((1.0 + 100.0 * kUcsC1) * J) / (1.0 + kUcsC1 * J);
     const double Mp = std::log1p(kUcsC2 * M) / kUcsC2;
@@ -865,11 +868,11 @@ void xyz_unit_from_cam16ucs(const double jab[3], int space, const Cam16Context& 
     h = std::fmod(h, 360.0);
     if (h < 0.0) h += 360.0;
     const double M = std::expm1(Mp * kUcsC2) / kUcsC2;
-    const double C = M / spow(vc.F_L, 0.25);
+    const double C = M / vc.flQuarter;
     // temporary_magnitude_quantity_inverse (J_prime = max(J, np.finfo eps)).
     const double J_prime = std::fmax(J, kNpEps);
     const double t = spow(
-        C / (std::sqrt(J_prime / 100.0) * std::pow(1.64 - std::pow(0.29, vc.n), 0.73)),
+        C / (std::sqrt(J_prime / 100.0) * vc.chromaFactor),
         1.0 / 0.9);
     const double e_t = 0.25 * (std::cos(2.0 + h * kPi / 180.0) + 3.8);
     const double A = vc.A_w * spow(J / 100.0, 1.0 / (kCam16SurroundC * vc.z));
@@ -931,6 +934,8 @@ Cam16Context build_cam16_context(int space) {
              0.1 * (1.0 - k4) * (1.0 - k4) * spow(5.0 * kCam16LA, 1.0 / 3.0);
     vc.N_bb = 0.725 * spow(1.0 / vc.n, 0.2);
     vc.z = 1.48 + std::sqrt(vc.n);
+    vc.chromaFactor = std::pow(1.64 - std::pow(0.29, vc.n), 0.73);
+    vc.flQuarter = spow(vc.F_L, 0.25);
     double rgb_aw[3];
     for (int c = 0; c < 3; ++c) {
         vc.D_RGB[c] = D * Y_w / rgb_w[c] + 1.0 - D;
@@ -1086,8 +1091,9 @@ void compress_rgb_cam16ucs_chroma(double* rgb, int npix, int output_space,
 }
 
 struct PreparedOutputGamut::Impl {
+    memory::MemoryReservation tableMemory;
     OutputGamutCompress mode; int space;
-    double threshold,limit,power,white=0;
+    double white=0;
     std::vector<double> table;
     double lightness[kOklchNL]{},hue[kOklchNH]{};
     Cam16Context viewing{};
@@ -1095,14 +1101,21 @@ struct PreparedOutputGamut::Impl {
 namespace { std::atomic<unsigned long long> prepared_gamut_builds{0}; }
 unsigned long long prepared_output_gamut_table_builds() { return prepared_gamut_builds.load(); }
 PreparedOutputGamut::PreparedOutputGamut(OutputGamutCompress mode,int space,double threshold,double limit,double power) {
+    threshold_=threshold;limit_=limit;power_=power;
     if(space<0||space>5)throw std::invalid_argument("Unknown output color space");
     // C_max geometry depends ONLY on model and output space, never the knee.
     // Four entries bound residency to about 1.5 MiB, even during slider drags.
     static PreparedCache<std::pair<int,int>,Impl> geometries(4);
     const auto key=std::make_pair(int(mode),space);
     auto build=[&]() {
-    auto p=std::make_shared<Impl>();p->mode=mode;p->space=space;p->threshold=threshold;p->limit=limit;p->power=power;
-    if(mode>=OutputGamutCompress::kOklch)p->table.resize(size_t(kOklchNL)*kOklchNH);
+    auto p=std::make_shared<Impl>();p->mode=mode;p->space=space;
+    if(mode>=OutputGamutCompress::kOklch) {
+        p->tableMemory=memory::process_memory_budget().try_reserve(
+            (size_t(kOklchNL)*kOklchNH+kOklchNL+kOklchNH)*sizeof(double),
+            memory::MemoryDomain::Cache,memory::MemoryStage::Scanning);
+        if(!p->tableMemory)throw std::bad_alloc();
+        p->table.resize(size_t(kOklchNL)*kOklchNH);
+    }
     switch(mode){
         case OutputGamutCompress::kLegacyClip:case OutputGamutCompress::kOff:case OutputGamutCompress::kAcesRgc:break;
         case OutputGamutCompress::kOklch:build_oklch_cmax_table(space,p->table.data(),p->lightness,p->hue);break;
@@ -1115,9 +1128,7 @@ PreparedOutputGamut::PreparedOutputGamut(OutputGamutCompress mode,int space,doub
     return p;
     };
     if(mode>=OutputGamutCompress::kOklch) {
-        const auto cached=geometries.get(key,build);
-        if(cached->threshold==threshold&&cached->limit==limit&&cached->power==power)impl_=cached;
-        else {auto adjusted=std::make_shared<Impl>(*cached);adjusted->threshold=threshold;adjusted->limit=limit;adjusted->power=power;impl_=std::move(adjusted);}
+        impl_=geometries.get(key,build);
     } else impl_=build();
 }
 void PreparedOutputGamut::apply(double* rgb,int npix) const {
@@ -1126,11 +1137,11 @@ void PreparedOutputGamut::apply(double* rgb,int npix) const {
         double* out=rgb+size_t(i)*3;const double in[]={out[0],out[1],out[2]};
         switch(p.mode){
             case OutputGamutCompress::kLegacyClip:case OutputGamutCompress::kOff:break;
-            case OutputGamutCompress::kAcesRgc:compress_pixel_aces_rgc(in,p.threshold,p.limit,p.power,out);break;
-            case OutputGamutCompress::kOklch:compress_pixel_oklch(in,p.space,p.table.data(),p.lightness,p.hue,p.threshold,p.limit,p.power,out);break;
-            case OutputGamutCompress::kOklrab:compress_pixel_oklrab(in,p.space,p.table.data(),p.lightness,p.hue,p.threshold,p.limit,p.power,out);break;
-            case OutputGamutCompress::kJzazbz:compress_pixel_jzazbz(in,p.space,p.table.data(),p.lightness,p.hue,p.white,p.threshold,p.limit,p.power,out);break;
-            case OutputGamutCompress::kCam16ucs:compress_pixel_cam16ucs(in,p.space,p.viewing,p.table.data(),p.lightness,p.hue,p.threshold,p.limit,p.power,out);break;
+            case OutputGamutCompress::kAcesRgc:compress_pixel_aces_rgc(in,threshold_,limit_,power_,out);break;
+            case OutputGamutCompress::kOklch:compress_pixel_oklch(in,p.space,p.table.data(),p.lightness,p.hue,threshold_,limit_,power_,out);break;
+            case OutputGamutCompress::kOklrab:compress_pixel_oklrab(in,p.space,p.table.data(),p.lightness,p.hue,threshold_,limit_,power_,out);break;
+            case OutputGamutCompress::kJzazbz:compress_pixel_jzazbz(in,p.space,p.table.data(),p.lightness,p.hue,p.white,threshold_,limit_,power_,out);break;
+            case OutputGamutCompress::kCam16ucs:compress_pixel_cam16ucs(in,p.space,p.viewing,p.table.data(),p.lightness,p.hue,threshold_,limit_,power_,out);break;
         }
     }
 }

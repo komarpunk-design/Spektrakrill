@@ -942,7 +942,7 @@ inline int operator_timings_json_format(char* buf,int cap) {
         const auto& item=snapshot.operators[i];
         if(snapshot.stages_ms[i]==0&&!item.gpu_passes&&!item.refusals&&!item.cache_hits&&!item.cache_misses)continue;
         const char* backend=item.gpu_passes?"gpu-assisted":item.cache_hits?"cache":snapshot.stages_ms[i]>0?"cpu":"unused";
-        stage_timing_append(buf,cap,&off,"%s{\"stage\":\"%s\",\"backend\":\"%s\",\"gpu_passes\":%llu,\"refusals\":%llu,\"cache_hits\":%llu,\"cache_misses\":%llu,\"table_hits\":%llu,\"upload_ms\":%.3f,\"compute_ms\":%.3f,\"readback_ms\":%.3f,\"reason\":",first?"":",",stage_name(i),backend,
+        stage_timing_append(buf,cap,&off,"%s{\"stage\":\"%s\",\"total_ms\":%.3f,\"backend\":\"%s\",\"gpu_passes\":%llu,\"refusals\":%llu,\"cache_hits\":%llu,\"cache_misses\":%llu,\"table_hits\":%llu,\"upload_ms\":%.3f,\"compute_ms\":%.3f,\"readback_ms\":%.3f,\"reason\":",first?"":",",stage_name(i),snapshot.stages_ms[i],backend,
             static_cast<unsigned long long>(item.gpu_passes),static_cast<unsigned long long>(item.refusals),static_cast<unsigned long long>(item.cache_hits),static_cast<unsigned long long>(item.cache_misses),static_cast<unsigned long long>(item.table_hits),item.upload_ms,item.compute_ms,item.readback_ms);
         stage_timing_append(buf,cap,&off,"\"");stage_timing_append_json_string(buf,cap,&off,item.reason);stage_timing_append(buf,cap,&off,"\"}");first=false;
     }

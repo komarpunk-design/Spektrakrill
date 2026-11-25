@@ -293,6 +293,7 @@ namespace {
 
 std::atomic<int> g_pool_mode{-1};              // 1 on, 0 off, -1 env
 std::atomic<int> g_chunks_per_worker{0};       // 0 = env / default 1
+std::atomic<int> g_thermal_worker_limit{0};
 
 thread_local bool t_pool_worker = false;
 
@@ -301,6 +302,8 @@ struct PoolJob {
     int nchunks = 0;
     int next = 0;          // next unclaimed chunk (pool mutex)
     int finished = 0;      // chunks that ran or were skipped (job mutex)
+    int active = 0;        // all claimants, including the owner (pool mutex)
+    int max_active = 1;
     bool stop = false;     // early stop requested by the owner (pool mutex)
     std::mutex done_mutex;
     std::condition_variable done_cv;
@@ -328,7 +331,8 @@ public:
     // Claim one chunk of `job` for the calling thread; -1 when none is left.
     int claim(PoolJob* job) {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (job->stop || job->next >= job->nchunks) return -1;
+        if (job->stop || job->next >= job->nchunks || job->active >= job->max_active) return -1;
+        ++job->active;
         return job->next++;
     }
 
@@ -359,8 +363,13 @@ public:
         }
     }
 
-    static void run_chunk(PoolJob* job, int index) {
+    void run_chunk(PoolJob* job, int index) {
         job->task.fn(job->task.ctx, index);
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            --job->active;
+        }
+        cv_.notify_all();
         {
             std::lock_guard<std::mutex> lock(job->done_mutex);
             ++job->finished;
@@ -406,8 +415,9 @@ private:
                 std::unique_lock<std::mutex> lock(mutex_);
                 cv_.wait(lock, [this, &job, &chunk]() {
                     for (PoolJob* j : jobs_) {
-                        if (!j->stop && j->next < j->nchunks) {
+                        if (!j->stop && j->next < j->nchunks && j->active < j->max_active) {
                             job = j;
+                            ++j->active;
                             chunk = j->next++;
                             return true;
                         }
@@ -483,6 +493,7 @@ bool pool_run(int nchunks, PoolTask task, bool owner_claims,
     PoolJob job;
     job.task = task;
     job.nchunks = nchunks;
+    job.max_active = std::max(1,parallel_num_threads());
     pool->submit(&job);
 
     bool stopped = false;
@@ -490,7 +501,7 @@ bool pool_run(int nchunks, PoolTask task, bool owner_claims,
         for (;;) {
             const int index = pool->claim(&job);
             if (index < 0) break;
-            ParallelPool::run_chunk(&job, index);
+            pool->run_chunk(&job, index);
             if (poll && !stopped && poll(poll_ctx)) {
                 stopped = true;
                 pool->request_stop(&job);
@@ -524,7 +535,7 @@ bool pool_run(int nchunks, PoolTask task, bool owner_claims,
 
 }  // namespace detail
 
-int parallel_num_threads() {
+static int requested_num_threads() {
     // Explicit override (tests, or a host that wants to pin the worker count).
     if (const char* env = std::getenv("SPK_NUM_THREADS")) {
         const int n = std::atoi(env);
@@ -539,6 +550,15 @@ int parallel_num_threads() {
     if (nbig > 0) return nbig;
     const unsigned hw = std::thread::hardware_concurrency();
     return hw == 0 ? 1 : static_cast<int>(hw);
+}
+
+void parallel_set_thermal_limit(int workers) {
+    g_thermal_worker_limit.store(std::clamp(workers,0,64),std::memory_order_release);
+}
+int parallel_num_threads() {
+    const int requested=requested_num_threads();
+    const int limit=g_thermal_worker_limit.load(std::memory_order_acquire);
+    return limit>0?std::min(requested,limit):requested;
 }
 
 int parallel_min_chunk() {

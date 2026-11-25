@@ -39,6 +39,7 @@
 #include "kernels/pack_display.h"
 #include "runtime/params_manifest.h"
 #include "runtime/stage_timer.h"
+#include "runtime/operator_report.h"
 #include "spektra.h"
 #include "model/negative_calibration.h"
 #include "profiles/profile.h"
@@ -337,8 +338,10 @@ void log_completed_stage_timing(uint64_t expected_render_id) noexcept {
     }
     {
         char operators[8192];
-        if(spk::operator_timings_json_format(operators,sizeof(operators))>0)
+        if(spk::operator_timings_json_format(operators,sizeof(operators))>0) {
+            spk::operator_reports().capture(snapshot.render_id,spk::render_timing_kind_name(snapshot.kind),operators);
             __android_log_print(ANDROID_LOG_INFO,"Spektra","operator timings json: %s",operators);
+        }
     }
     if (timing_automation_enabled()) {
         char json[2048];
@@ -1557,12 +1560,14 @@ Java_com_spectrafilm_engine_SimResult_freeDirectBuffer(JNIEnv* env, jclass /*cla
 extern "C" JNIEXPORT void JNICALL
 Java_com_spectrafilm_engine_SimResult_nativeReportRenderOutcome(
     JNIEnv* env, jclass /*clazz*/, jlong render_id, jint outcome_code) try {
-    if (render_id <= 0 || !timing_automation_enabled()) return;
+    if (render_id <= 0) return;
     if (outcome_code < static_cast<jint>(spk::ARO_CONSUMED) ||
         outcome_code > static_cast<jint>(spk::ARO_FAILED)) {
         return;
     }
     const auto outcome = static_cast<spk::AppRenderOutcome>(outcome_code);
+    spk::operator_reports().outcome(static_cast<uint64_t>(render_id),outcome==spk::ARO_CONSUMED);
+    if(!timing_automation_enabled())return;
 #ifdef __ANDROID__
     char json[256];
     if (spk::stage_timing_outcome_json_format(
@@ -2048,6 +2053,15 @@ JNI(jboolean, nativeReleaseGpuResources)(JNIEnv* env, jclass /*clazz*/) try {
 } catch (...) {
     throw_unknown_cpp_exception(env);
     return JNI_FALSE;
+}
+
+JNI(jstring, nativeOperatorReportJson)(JNIEnv* env, jclass /*clazz*/) try {
+    const auto text=spk::operator_reports().latest();
+    return env->NewStringUTF(text.c_str());
+} catch (...) { return env->NewStringUTF(""); }
+
+JNI(void, nativeSetThermalWorkerLimit)(JNIEnv*, jclass, jint workers) {
+    spk::parallel_set_thermal_limit(workers);
 }
 
 // #289: pack the engine's display-referred float RGB straight into an

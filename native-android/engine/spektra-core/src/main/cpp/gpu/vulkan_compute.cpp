@@ -204,6 +204,21 @@ bool halation_scatter(const HalationScatterRequest&, double*,
 namespace spk::gpu {
 namespace {
 
+// Cancellation never abandons a pending submission. Poll on the owning thread,
+// wait for completion, reset the fence, then unwind before readback or another submit.
+VkResult wait_render_fence(VkDevice device, const VkFence* fence) {
+ if(!parallel_cancellation_active())return vkWaitForFences(device,1,fence,VK_TRUE,UINT64_MAX);
+ VkResult status;
+ while((status=vkWaitForFences(device,1,fence,VK_TRUE,1'000'000))==VK_TIMEOUT)
+  (void)parallel_cancellation_requested();
+ return status;
+}
+VkResult reset_render_fence(VkDevice device, const VkFence* fence) {
+ const auto status=vkResetFences(device,1,fence);
+ if(status==VK_SUCCESS&&parallel_cancellation_requested())throw ParallelCancelled{};
+ return status;
+}
+
 // One host-visible storage buffer + its memory + its persistent mapping.
 struct Buf {
     VkBuffer buf = VK_NULL_HANDLE;
@@ -813,8 +828,8 @@ struct Ctx {
         si.commandBufferCount = 1;
         si.pCommandBuffers = &frame.cmd;
         if (vkQueueSubmit(queue, 1, &si, frame.fence) != VK_SUCCESS) return false;
-        if (vkWaitForFences(device, 1, &frame.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS) return false;
-        return vkResetFences(device, 1, &frame.fence) == VK_SUCCESS;
+        if (wait_render_fence(device, &frame.fence) != VK_SUCCESS) return false;
+        return reset_render_fence(device, &frame.fence) == VK_SUCCESS;
     }
 
     void destroyScan() {
@@ -1604,8 +1619,8 @@ bool render_pointwise_chain(const PointwiseChainRequest& request,
     submit.commandBufferCount = 1;
     submit.pCommandBuffers = &s.commandBuffer;
     if (vkQueueSubmit(c.queue, 1, &submit, s.fence) != VK_SUCCESS ||
-        vkWaitForFences(c.device, 1, &s.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS ||
-        vkResetFences(c.device, 1, &s.fence) != VK_SUCCESS) {
+        wait_render_fence(c.device, &s.fence) != VK_SUCCESS ||
+        reset_render_fence(c.device, &s.fence) != VK_SUCCESS) {
         return fail(PointwiseFallbackReason::dispatch_failed);
     }
     if (!c.invalidateResident(s.frameStaging)) {
@@ -1964,9 +1979,8 @@ static bool dispatch_scan(Ctx& c, Ctx::Kernel& s, const uint32_t* spv, size_t sp
             si.commandBufferCount = 1;
             si.pCommandBuffers = &s.cmd;
             if (vkQueueSubmit(c.queue, 1, &si, s.fence) != VK_SUCCESS) { slice_ok = false; break; }
-            if (vkWaitForFences(c.device, 1, &s.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS) { slice_ok = false; break; }
-            if(parallel_cancellation_requested())throw ParallelCancelled{};
-            if (vkResetFences(c.device, 1, &s.fence) != VK_SUCCESS) { slice_ok = false; break; }
+            if (wait_render_fence(c.device, &s.fence) != VK_SUCCESS) { slice_ok = false; break; }
+            if (reset_render_fence(c.device, &s.fence) != VK_SUCCESS) { slice_ok = false; break; }
             gpu_ms += std::chrono::duration<double, std::milli>(
                           std::chrono::steady_clock::now() - t_gpu).count();
 
@@ -2119,11 +2133,11 @@ bool contrast_mask_gain(const float* raw, float* gain, uint32_t npix,
             si.commandBufferCount = 1;
             si.pCommandBuffers = &s.cmd;
             if (vkQueueSubmit(c.queue, 1, &si, s.fence) != VK_SUCCESS) { slice_ok = false; break; }
-            if (vkWaitForFences(c.device, 1, &s.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS) {
+            if (wait_render_fence(c.device, &s.fence) != VK_SUCCESS) {
                 slice_ok = false;
                 break;
             }
-            if (vkResetFences(c.device, 1, &s.fence) != VK_SUCCESS) { slice_ok = false; break; }
+            if (reset_render_fence(c.device, &s.fence) != VK_SUCCESS) { slice_ok = false; break; }
             const float* outp = static_cast<const float*>(s.out.mapped);
             float* gp = gain + base;
             parallel_for(0, static_cast<int>(n), [&](int lo, int hi) {
@@ -2427,8 +2441,8 @@ bool grain_sample(const GrainSampleRequest& request, float* out_rgb,
                 si.commandBufferCount = 1;
                 si.pCommandBuffers = &s.cmd;
                 if (vkQueueSubmit(c.queue, 1, &si, s.fence) != VK_SUCCESS) break;
-                if (vkWaitForFences(c.device, 1, &s.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS) break;
-                if (vkResetFences(c.device, 1, &s.fence) != VK_SUCCESS) break;
+                if (wait_render_fence(c.device, &s.fence) != VK_SUCCESS) break;
+                if (reset_render_fence(c.device, &s.fence) != VK_SUCCESS) break;
                 bands_ok = true;
             } while (false);
             d.gpu_ms += std::chrono::duration<double, std::milli>(
@@ -2918,9 +2932,8 @@ bool run_filming_stage(const FilmingStageRun& r, FilmingStageDiagnostics* diagno
             si.commandBufferCount = 1;
             si.pCommandBuffers = &s.cmd;
             if (vkQueueSubmit(c.queue, 1, &si, s.fence) != VK_SUCCESS) { dispatch_ok = false; break; }
-            if (vkWaitForFences(c.device, 1, &s.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS) { dispatch_ok = false; break; }
-            if(parallel_cancellation_requested())throw ParallelCancelled{};
-            if (vkResetFences(c.device, 1, &s.fence) != VK_SUCCESS) { dispatch_ok = false; break; }
+            if (wait_render_fence(c.device, &s.fence) != VK_SUCCESS) { dispatch_ok = false; break; }
+            if (reset_render_fence(c.device, &s.fence) != VK_SUCCESS) { dispatch_ok = false; break; }
         } while (false);
         d.gpu_ms = std::chrono::duration<double, std::milli>(
                        std::chrono::steady_clock::now() - t_gpu).count();
@@ -3814,9 +3827,9 @@ bool fft_convolve(const FftConvolveRequest& r, double* out,
             si.commandBufferCount = 1;
             si.pCommandBuffers = &s.cmd;
             if (vkQueueSubmit(c.queue, 1, &si, s.fence) != VK_SUCCESS) return false;
-            if (vkWaitForFences(c.device, 1, &s.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
+            if (wait_render_fence(c.device, &s.fence) != VK_SUCCESS)
                 return false;
-            if (vkResetFences(c.device, 1, &s.fence) != VK_SUCCESS) return false;
+            if (reset_render_fence(c.device, &s.fence) != VK_SUCCESS) return false;
             return true;
         };
 
@@ -4597,9 +4610,9 @@ bool halation_scatter_locked(Ctx& c, const HalationScatterRequest& r, double* ou
         si.commandBufferCount = 1;
         si.pCommandBuffers = &k.cmd;
         if (vkQueueSubmit(c.queue, 1, &si, k.fence) != VK_SUCCESS) return false;
-        if (vkWaitForFences(c.device, 1, &k.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS) return false;
+        if (wait_render_fence(c.device, &k.fence) != VK_SUCCESS) return false;
         stage_timing_note_gpu_submissions(1);
-        return vkResetFences(c.device, 1, &k.fence) == VK_SUCCESS;
+        return reset_render_fence(c.device, &k.fence) == VK_SUCCESS;
     };
     // `width`/`height` are the dims of the image the op walks: the frame, or
     // the transposed frame for the IIR column pass of an X blur.
@@ -5336,9 +5349,8 @@ bool glare_field(float* field, int width, int height, const GlareRequest& reques
             si.commandBufferCount = 1;
             si.pCommandBuffers = &s.cmd;
             if (vkQueueSubmit(c.queue, 1, &si, s.fence) != VK_SUCCESS) { dispatch_ok = false; break; }
-            if (vkWaitForFences(c.device, 1, &s.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS) { dispatch_ok = false; break; }
-            if(parallel_cancellation_requested())throw ParallelCancelled{};
-            if (vkResetFences(c.device, 1, &s.fence) != VK_SUCCESS) { dispatch_ok = false; break; }
+            if (wait_render_fence(c.device, &s.fence) != VK_SUCCESS) { dispatch_ok = false; break; }
+            if (reset_render_fence(c.device, &s.fence) != VK_SUCCESS) { dispatch_ok = false; break; }
         } while (false);
         d.gpu_ms = std::chrono::duration<double, std::milli>(
                        std::chrono::steady_clock::now() - t_gpu).count();

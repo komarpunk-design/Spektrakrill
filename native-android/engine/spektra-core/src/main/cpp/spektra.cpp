@@ -2352,6 +2352,8 @@ PointwiseSelfTestResult run_pointwise_capability_check(
         if (!spk::gpu::render_pointwise_chain(request, &output,
                                               &diagnostics)) {
             add_pointwise_self_test_diagnostics(&result, diagnostics);
+            if(cancellation_requested(cancel,cancel_user_data))
+                return finish(PointwiseSelfTestOutcome::cancelled);
             return finish(PointwiseSelfTestOutcome::failed);
         }
         add_pointwise_self_test_diagnostics(&result, diagnostics);
@@ -4614,7 +4616,10 @@ void spk_set_parallel_chunks_per_worker(int n) { spk::parallel_set_chunks_per_wo
 
 int spk_big_core_count(void) { return spk::parallel_big_core_count(); }
 
-int spk_gpu_release_resources(void) { return spk::gpu::release_resources() ? 1 : 0; }
+int spk_gpu_release_resources(void) {
+    const bool scratch = spk::memory::process_memory_budget().release_idle_scratch();
+    return (spk::gpu::release_resources() || scratch) ? 1 : 0;
+}
 
 int spk_cpu_topology(long long* out, int n) {
     if (!out || n <= 0) return 0;

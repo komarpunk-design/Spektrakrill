@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "parallel.h"
+#include "runtime/scratch_pool.h"
 
 namespace spk {
 
@@ -74,7 +75,7 @@ void gaussian_fir_plane(float* img, int w, int h, float sigma, float truncate) {
 
     const int n = h;  // rows
     const int m = w;  // cols
-    std::vector<float> tmp(static_cast<size_t>(n) * m, 0.0f);
+    auto tmp = ScratchPool<float>::acquire(static_cast<size_t>(n) * m, true);
 
     // Vertical pass: tmp[i,j] = sum_k kernel[k+radius] * img[reflect(i+k), j].
     // Each output row accumulates independently (img is read-only here), so the
@@ -207,7 +208,9 @@ void iir_vertical(float* img, int w, int h, const YvvCoeffs& c) {
     const int n = h, m = w;
     parallel_for_weighted(0, m, n, [&](int jb, int je) {
         const int mc = je - jb;
-        std::vector<double> s1(mc), s2(mc), s3(mc);
+        auto s1 = ScratchPool<double>::acquire(mc);
+        auto s2 = ScratchPool<double>::acquire(mc);
+        auto s3 = ScratchPool<double>::acquire(mc);
         for (int j = jb; j < je; ++j) {
             double x0 = img[j];
             s1[j - jb] = s2[j - jb] = s3[j - jb] = x0;
@@ -277,7 +280,7 @@ void gaussian_blur_per_channel(float* img, int w, int h, int channels,
                                const float* sigmas, float truncate) {
     if (w <= 0 || h <= 0 || channels <= 0) return;
     const int plane = w * h;
-    std::vector<float> ch(static_cast<size_t>(plane));
+    auto ch = ScratchPool<float>::acquire(static_cast<size_t>(plane));
     for (int c = 0; c < channels; ++c) {
         // Deinterleave channel c into a contiguous plane (per-pixel map,
         // disjoint writes -> deterministic parallel chunks).

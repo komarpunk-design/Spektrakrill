@@ -260,6 +260,7 @@ public:
     // requests are denied until current usage again fits below the new limit.
     void set_limit_bytes(std::uint64_t limit_bytes) noexcept {
         limit_bytes_.store(limit_bytes, std::memory_order_release);
+        if(total_.current_bytes.load(std::memory_order_acquire)>limit_bytes)release_idle_scratch();
     }
 
     // Reclaimer: frees idle cached memory and returns true if it released any.
@@ -267,6 +268,26 @@ public:
     using Reclaimer = bool (*)() noexcept;
     void set_reclaimer(Reclaimer reclaimer) noexcept {
         reclaimer_.store(reclaimer, std::memory_order_release);
+    }
+
+    // Independent bounded scratch pools must not replace the GPU's reclaimer.
+    bool add_scratch_reclaimer(Reclaimer callback) noexcept {
+        if (!callback) return false;
+        for (auto& slot : scratch_reclaimers_) {
+            auto current = slot.load(std::memory_order_acquire);
+            if (current == callback) return true;
+            if (current == nullptr && slot.compare_exchange_strong(current, callback,
+                    std::memory_order_acq_rel)) return true;
+        }
+        return false;
+    }
+
+    bool release_idle_scratch() noexcept {
+        bool freed = false;
+        for (auto& slot : scratch_reclaimers_) {
+            if (auto callback = slot.load(std::memory_order_acquire)) freed = callback() || freed;
+        }
+        return freed;
     }
 
     std::uint64_t limit_bytes() const noexcept {
@@ -360,9 +381,10 @@ private:
         // keeps a reclaimer that did allocate from recursing.
         static thread_local bool in_reclaim = false;
         const Reclaimer reclaimer = reclaimer_.load(std::memory_order_acquire);
-        if (reclaimer == nullptr || in_reclaim) return false;
+        if (in_reclaim) return false;
         in_reclaim = true;
-        const bool freed = reclaimer();
+        bool freed = release_idle_scratch();
+        if (reclaimer) freed = reclaimer() || freed;
         in_reclaim = false;
         return freed;
     }
@@ -387,6 +409,7 @@ private:
 
     std::atomic<std::uint64_t> limit_bytes_;
     std::atomic<Reclaimer> reclaimer_{nullptr};
+    std::array<std::atomic<Reclaimer>, 8> scratch_reclaimers_{};
     AtomicCounter total_{};
     std::array<AtomicCounter, kMemoryDomainCount> domains_{};
     std::array<AtomicCounter, kMemoryStageCount> stages_{};

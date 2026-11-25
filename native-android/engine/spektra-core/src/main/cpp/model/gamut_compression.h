@@ -67,6 +67,7 @@ enum class OutputGamutCompress {
 class PreparedOutputGamut {
     struct Impl;
     std::shared_ptr<const Impl> impl_;
+    double threshold_, limit_, power_;
 public:
     PreparedOutputGamut(OutputGamutCompress mode,int space,double threshold,double limit,double power);
     void apply(double* rgb,int npix) const;

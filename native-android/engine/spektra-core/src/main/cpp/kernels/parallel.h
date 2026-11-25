@@ -58,6 +58,8 @@ namespace spk {
 // (falling back to 1 when the platform reports 0). Read fresh each call so tests
 // can vary it via setenv to assert thread-count invariance.
 int parallel_num_threads();
+// Scheduling only. 0 restores the user/affinity policy; positive values cap active workers.
+void parallel_set_thermal_limit(int workers);
 
 // OPT-IN big.LITTLE affinity (perf-lab). Android schedulers are free to park the
 // render pool on efficiency cores, and a fork-join is only as fast as its slowest

@@ -877,6 +877,10 @@ class SpektraEngine private constructor(
          * next GPU call rebuilds lazily. Returns true if anything was released.
          */
         @JvmStatic fun releaseGpuResources(): Boolean = nativeReleaseGpuResources()
+        /** Last app-consumed native render, not superseded/speculative work. No image pixels. */
+        @JvmStatic fun operatorReportJson(): String = nativeOperatorReportJson()
+        /** A scheduling cap only; no image parameters or sample grids change. */
+        @JvmStatic fun setThermalWorkerLimit(workers: Int) = nativeSetThermalWorkerLimit(workers)
 
         /**
          * Raw CPU topology for device-capability heuristics (adaptive preview size,
@@ -925,6 +929,8 @@ class SpektraEngine private constructor(
         @JvmStatic private external fun nativeSetParallelChunksPerWorker(n: Int)
         @JvmStatic private external fun nativeBigCoreCount(): Int
         @JvmStatic private external fun nativeReleaseGpuResources(): Boolean
+        @JvmStatic private external fun nativeOperatorReportJson(): String
+        @JvmStatic private external fun nativeSetThermalWorkerLimit(workers: Int)
         @JvmStatic private external fun nativeCpuTopology(): LongArray
         @JvmStatic private external fun nativePackDisplayToBitmap(
             src: ByteBuffer,

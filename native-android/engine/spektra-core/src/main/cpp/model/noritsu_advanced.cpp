@@ -5,6 +5,7 @@
  * Compile with -fno-fast-math -ffp-contract=off to retain float32 operation order. */
 #include "model/noritsu_advanced.h"
 #include "kernels/parallel.h"
+#include "runtime/scratch_pool.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -48,11 +49,78 @@ float sample(const std::vector<uint16_t>& p,int w,int row,const Axis& a,int x){r
 void local(Raster r,const AutoContrast& c){need(r.w>=2&&r.h>=2,"Auto Contrast: image axes must exceed one");int pw=(r.w+c.factor-1)/c.factor*c.factor,ph=(r.h+c.factor-1)/c.factor*c.factor,mw=pw/c.factor,mh=ph/c.factor,rad=c.size/2;need(mw>rad&&mh>rad,"Auto Contrast: image too small for this job's spatial parameters");std::vector<uint16_t> source(size_t(r.w)*r.h);parallel_rows(r.h,r.w,[&](int y){for(int x=0;x<r.w;x++)source[y*r.w+x]=r.get(y,x)[2];});std::vector<uint16_t> map(size_t(mw)*mh);float rec=1.f/float(c.factor*c.factor);
  if(pw==r.w&&ph==r.h){parallel_rows(mh,mw,[&](int y){for(int x=0;x<mw;x++){int64_t sum=0;for(int dy=0;dy<c.factor;dy++)for(int dx=0;dx<c.factor;dx++)sum+=source[(y*c.factor+dy)*r.w+x*c.factor+dx];map[y*mw+x]=uint16_t(float(sum)*rec);}});}
  else {auto ax=axis(r.w,pw,false),ay=axis(r.h,ph,true);parallel_rows(mh,mw,[&](int y){for(int x=0;x<mw;x++){float accum=0;for(int dy=0;dy<c.factor;dy++){int row=y*c.factor+dy;float ev=0,odd=0;for(int dx=0;dx<c.factor;dx+=2){auto val=[&](int col){return sample(source,r.w,ay.i[row],ax,col)*(1.f-ay.f[row])+sample(source,r.w,std::min(ay.i[row]+1,r.h-1),ax,col)*ay.f[row];};ev+=val(x*c.factor+dx);odd+=val(x*c.factor+dx+1);}accum+=ev+odd;}map[y*mw+x]=uint16_t(accum*rec);}});}
- source.clear();source.shrink_to_fit();float wt=0;for(auto k:c.weights)wt+=k;for(int pass=0;pass<2;pass++){std::vector<uint16_t> next(map.size());parallel_rows(mh,mw,[&](int y){for(int x=0;x<mw;x++){int center=map[y*mw+x];float sum=0;for(int dy=0;dy<c.size;dy++)for(int dx=0;dx<c.size;dx++){int k=c.weights[dy*c.size+dx];if(k)sum+=float(std::clamp(int(map[reflect(y+dy-rad,mh)*mw+reflect(x+dx-rad,mw)]),center-c.clamp,center+c.clamp))*float(k);}int64_t average=int64_t(sum*(1.f/wt));next[y*mw+x]=uclip(center+shr((average-center)*c.strength,7));}});map.swap(next);}
+ source.clear();source.shrink_to_fit();float wt=0;for(auto k:c.weights)wt+=k;
+ struct WeightedOffset{int y,x;float weight;};std::vector<WeightedOffset> offsets;
+ for(int dy=0;dy<c.size;dy++)for(int dx=0;dx<c.size;dx++)if(c.weights[dy*c.size+dx])
+  offsets.push_back({dy-rad,dx-rad,float(c.weights[dy*c.size+dx])});
+ for(int pass=0;pass<2;pass++) {
+  std::vector<uint16_t> next(map.size());
+  spk::parallel_for_weighted(0,mh,std::max(1LL,static_cast<long long>(mw)*int(offsets.size())),[&](int first,int last){
+   auto sums=ScratchPool<float>::acquire(size_t(mw));
+   for(int y=first;y<last;y++) {
+    std::fill_n(sums.data(),mw,0.f);const uint16_t* center=map.data()+size_t(y)*mw;
+    for(const auto& offset:offsets) {
+     const uint16_t* row=map.data()+size_t(reflect(y+offset.y,mh))*mw;
+     const int begin=std::min(mw,std::max(0,-offset.x)),end=std::max(begin,std::min(mw,mw-offset.x));
+     for(int x=0;x<begin;x++)sums[x]+=float(std::clamp(int(row[reflect(x+offset.x,mw)]),int(center[x])-c.clamp,int(center[x])+c.clamp))*offset.weight;
+     for(int x=begin;x<end;x++)sums[x]+=float(std::clamp(int(row[x+offset.x]),int(center[x])-c.clamp,int(center[x])+c.clamp))*offset.weight;
+     for(int x=end;x<mw;x++)sums[x]+=float(std::clamp(int(row[reflect(x+offset.x,mw)]),int(center[x])-c.clamp,int(center[x])+c.clamp))*offset.weight;
+    }
+    for(int x=0;x<mw;x++){int64_t average=int64_t(sums[x]*(1.f/wt));next[size_t(y)*mw+x]=uclip(int(center[x])+shr((average-int(center[x]))*c.strength,7));}
+   }
+  });map.swap(next);
+ }
+
  auto ax=axis(mw,r.w,false),ay=axis(mh,r.h,true);parallel_rows(r.h,r.w,[&](int y){for(int x=0;x<r.w;x++){float v=sample(map,mw,ay.i[y],ax,x)*(1.f-ay.f[y])+sample(map,mw,std::min(ay.i[y]+1,mh-1),ax,x)*ay.f[y];unsigned index=uint16_t(v);auto p=r.get(y,x);p[2]=uclip(int64_t(c.intercept[index])+shr((int64_t(p[2])-index)*c.blend[index],9));r.put(y,x,p);}});}
 std::vector<int16_t> kernel(const std::vector<uint8_t>& b,int start,int stride,int size){need(size>=1&&size%2&&size<=2*stride-1,"Film Sharp: invalid kernel size");std::vector<int16_t> out(size*size);for(int y=0;y<size;y++)for(int x=0;x<size;x++)out[y*size+x]=signed16(at16(b,start+2*(std::min(y,size-1-y)*stride+std::min(x,size-1-x))));return out;}
-std::vector<int32_t> convolve(const std::vector<int32_t>& p,int w,int h,const std::vector<int16_t>& k,int scale,bool unsign){int size=int(std::sqrt(k.size())),rad=size/2;float reciprocal=1.f/float(scale);std::vector<int32_t> out(p.size());parallel_rows(h,w,[&](int y){for(int x=0;x<w;x++){float v=0;for(int ky=0;ky<size;ky++)for(int kx=0;kx<size;kx++)if(k[ky*size+kx])v+=float(p[reflect(y+ky-rad,h)*w+reflect(x+kx-rad,w)])*float(k[ky*size+kx]);v*=reciprocal;if(unsign)out[y*w+x]=int32_t(std::clamp(v,0.f,65535.f));else out[y*w+x]=(!std::isfinite(v)||v< -2147483648.f||v>=2147483648.f)?-32768:sclip(int64_t(v));}});return out;}
-std::vector<int32_t> meanAbs(const std::vector<int32_t>& p,int w,int h,int rad){std::vector<int32_t> out(p.size());int size=2*rad+1;float rec=1.f/float(size*size);parallel_rows(h,w,[&](int y){for(int x=0;x<w;x++){int sum=0;for(int dy=-rad;dy<=rad;dy++)for(int dx=-rad;dx<=rad;dx++)sum+=std::abs(p[reflect(y+dy,h)*w+reflect(x+dx,w)]);out[y*w+x]=signed16(uint16_t(int64_t(float(sum)*rec)));}});return out;}
+// Tap-major lanes preserve the original per-pixel float32 accumulation order.
+// The contiguous interior can vectorize without FMA; only the short boundary spans reflect.
+std::vector<int32_t> convolve(const std::vector<int32_t>& p,int w,int h,const std::vector<int16_t>& k,int scale,bool unsign) {
+ const int size=int(std::sqrt(k.size())),rad=size/2;const float reciprocal=1.f/float(scale);
+ struct Tap{int y,x;float weight;};std::vector<Tap> taps;
+ for(int ky=0;ky<size;ky++)for(int kx=0;kx<size;kx++)if(k[ky*size+kx])taps.push_back({ky-rad,kx-rad,float(k[ky*size+kx])});
+ std::vector<int32_t> out(p.size());
+ spk::parallel_for_weighted(0,h,std::max(1LL,static_cast<long long>(w)*int(taps.size())),[&](int first,int last){
+  auto sums=ScratchPool<float>::acquire(size_t(w));
+  for(int y=first;y<last;y++) {
+   std::fill_n(sums.data(),w,0.f);
+   for(const auto& tap:taps) {
+    const int32_t* row=p.data()+size_t(reflect(y+tap.y,h))*w;
+    const int begin=std::min(w,std::max(0,-tap.x)),end=std::max(begin,std::min(w,w-tap.x));
+    for(int x=0;x<begin;x++)sums[x]+=float(row[reflect(x+tap.x,w)])*tap.weight;
+    for(int x=begin;x<end;x++)sums[x]+=float(row[x+tap.x])*tap.weight;
+    for(int x=end;x<w;x++)sums[x]+=float(row[reflect(x+tap.x,w)])*tap.weight;
+   }
+   for(int x=0;x<w;x++) {
+    const float v=sums[x]*reciprocal;
+    if(unsign)out[size_t(y)*w+x]=int32_t(std::clamp(v,0.f,65535.f));
+    else out[size_t(y)*w+x]=(!std::isfinite(v)||v< -2147483648.f||v>=2147483648.f)?-32768:sclip(int64_t(v));
+   }
+  }
+ });return out;
+}
+// Integer box sums are exact: no rounding occurs until the same final float32 multiply.
+std::vector<int32_t> meanAbs(const std::vector<int32_t>& p,int w,int h,int rad) {
+ std::vector<int32_t> out(p.size());auto horizontal=ScratchPool<int32_t>::acquire(p.size());
+ const int size=2*rad+1;const float rec=1.f/float(size*size);
+ parallel_rows(h,w,[&](int y){
+  int sum=0;const int32_t* row=p.data()+size_t(y)*w;
+  for(int dx=-rad;dx<=rad;dx++)sum+=std::abs(row[reflect(dx,w)]);
+  for(int x=0;x<w;x++) {
+   horizontal[size_t(y)*w+x]=sum;
+   sum-=std::abs(row[reflect(x-rad,w)]);sum+=std::abs(row[reflect(x+rad+1,w)]);
+  }
+ });
+ spk::parallel_for_weighted(0,w,std::max(1,h),[&](int first,int last){
+  for(int x=first;x<last;x++) {
+   int sum=0;for(int dy=-rad;dy<=rad;dy++)sum+=horizontal[size_t(reflect(dy,h))*w+x];
+   for(int y=0;y<h;y++) {
+    out[size_t(y)*w+x]=signed16(uint16_t(int64_t(float(sum)*rec)));
+    sum-=horizontal[size_t(reflect(y-rad,h))*w+x];sum+=horizontal[size_t(reflect(y+rad+1,h))*w+x];
+   }
+  }
+ });return out;
+}
 void sharpTile(Raster r,int top,int bottom,const Job& j,std::vector<uint16_t>& out){auto& s=*j.sharp;int h=bottom-top,w=r.w;std::vector<int32_t> y(size_t(w)*h),c0(y.size()),c1(y.size());parallel_rows(h,w,[&](int row){for(int x=0;x<w;x++){auto p=r.get(top+row,x);int i=row*w+x;y[i]=p[2];c0[i]=int(p[0])-32768;c1[i]=int(p[1])-32768;}});
  auto aux=convolve(y,w,h,s.kernels[0],s.scales[0],true);y.clear();c0=convolve(c0,w,h,s.kernels[1],s.scales[1],false);c1=convolve(c1,w,h,s.kernels[1],s.scales[1],false);std::vector<int32_t> red(aux.size()),green(aux.size());for(size_t i=0;i<aux.size();i++){const auto& v=j.sharpMatrix;
  // FilmSharp uses division by 10000, unlike the forward/inverse setup multiplier.
