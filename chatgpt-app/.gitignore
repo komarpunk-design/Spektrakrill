@@ -1,4 +1,6 @@
 build/
+build-offline/
+dist/
 .venv/
 data/
 __pycache__/

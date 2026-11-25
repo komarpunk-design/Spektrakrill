@@ -2,6 +2,7 @@
 #include "raw_decoder.h"
 #include "spektra.h"
 #include "runtime/memory_budget.h"
+#include "process_limit.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/resource.h>
@@ -23,7 +24,7 @@ int main(int argc,char** argv)try {
     if(edge!=0&&(edge<512||edge>6000))throw std::runtime_error("MAX_EDGE must be 0 (full resolution) or 512..6000");
     const uint16_t byte_order=1;if(*reinterpret_cast<const uint8_t*>(&byte_order)!=1)throw std::runtime_error("Little-endian host required");
     // A malformed or oversized input cannot consume the server's entire address space.
-    rlimit limit{3ULL<<30,3ULL<<30};if(setrlimit(RLIMIT_AS,&limit)!=0)throw std::runtime_error("Cannot establish worker memory limit");
+    if(!lower_address_space_limit(3ULL<<30))throw std::runtime_error("Cannot establish worker memory limit");
     spk::memory::process_memory_budget().set_limit_bytes(1536ULL<<20);
     Fd input{::open(argv[1],O_RDONLY|O_CLOEXEC)};
     if(input.value<0)throw std::runtime_error("Cannot open RAW input");
