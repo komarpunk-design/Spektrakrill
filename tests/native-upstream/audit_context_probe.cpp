@@ -69,6 +69,21 @@ int main(int argc,char**argv){
   p.experimental_json=R"({"noritsuJobId":"ls600-g0t1-neutral-v1","outputModel":{"mode":"noritsu-ls600","noritsuJobEnabled":true,"noritsuJobNormalize":true,"noritsuLocalContrast":true}})";
   if(spk_simulate_preview(e,&image,&p,&out)!=SPK_OK)return 16;
   if(out.height<minimum)return 17;spk_image_free(&out);
+  p.crop=1;p.crop_size[0]=.2f;p.crop_size[1]=.02f;
+  for(float factor:{1.f,.8f}){
+   p.upscale_factor=factor;
+   if(spk_simulate_preview(e,&image,&p,&out)!=SPK_OK)return 18;
+   if(out.width<minimum||out.height<minimum)return 19;spk_image_free(&out);
+  }
+  p.upscale_factor=.5f;
+  if(spk_simulate_preview(e,&image,&p,&out)!=SPK_ERR_BAD_ARGS)return 20;
+  p.crop=0;p.upscale_factor=1;
+  std::vector<float> thin(128*16*3,.18f);spk_image shortInput{thin.data(),128,16,SPK_CS_PROPHOTO};
+  for(const char* material:{"fujifilm_velvia_100","negs_ilford_hp5_plus_6p5min"}){
+   p.film_profile=material;
+   if(spk_simulate_preview(e,&shortInput,&p,&out)!=SPK_OK)return 21;
+   spk_image_free(&out);
+  }
   spk_engine_destroy(e);std::cout<<"PASS job-specific minimum "<<minimum<<" and valid narrow draft without bypass\n";return 0;
  }
  const int w=128,h=argc>3?std::stoi(argv[3]):16;std::vector<float> pixels(w*h*3,.18f);spk_image image{pixels.data(),w,h,SPK_CS_PROPHOTO};

@@ -1216,7 +1216,7 @@ JNI(jstring, nativeTcLutCacheStatsJson)(JNIEnv* env, jobject /*thiz*/,
  */
 JNI(jobject, nativeSimulate)(JNIEnv* env, jobject /*thiz*/, jlong handle,
                              jobject inBuf, jint w, jint h, jstring inCs,
-                             jobject paramsObj, jboolean preview,
+                             jlong sourceIdentity, jobject paramsObj, jboolean preview,
                              jint renderKind, jobject cancellation) try {
     StageTimingLogGuard timing_log;
     spk::RenderTimingKind logical_kind = spk::RTK_UNKNOWN;
@@ -1286,8 +1286,8 @@ JNI(jobject, nativeSimulate)(JNIEnv* env, jobject /*thiz*/, jlong handle,
     // they exist for.
     if (!preview) params.disable_buffer_memos = 1;
     spk_status st = preview
-        ? spk_simulate_preview_cancellable(
-              eng, &in_img, &params, &out, cancellation_probe.callback(),
+        ? spk_simulate_preview_immutable_cancellable(
+              eng, &in_img, &params, &out,sourceIdentity>0?uint64_t(sourceIdentity):0,cancellation_probe.callback(),
               cancellation_probe.context())
         : spk_simulate_cancellable(
               eng, &in_img, &params, &out, cancellation_probe.callback(),

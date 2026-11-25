@@ -349,7 +349,7 @@ internal class DecodedSourceCache(
                         // Entry construction is the ownership-transfer point for img. If it fails,
                         // the catch below closes the still-unowned incoming image exactly once.
                         constructionHooks.beforeEntryConstruction()
-                        entry = Entry(ticket.request, img, constructionHooks)
+                        entry = Entry(ticket.request, img.sealForSourceCache(), constructionHooks)
                     }
                     accepted = true
                     if (current?.image !== img) current else null

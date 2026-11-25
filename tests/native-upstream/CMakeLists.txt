@@ -330,9 +330,16 @@ add_executable(audit_context_probe audit_context_probe.cpp)
 target_include_directories(audit_context_probe PRIVATE ${ROOT})
 target_link_libraries(audit_context_probe PRIVATE spektra_host)
 get_filename_component(SPK_ASSETS "${ROOT}/../assets/spektra" ABSOLUTE)
-foreach(probe interactive_cache_probe receiver_preparation_probe lab_acceleration_probe
-        nikon_neutral_range_probe nikon_color_probe preview_export_probe
+set(SPK_LAB_PROBES receiver_preparation_probe nikon_neutral_range_probe nikon_color_probe
         scan_workstation_probe film_first_probe negative_route_probe receiver_gamut_probe transport_probe)
+# These probes deliberately require bitwise CPU/fallback identity. The separate
+# CPU job runs them; a Vulkan library can choose different Fast precision paths
+# for preview and export. Actual Vulkan qualification uses dispatch-required
+# probes and their documented numerical contracts below.
+if(NOT SPK_HOST_VULKAN)
+ list(APPEND SPK_LAB_PROBES interactive_cache_probe preview_export_probe lab_acceleration_probe)
+endif()
+foreach(probe ${SPK_LAB_PROBES})
  add_test(NAME ${probe} COMMAND ${probe} "${SPK_ASSETS}")
  set_tests_properties(${probe} PROPERTIES ENVIRONMENT "SPK_NUM_THREADS=4" LABELS "cpu;lab")
 endforeach()
@@ -341,6 +348,8 @@ add_test(NAME audit_meter COMMAND audit_context_probe meter "${SPK_ASSETS}")
 add_test(NAME audit_roi COMMAND audit_context_probe roi "${SPK_ASSETS}")
 add_test(NAME audit_transport_key COMMAND audit_context_probe transport warm "${CMAKE_CURRENT_BINARY_DIR}/audit-key.bin")
 if(SPK_HOST_VULKAN)
+ add_test(NAME lab_acceleration_vulkan COMMAND lab_acceleration_probe "${SPK_ASSETS}" --gpu)
+ set_tests_properties(lab_acceleration_vulkan PROPERTIES ENVIRONMENT "SPK_NUM_THREADS=4" LABELS "vulkan;lab")
  foreach(probe arctic_gpu_probe transport_gpu_probe filming_stage_gpu_probe)
   add_test(NAME ${probe} COMMAND ${probe})
   set_tests_properties(${probe} PROPERTIES LABELS "vulkan")
@@ -370,3 +379,13 @@ set_tests_properties(cpu_pipeline_goldens cpu_parallel_cancellation cpu_grain_st
 add_test(NAME audit_transport_cold COMMAND audit_context_probe transport cold "${CMAKE_CURRENT_BINARY_DIR}/audit-cold.bin")
 add_test(NAME audit_transport_exact COMMAND ${CMAKE_COMMAND} -E compare_files "${CMAKE_CURRENT_BINARY_DIR}/audit-key.bin" "${CMAKE_CURRENT_BINARY_DIR}/audit-cold.bin")
 set_tests_properties(audit_transport_exact PROPERTIES DEPENDS "audit_transport_key;audit_transport_cold")
+add_executable(immutable_source_probe immutable_source_probe.cpp)
+target_include_directories(immutable_source_probe PRIVATE ${ROOT})
+target_link_libraries(immutable_source_probe PRIVATE spektra_host)
+add_test(NAME immutable_source_probe COMMAND immutable_source_probe "${SPK_ASSETS}")
+set_tests_properties(immutable_source_probe PROPERTIES ENVIRONMENT "SPK_NUM_THREADS=4" LABELS "cpu;lab")
+
+if(SPK_HOST_VULKAN)
+ add_test(NAME immutable_source_vulkan COMMAND immutable_source_probe "${SPK_ASSETS}" --gpu)
+ set_tests_properties(immutable_source_vulkan PROPERTIES ENVIRONMENT "SPK_NUM_THREADS=4" LABELS "vulkan")
+endif()

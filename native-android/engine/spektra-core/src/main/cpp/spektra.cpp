@@ -106,6 +106,18 @@ struct ScopedInteractivePreview {
     ~ScopedInteractivePreview() { g_interactive_preview = previous; g_preview_pixels = previous_pixels; }
 };
 
+// A positive identity is accepted only for the exact immutable source bound to
+// this synchronous API call. Nested calibration renders use different buffers.
+thread_local const float* g_immutable_pixels=nullptr;
+thread_local uint64_t g_immutable_identity=0;
+struct ScopedImmutableInput {
+    const float* old_pixels=g_immutable_pixels;uint64_t old_identity=g_immutable_identity;
+    ScopedImmutableInput(const float* pixels,uint64_t identity){g_immutable_pixels=pixels;g_immutable_identity=identity;}
+    ~ScopedImmutableInput(){g_immutable_pixels=old_pixels;g_immutable_identity=old_identity;}
+};
+uint64_t immutable_input_identity(const spk_image* image){return image&&image->data==g_immutable_pixels?g_immutable_identity:0;}
+std::atomic<uint64_t> g_input_hash_bytes{0},g_input_materialized_bytes{0};
+
 // Status detail is caller-thread-local so concurrent preview/export calls cannot
 // overwrite each other's diagnostics. A fixed buffer keeps the error path
 // allocation-free and gives the public pointer a simple lifetime contract.
@@ -291,9 +303,9 @@ struct spk_engine {
     // scanning/tone-curve params) reuse filming and skip expose+develop. Small
     // grain-on renders instead keep the deterministic density BEFORE grain and
     // run the unchanged seeded grain tail on every use. Large grain frames and
-    // debug taps bypass. There is still only one raster slot per route — the print
-    // route and the scan route fold different inputs (bw exposure correction) and
-    // route A/B-ing must not thrash a shared slot. Guarded by film_cache_mutex.
+    // debug taps bypass. Each route keeps pregrain and finished-grain slots;
+    // print and scan fold different inputs (bw exposure correction). All raster
+    // slots reserve Cache bytes and are guarded by film_cache_mutex.
     struct FilmCacheEntry {
         int width = 0;
         int height = 0;
@@ -406,6 +418,8 @@ size_t spk_test_last_asset_max_bytes(void) {
 size_t spk_test_last_asset_bytes_allocated(void) {
     return g_spk_test_last_asset_bytes_allocated;
 }
+uint64_t spk_test_input_hash_bytes(){return g_input_hash_bytes.load();}
+uint64_t spk_test_input_materialized_bytes(){return g_input_materialized_bytes.load();}
 uint64_t spk_test_film_cache_hits(spk_engine* eng) {
     if (!eng) return 0;
     std::lock_guard<std::mutex> g(eng->film_cache_mutex);
@@ -872,6 +886,7 @@ static uint64_t compute_film_cache_key(const std::vector<double>& rgb, int width
                                        uint64_t normalized_input_hash = 0) {
     uint64_t h = normalized_input_hash ? normalized_input_hash : 0xcbf29ce484222325ULL;
     // 1) The expose input buffer (content + AE + crop/rescale already baked in).
+    g_input_hash_bytes.fetch_add(rgb.size()*sizeof(double),std::memory_order_relaxed);
     h = fnv1a64(h, rgb.data(), rgb.size() * sizeof(double));
     // 2) Geometry / domain scalars.
     h = fnv1a64(h, &width, sizeof(width));
@@ -883,6 +898,9 @@ static uint64_t compute_film_cache_key(const std::vector<double>& rgb, int width
     h = fnv1a64(h, &gpu_domain, sizeof(gpu_domain));
     // 3) Film profile id bytes (NULL-safe).
     h = fnv1a64(h, &p->auto_exposure, sizeof(p->auto_exposure));
+    // Preserve default persisted-negative fingerprints. A non-default decoder
+    // is an additional density dependency (notably for real-negative inputs).
+    if(p->input_cctf_decoding!=0)h=fnv1a64(h,&p->input_cctf_decoding,sizeof(p->input_cctf_decoding));
     if(p->auto_exposure_method)h=fnv1a64(h,p->auto_exposure_method,std::strlen(p->auto_exposure_method));
     const auto lab_key = spk::lab_dependencies::key(p->experimental_json, false, p->grain_active != 0);
     h = fnv1a64(h, lab_key.data(), lab_key.size());
@@ -1365,6 +1383,13 @@ struct PreprocessedInput {
     double gain = 1.0;
 };
 
+static uint64_t immutable_input_stamp(const PreprocessedInput& pin,const spk_image* input){
+    const auto identity=immutable_input_identity(input);
+    if(!pin.direct||!identity)return 0;
+    uint64_t value=fnv1a64(0xcbf29ce484222325ULL,&identity,sizeof(identity));
+    value=fnv1a64(value,&pin.gain,sizeof(pin.gain));return value?value:1;
+}
+
 // Optional raster residency is admitted against the same process budget as GPU
 // and decode memory. Strong devices can retain a full 2048 square; small budgets
 // skip caching without lowering preview quality. At most five slots per engine.
@@ -1420,22 +1445,11 @@ template<class Buffer> static void apply_grain_cached(spk_engine* eng,int route,
     store_density(eng->grain_memo[route],key,w,h,density);
 }
 
-// ONE predicate for both halves of one invariant, because they are not
-// independent: the direct form leaves `pin.rgb` EMPTY, and every buffer memo
-// keys off those bytes. The existing comments spell the coupling out -- "the
-// direct form requires disable_buffer_memos != 0" and "use_scan_film_cache
-// requires disable_buffer_memos == 0" -- and if the two ever disagreed the memo
-// would hash an empty buffer, collide with every other empty-buffer render, and
-// serve a WRONG CACHED IMAGE. Silent, and worse than a crash.
-//
-// An actual GPU export is one-shot. Preview shares its gpu_export QUALITY flag
-// for the same grain RNG, but has an interactive request scope and can reuse.
-// Folding it in here removes the whole-frame float32 -> float64 widening that
-// preprocess otherwise performs purely to have bytes to hash -- 61 ms and a
-// 288 MB allocation at 12.5 MP, for a cache used once. The direct form is
-// documented as value-identical (float->double widening is exact and the gain
-// multiply is the same double op in the same order) and is gated by
-// test_simulate_e2e scenario G's flag-on vs flag-off byte identity.
+// Request lifetime and immutable provenance are separate. One-shot renders
+// bypass image memos. Interactive immutable inputs can also use direct f32:
+// their key folds a validated call-scoped source identity and the exact AE gain.
+// Mutable inputs retain materialized post-geometry bytes and content hashing.
+// Every memo call must use immutable_input_stamp when pin.rgb is empty.
 inline bool one_shot_render(const spk_params* p) noexcept {
     return p->disable_buffer_memos != 0 || (p->gpu_export != 0 &&
         (!g_interactive_preview || g_preview_pixels * 12u > raster_cache_limit()));
@@ -1539,7 +1553,7 @@ void preprocess_geometry(const spk_image* in, const spk_params* p,
     const bool geometry_noop =
         (p->crop == 0) &&
         (p->upscale_factor == 1.0f || p->upscale_factor == 0.0f);
-    if (geometry_noop && one_shot_render(p)) {
+    if (geometry_noop && (one_shot_render(p)||immutable_input_identity(in))) {
         // Direct form: meter straight off the float32 frame (byte-identical EV —
         // see measure_auto_exposure_ev_f32) and let filming fold the gain into
         // each pixel load. No float64 image is ever built.
@@ -1557,6 +1571,7 @@ void preprocess_geometry(const spk_image* in, const spk_params* p,
         return;  // pixel_size_um unchanged: no rescale ran
     }
 
+    g_input_materialized_bytes.fetch_add(uint64_t(w)*h*3*sizeof(double),std::memory_order_relaxed);
     std::vector<double> src(static_cast<size_t>(w) * h * 3);
     {
         // Whole-frame f32 -> f64 materialisation: 37.5 M elements at 12.5 MP,
@@ -1625,7 +1640,8 @@ bool valid_rgb_shape(const spk_image* image) noexcept {
 // both intermediate and final extents are non-empty and representable. The
 // final byte cap is the same one enforced by the direct-ByteBuffer JNI seam.
 bool valid_preprocess_geometry(const spk_image* image,
-                               const spk_params* params) noexcept {
+                               const spk_params* params,int* prepared_width=nullptr,
+                               int* prepared_height=nullptr) noexcept {
     if (!valid_rgb_shape(image) || !params) return false;
 
     const float raw_factor = params->upscale_factor;
@@ -1702,12 +1718,14 @@ bool valid_preprocess_geometry(const spk_image* image,
     }
     const std::uint64_t pixels = out_w * out_h;
     constexpr std::uint64_t kRgbF32BytesPerPixel = 3u * sizeof(float);
-    return pixels <= static_cast<std::uint64_t>(
+    const bool valid = pixels <= static_cast<std::uint64_t>(
                          std::numeric_limits<int>::max()) &&
            pixels <= static_cast<std::uint64_t>(INT32_MAX) /
                          kRgbF32BytesPerPixel &&
            pixels <= static_cast<std::uint64_t>(
                          std::numeric_limits<std::size_t>::max() / 3u);
+    if(valid){if(prepared_width)*prepared_width=int(out_w);if(prepared_height)*prepared_height=int(out_h);}
+    return valid;
 }
 
 struct PointwiseDynamicParameters {
@@ -2649,9 +2667,9 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
     const size_t out_elems = static_cast<size_t>(npix) * 3;
     const bool scan_tap_bypass =
         (tap_log_raw != nullptr) || (tap_density_cmy != nullptr);
-    // Keep only the deterministic pre-grain density, in the SAME bounded slot.
-    // Large/one-shot exports and persisted virtual negatives retain their old
-    // paths; a 2 MiPixel interactive frame needs at most 24 MiB per route.
+    // Preserve deterministic pregrain separately from the finished-grain slot.
+    // Budget admission bounds both; one-shot exports and persisted virtual
+    // negatives retain their existing routes.
     const bool cache_before_grain = grain && !converter && !band &&
         out_elems * sizeof(float) <= raster_cache_limit() &&
         !(p->experimental_json && std::strstr(p->experimental_json, "\"virtualNegative\""));
@@ -2661,11 +2679,8 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
         !scan_tap_bypass && (!grain || cache_before_grain) && !one_shot_render(p);
 
     bool scan_film_cache_hit = false;
-    // Computed ONCE per render (EXPORT_FASTPATH item 2): the key hashes the
-    // whole float64 rgb buffer, so the old check-then-store recompute paid
-    // that full-buffer hash twice on every miss. Only reachable in the
-    // materialized form: use_scan_film_cache requires disable_buffer_memos==0
-    // and the direct form requires it != 0, so pin.rgb is always valid here.
+    // One key per render: hash materialized content for mutable inputs, or
+    // fold bound immutable source identity + gain for direct f32 inputs.
     uint64_t scan_film_key = 0;
     auto store_scan_film = [&] {
         std::lock_guard<std::mutex> g(eng->film_cache_mutex);
@@ -2676,7 +2691,7 @@ spk_status run_scan_film(spk_engine* eng, const spk_image* in, const spk_params*
     if (use_scan_film_cache) {
         scan_film_key = compute_film_cache_key(
             pin.rgb, width, height, in->color_space, p, resize_pixel_size_um,
-            fparams.bw_exposure_correction);
+            fparams.bw_exposure_correction,immutable_input_stamp(pin,in));
         std::lock_guard<std::mutex> g(eng->film_cache_mutex);
         auto& slot = eng->film_memo[spk_engine::kMemoScan];
         if (slot.valid && slot.key == scan_film_key &&
@@ -3636,17 +3651,14 @@ spk_status run_print(spk_engine* eng, const spk_image* in, const spk_params* p,
         !tap_bypass && (!print_stochastic || cache_before_grain) && !one_shot_render(p);
 
     bool film_cache_hit = false;
-    // Computed ONCE per render (EXPORT_FASTPATH item 2): the key hashes the
-    // whole float64 rgb buffer, so the old check-then-store recompute paid
-    // that full-buffer hash twice on every miss. Only reachable in the
-    // materialized form: use_film_cache requires disable_buffer_memos==0 and
-    // the direct form requires it != 0, so pin.rgb is always valid here.
+    // Fold content or bound immutable identity + gain, once per render.
+    // The direct form never hashes an empty vector without its source stamp.
     uint64_t film_key = 0;
     if (use_film_cache) {
         film_key = compute_film_cache_key(pin.rgb, width, height,
                                           in->color_space, p,
                                           resize_pixel_size_um,
-                                          /*bw_exposure_correction=*/1.0);
+                                          /*bw_exposure_correction=*/1.0,immutable_input_stamp(pin,in));
         std::lock_guard<std::mutex> g(eng->film_cache_mutex);
         auto& slot = eng->film_memo[spk_engine::kMemoPrint];
         if (slot.valid && slot.key == film_key &&
@@ -5135,6 +5147,12 @@ spk_status spk_simulate_cancellable(spk_engine* eng, const spk_image* in,
                                         static_cast<int>(p->output_color_space)));
 }
 
+spk_status spk_simulate_preview_immutable_cancellable(spk_engine* eng,const spk_image* in,
+        const spk_params* p,spk_image* out,uint64_t identity,spk_cancel_check cancel,void* user){
+    ScopedImmutableInput scope(in?in->data:nullptr,identity);
+    return spk_simulate_preview_cancellable(eng,in,p,out,cancel,user);
+}
+
 spk_status spk_simulate_preview(spk_engine* eng, const spk_image* in,
                                 const spk_params* p, spk_image* out) {
     return spk_simulate_preview_cancellable(eng, in, p, out, nullptr, nullptr);
@@ -5177,10 +5195,26 @@ spk_status spk_simulate_preview_cancellable(spk_engine* eng, const spk_image* in
     try {
         const auto receiver=spk::outputs::read_params(p->experimental_json);
         if(receiver.mode=="noritsu-ls600" && receiver.jobEnabled && receiver.local && receiver.job) {
-            const int minimum=spk::noritsu::advanced::minimum_axis(*receiver.job);
-            const int shortest=std::min(in->width,in->height);
-            if(shortest<minimum){set_last_error_message(("Noritsu Auto Contrast: source must have at least "+std::to_string(minimum)+" pixels on each axis").c_str());return timing.finish(SPK_ERR_BAD_ARGS);}
-            max_size=std::max(max_size,int(std::ceil(double(minimum)*longest/shortest)));
+            const auto material=load_engine_profile(eng,p->film_profile?p->film_profile:"");
+            if(!material.is_positive()&&!material.monochrome) {
+                const int minimum=spk::noritsu::advanced::minimum_axis(*receiver.job);
+                auto supports=[&](int edge){
+                    spk_image sample=*in;
+                    if(edge<longest){const double scale=double(edge)/longest;
+                        sample.width=std::max(1,int(std::lround(in->width*scale)));
+                        sample.height=std::max(1,int(std::lround(in->height*scale)));}
+                    int w=0,h=0;return valid_preprocess_geometry(&sample,p,&w,&h)&&w>=minimum&&h>=minimum;
+                };
+                if(!supports(longest)){set_last_error_message(("Noritsu Auto Contrast: cropped/scaled source must have at least "+std::to_string(minimum)+" pixels on each axis").c_str());return timing.finish(SPK_ERR_BAD_ARGS);}
+                // Rounding and crop clipping use the same geometry validator as
+                // render. Find a valid sampling size without creating pixels or
+                // changing the recipe; never enlarge beyond the original source.
+                if(max_size<longest&&!supports(max_size)){
+                    int low=std::max(1,max_size),high=longest;
+                    while(low<high){const int mid=low+(high-low)/2;if(supports(mid))high=mid;else low=mid+1;}
+                    max_size=low;
+                }
+            }
         }
     } catch(const std::bad_alloc&){return timing.finish(SPK_ERR_OOM);}
       catch(const std::exception& error){set_last_error_message(error.what());return timing.finish(SPK_ERR_BAD_ARGS);}
@@ -5205,6 +5239,7 @@ spk_status spk_simulate_preview_cancellable(spk_engine* eng, const spk_image* in
     }
 
     spk_image small_img{small.data(), dw, dh, in->color_space};
+    ScopedImmutableInput resized_identity(small.data(),immutable_input_identity(in));
     g_preview_pixels = uint64_t(dw) * dh;
     return timing.finish(spk_simulate_cancellable(
         eng, &small_img, p, out, cancel, cancel_user_data));

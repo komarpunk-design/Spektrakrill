@@ -521,6 +521,11 @@ uint64_t spk_band_diffusion_prepasses(void);
 
 /* Downscaled fast path (to params.preview_max_size) for interactive tuning. */
 spk_status spk_simulate_preview(spk_engine*, const spk_image* in, const spk_params*, spk_image* out);
+/* Optional source-identity contract for immutable leased inputs. identity must
+ * be process-unique, nonzero and never reused for changed bytes. Zero preserves
+ * content-hashed behavior. This is runtime metadata, never a saved recipe field. */
+spk_status spk_simulate_preview_immutable_cancellable(spk_engine*,const spk_image*,
+    const spk_params*,spk_image*,uint64_t identity,spk_cancel_check,void*);
 spk_status spk_simulate_preview_cancellable(spk_engine*, const spk_image* in,
                                             const spk_params*, spk_image* out,
                                             spk_cancel_check,

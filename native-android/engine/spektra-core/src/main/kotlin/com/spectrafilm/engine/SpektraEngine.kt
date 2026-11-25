@@ -19,6 +19,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 /** Logical app purpose carried into native timing/Perfetto records. */
@@ -145,6 +146,20 @@ class LinearImage private constructor(
     }
 
     private val lifecycle = AtomicInteger(0)
+    @Volatile private var cacheIdentity=0L
+    val immutableSourceIdentity:Long get()=cacheIdentity
+
+    /** Ownership transfer to an immutable source cache. Call before publication,
+     * with no active leases or retained mutable aliases of the constructor buffer.
+     * The identity never enters photo parameters; later views are read-only. */
+    @Synchronized fun sealForSourceCache():LinearImage {
+        check(lifecycle.get()>=0){"LinearImage is closed"}
+        if(cacheIdentity==0L){
+            check(lifecycle.get()==0){"Cannot seal an image with active data leases"}
+            cacheIdentity=sourceIdentities.getAndIncrement().also{check(it>0){"Source identity exhausted"}}
+        }
+        return this
+    }
 
     /** Acquire a lease. Close it when the direct-buffer view is no longer in use. */
     fun acquireDataLease(): DataLease {
@@ -156,7 +171,7 @@ class LinearImage private constructor(
         }
         return try {
             dataLeaseFactory.create(
-                backingData.duplicate().order(ByteOrder.nativeOrder()),
+                (if(cacheIdentity==0L)backingData.duplicate() else backingData.asReadOnlyBuffer()).order(ByteOrder.nativeOrder()),
                 ::releaseDataLease,
             )
         } catch (failure: Throwable) {
@@ -192,6 +207,8 @@ class LinearImage private constructor(
     ) : this(data, width, height, colorSpace, {})
 
     companion object {
+        private val sourceIdentities=AtomicLong(1L)
+
 
         /**
          * Transfer an already-acquired external lease to the returned image.
@@ -621,7 +638,7 @@ class SpektraEngine private constructor(
         image.acquireDataLease().use { lease ->
             val data = lease.data
             nativeSimulate(leasedHandle, data, image.width, image.height,
-                image.colorSpace, params, /* preview = */ false, kind.nativeCode,
+                image.colorSpace,image.immutableSourceIdentity, params, /* preview = */ false, kind.nativeCode,
                 cancellation)
                 ?: error("spektra: simulate returned null (handle=$leasedHandle)")
         }
@@ -637,7 +654,7 @@ class SpektraEngine private constructor(
         image.acquireDataLease().use { lease ->
             val data = lease.data
             nativeSimulate(leasedHandle, data, image.width, image.height,
-                image.colorSpace, params, /* preview = */ true, kind.nativeCode,
+                image.colorSpace,image.immutableSourceIdentity, params, /* preview = */ true, kind.nativeCode,
                 cancellation)
                 ?: error("spektra: simulatePreview returned null (handle=$leasedHandle)")
         }
@@ -736,7 +753,7 @@ class SpektraEngine private constructor(
     private external fun nativeTcLutCacheStatsJson(handle: Long): String
     private external fun nativeSimulate(
         handle: Long, inBuf: ByteBuffer, w: Int, h: Int, inCs: String,
-        params: SpektraParams, preview: Boolean, renderKind: Int,
+        sourceIdentity:Long, params: SpektraParams, preview: Boolean, renderKind: Int,
         cancellation: RenderCancellation?,
     ): SimResult?
     private external fun nativeScannerContext(

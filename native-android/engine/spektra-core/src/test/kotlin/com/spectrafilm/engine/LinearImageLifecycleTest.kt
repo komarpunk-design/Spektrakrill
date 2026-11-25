@@ -21,6 +21,26 @@ class LinearImageLifecycleTest {
             release = onClose,
         )
 
+    @Test fun sourceCacheIdentityIsStableUniqueAndItsViewsRejectWrites() {
+        val first=image{};val second=image{}
+        assertEquals(0L,first.immutableSourceIdentity)
+        first.acquireDataLease().use { lease ->
+            lease.data.putFloat(0,.25f)
+            assertTrue(first.runCatching{sealForSourceCache()}.exceptionOrNull() is IllegalStateException)
+        }
+        first.sealForSourceCache();second.sealForSourceCache()
+        assertTrue(first.immutableSourceIdentity>0L)
+        assertNotEquals(first.immutableSourceIdentity,second.immutableSourceIdentity)
+        val identity=first.immutableSourceIdentity;first.sealForSourceCache()
+        assertEquals(identity,first.immutableSourceIdentity)
+        first.acquireDataLease().use { lease ->
+            assertTrue(lease.data.isReadOnly)
+            assertEquals(.25f,lease.data.getFloat(0),0f)
+            assertTrue(runCatching{lease.data.putFloat(0,.8f)}.exceptionOrNull() is java.nio.ReadOnlyBufferException)
+        }
+        first.close();second.close()
+    }
+
     @Test
     fun publicApiRequiresAnExplicitDataLease() {
         assertTrue(LinearImage::class.java.methods.none { it.name == "withDataLease" })
