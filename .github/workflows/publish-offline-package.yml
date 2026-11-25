@@ -1,0 +1,40 @@
+name: Publish experimental offline ChatGPT package
+on:
+  push:
+    branches: [deliver-chatgpt-offline-0-1-5b88414]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Validate, publish and download the complete package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '35ce4904dd40ef549b2a6f4eb559ad01a742085bea698b36e5bf762b6e2a45c6  release-payload/Spektrafilm-ChatGPT-Offline-v0.1.0.zip' | sha256sum --check
+          python3 - <<'CHECK'
+          import zipfile,json,hashlib
+          with zipfile.ZipFile('release-payload/Spektrafilm-ChatGPT-Offline-v0.1.0.zip') as archive:
+              assert archive.testzip() is None
+              manifest=json.loads(archive.read('spektrafilm-offline/manifest.json'))
+              assert manifest['source_commit']=='5b884148783c755ef0d39645f3f3ffa219aca989' and not manifest['source_tree_dirty']
+              for name,item in manifest['files'].items():
+                  data=archive.read('spektrafilm-offline/'+name)
+                  assert len(data)==item['bytes'] and hashlib.sha256(data).hexdigest()==item['sha256']
+          CHECK
+          if ! gh release view chatgpt-offline-v0.1.0 >/dev/null 2>&1; then
+            gh release create chatgpt-offline-v0.1.0 --target 5b884148783c755ef0d39645f3f3ffa219aca989 --prerelease --title 'Spektrafilm Offline 0.1.0 — экспериментальный пакет для Анализа данных' --notes-file release-payload/notes.md
+          fi
+          for asset in Spektrafilm-ChatGPT-Offline-v0.1.0.zip qualification.json; do
+            if ! gh release view chatgpt-offline-v0.1.0 --json assets --jq '.assets[].name' | grep -Fxq "$asset"; then
+              gh release upload chatgpt-offline-v0.1.0 "release-payload/$asset"
+            fi
+          done
+          mkdir downloaded
+          gh release download chatgpt-offline-v0.1.0 --pattern Spektrafilm-ChatGPT-Offline-v0.1.0.zip --dir downloaded
+          echo '35ce4904dd40ef549b2a6f4eb559ad01a742085bea698b36e5bf762b6e2a45c6  downloaded/Spektrafilm-ChatGPT-Offline-v0.1.0.zip' | sha256sum --check

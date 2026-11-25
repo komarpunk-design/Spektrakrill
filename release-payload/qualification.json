@@ -1,0 +1,109 @@
+{
+  "archive": "/workspace/artifacts/Spektrafilm-ChatGPT-Offline-v0.1.0.zip",
+  "bytes": 28782927,
+  "sha256": "35ce4904dd40ef549b2a6f4eb559ad01a742085bea698b36e5bf762b6e2a45c6",
+  "source_commit": "5b884148783c755ef0d39645f3f3ffa219aca989",
+  "kind": "experimental offline package for ChatGPT Data Analysis",
+  "source_branch": "feat/chatgpt-offline-pack",
+  "actual_chatgpt_session_tested": false,
+  "permanent_chatgpt_plugin_installed": false,
+  "unit_tests_passed": 6,
+  "native_dynamic_libraries_required": false,
+  "manifest_files": 378,
+  "zip_crc_and_all_manifest_hashes_verified": true,
+  "default_max_edge": 1536,
+  "jpeg_bits": 8,
+  "png_bits": 16,
+  "tiff_bits": 16,
+  "isolated_test": {
+    "os": "Linux x86-64",
+    "python_packages": "standard library only; numpy/Pillow/tifffile absent",
+    "network": "none",
+    "memory_limit_mib": 1024,
+    "cpus": 2,
+    "cases": [
+      {
+        "status": "complete",
+        "width": 1536,
+        "height": 1019,
+        "look": "natural",
+        "film": "kodak_portra_400",
+        "scanner": "noritsu-ls600",
+        "max_edge": 1536,
+        "package_source": "5b884148783c755ef0d39645f3f3ffa219aca989",
+        "png_bits": 16,
+        "tiff_bits": 16,
+        "files": [
+          {
+            "path": "/tmp/tmpxn2o6zql/result/result.jpg",
+            "bytes": 1057154,
+            "sha256": "893ef609a2c284d2ed5b5593a0f75047aba8daa9504a976613bf6f23080e0977"
+          },
+          {
+            "path": "/tmp/tmpxn2o6zql/result/result.png",
+            "bytes": 8644074,
+            "sha256": "120d11e1c9699221b98b9760243b04d3bd25ed4123e9540f7f98ff54830adaa5"
+          },
+          {
+            "path": "/tmp/tmpxn2o6zql/result/result.tiff",
+            "bytes": 9391896,
+            "sha256": "370f1abf1fa2900f82c2e35c4be9d63607e520e632aef511ad303cab3e5cb8a2"
+          },
+          {
+            "path": "/tmp/tmpxn2o6zql/result/render.json",
+            "bytes": 536,
+            "sha256": "0f3eb41d9c6988db5bf89988457117844cb592144b5ae9d8ece8f1dc9b04caed"
+          }
+        ],
+        "processing": "native RAW, full demosaic; no network, no generated image",
+        "clean_python_without_packages": true,
+        "network": "none",
+        "container_memory_limit_mib": 1024,
+        "actual_chatgpt_session_tested": false,
+        "uid": 10001,
+        "fixture": "2249.NEF"
+      },
+      {
+        "status": "complete",
+        "width": 1536,
+        "height": 1022,
+        "look": "natural",
+        "film": "kodak_portra_400",
+        "scanner": "noritsu-ls600",
+        "max_edge": 1536,
+        "package_source": "5b884148783c755ef0d39645f3f3ffa219aca989",
+        "png_bits": 16,
+        "tiff_bits": 16,
+        "files": [
+          {
+            "path": "/tmp/tmpkhtu2_vr/result/result.jpg",
+            "bytes": 574163,
+            "sha256": "c136dcd4970dd57f3ac4cc8d46d10a1dce76725dd32dc8c480c1c20b050db4c3"
+          },
+          {
+            "path": "/tmp/tmpkhtu2_vr/result/result.png",
+            "bytes": 8034256,
+            "sha256": "5da723c6ba3d42dd4f9841077da42076d72c39a0877000a84ca0a476838157ed"
+          },
+          {
+            "path": "/tmp/tmpkhtu2_vr/result/result.tiff",
+            "bytes": 9419544,
+            "sha256": "c9c2b21cd2f727fdc805f87ed24286297164d4ec34261fc777b276695f590d15"
+          },
+          {
+            "path": "/tmp/tmpkhtu2_vr/result/render.json",
+            "bytes": 536,
+            "sha256": "efa95481f11da2263bd416e67f066517c159648ce9e41e75972272134a3803c6"
+          }
+        ],
+        "processing": "native RAW, full demosaic; no network, no generated image",
+        "clean_python_without_packages": true,
+        "network": "none",
+        "container_memory_limit_mib": 1024,
+        "actual_chatgpt_session_tested": false,
+        "uid": 10001,
+        "fixture": "2783.RAF"
+      }
+    ]
+  }
+}
