@@ -1,0 +1,69 @@
+{
+  "date": "2026-11-26",
+  "repository": "https://github.com/togekk39/darktable-android",
+  "base_commit": "ae4139bdf18a5c39f71c24f1fb3eab320c139cc9",
+  "branch": "feat/mobile-workspace",
+  "github_fork_created": false,
+  "github_error": "HTTP 403: Resource not accessible by integration",
+  "source_changes_staged": true,
+  "android_device_or_emulator_tested": false,
+  "native_engine_executed_in_this_task": false,
+  "native_engine_rebuilt": false,
+  "engine_origin": "exact checksum-verified upstream APK be88cc10e2b9cd9b17ae73eecb49c105ab001d6d0f8a05e2512e5eeb65010d8a",
+  "engine_libraries_identical": 115,
+  "runtime_assets_identical": 830,
+  "all_packaged_native_libraries_16k_aligned": 116,
+  "apk_signature_verified": true,
+  "zipalign_16k_checked": true,
+  "tests": {
+    "testDevDebugUnitTest": {
+      "tests": 204,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "testDevReleaseUnitTest": {
+      "tests": 204,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "lint": {
+      "Warning": 30,
+      "Information": 3
+    }
+  },
+  "python_runtime_tests_passed": 39,
+  "host_c_adapter_tests_passed": 4,
+  "additional_glib_c_tests": "module-layout and sidecar could not configure: glib-2.0 development files missing",
+  "instrumentation_apk_assembled": true,
+  "instrumentation_tests_executed": false,
+  "gradle_wrapper_8_14_4_verified": true,
+  "default_engine_less_build_rejected": true,
+  "russian_translatable_strings": 372,
+  "artifacts": [
+    {
+      "file": "Darkroom-Mobile-v0.2.0-arm64.apk",
+      "bytes": 37600747,
+      "sha256": "b72b9f437c95b928d9d51e8fe95a127ad0abd5eb8db716d33e4105b43ea1ca06"
+    },
+    {
+      "file": "Darkroom-Mobile-v0.2.0-source.zip",
+      "bytes": 22491499,
+      "sha256": "b359d121ead5ccf0d6c5e6e984a1ed3abff19b81a9e0300e4fa69c4a8f153cb8"
+    },
+    {
+      "file": "Darkroom-Mobile-v0.2.0.patch",
+      "bytes": 215718,
+      "sha256": "f8dc1beb37656313af28bb4b7d2eb78c567c68ccf9d25b0d0ffef181550f58f8"
+    }
+  ],
+  "limitations": [
+    "No physical-device RAW decode/edit/export or performance test",
+    "No test of every native parameter against rendered pixels",
+    "No preview/export color parity measurement",
+    "Native engine and optional feature coverage inherited from original port",
+    "Session edits are not persistent projects; stopping work closes the session",
+    "GitHub workflow files parsed locally; no GitHub Actions run or release publication"
+  ]
+}

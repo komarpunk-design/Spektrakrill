@@ -1,0 +1,26 @@
+{
+  "Darkroom-Mobile-v0.2.0-arm64.apk": {
+    "bytes": 37600747,
+    "sha256": "b72b9f437c95b928d9d51e8fe95a127ad0abd5eb8db716d33e4105b43ea1ca06"
+  },
+  "Darkroom-Mobile-v0.2.0-source.zip": {
+    "bytes": 22491499,
+    "sha256": "b359d121ead5ccf0d6c5e6e984a1ed3abff19b81a9e0300e4fa69c4a8f153cb8"
+  },
+  "Darkroom-Mobile-v0.2.0.patch": {
+    "bytes": 215718,
+    "sha256": "f8dc1beb37656313af28bb4b7d2eb78c567c68ccf9d25b0d0ffef181550f58f8"
+  },
+  "Darkroom-Mobile-v0.2.0-SHA256SUMS": {
+    "bytes": 294,
+    "sha256": "a02fdb008194c4fcd8150b6ed80ffd259e9cb0f089aaef1f2ae003746706b152"
+  },
+  "REPORT-RU.md": {
+    "bytes": 9575,
+    "sha256": "2fa4e49f42a1382e745f0687559a3220f5c70e028534adc27e63d25bd4257cc5"
+  },
+  "qualification.json": {
+    "bytes": 2470,
+    "sha256": "c5d1a01c76e22d8c38855c90458458e1b83e6d3e15125b95b02719d88f45a11d"
+  }
+}
