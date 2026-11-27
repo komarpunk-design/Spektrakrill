@@ -1,0 +1,270 @@
+{
+  "date": "2026-11-27",
+  "version": "0.2.1",
+  "application_id": "design.komarpunk.darkroom.dev",
+  "version_code": 3,
+  "repository": "https://github.com/togekk39/darktable-android",
+  "base_commit": "ae4139bdf18a5c39f71c24f1fb3eab320c139cc9",
+  "source_changes_staged": true,
+  "github_fork_created": false,
+  "android_device_or_emulator_tested": false,
+  "instrumentation_apk_assembled": true,
+  "instrumentation_tests_executed_on_android": false,
+  "native_host_engine_built_and_executed": true,
+  "native_host_platform": "Linux x86-64 / original source JNI bridge / actual Kotlin NativeCore.class; not Android binary execution",
+  "apk_native_engine_rebuilt": false,
+  "apk_engine_origin": "checksum-verified upstream ae4139b APK",
+  "original_runtime_libraries_identical": 115,
+  "original_assets_identical": 830,
+  "all_packaged_native_libraries_16k_aligned": 116,
+  "apk_signature_verified": true,
+  "apk_zipalign_16k_verified": true,
+  "apk_zip_crc_verified": true,
+  "tests": {
+    "testDevDebugUnitTest": {
+      "tests": 289,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "testDevReleaseUnitTest": {
+      "tests": 289,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "source_set_cases_per_variant": 211,
+    "additional_host_harness_cases_per_variant": 78,
+    "lint": {
+      "errors": 0,
+      "warnings": 30,
+      "information": 3
+    }
+  },
+  "native_ctest": {
+    "distinct_cases_passed": 27,
+    "initial_passes": 26,
+    "initial_failures": 1,
+    "rerun_passes": 1,
+    "initial_failure_cause": "test fixture hardlink across read-only/source and writable build mounts; unchanged fixture relocated to same volume",
+    "parameter_roundtrips": 1212
+  },
+  "real_jni_inputs": [
+    "RGB JPEG",
+    "Nikon NEF",
+    "26 MP Fujifilm RAF"
+  ],
+  "real_jni_export_formats": [
+    "jpeg",
+    "pdf",
+    "pfm",
+    "png",
+    "ppm",
+    "tiff",
+    "xcf"
+  ],
+  "metadata_readback": [
+    {
+      "input": "rgb",
+      "formats": 7,
+      "editable": 87,
+      "all_codec_defaults_valid": true,
+      "parameters": 1573,
+      "modules": 88
+    },
+    {
+      "input": "nef",
+      "formats": 7,
+      "editable": 89,
+      "all_codec_defaults_valid": true,
+      "parameters": 1668,
+      "modules": 90
+    },
+    {
+      "input": "raf",
+      "formats": 7,
+      "editable": 89,
+      "all_codec_defaults_valid": true,
+      "parameters": 1665,
+      "modules": 90
+    }
+  ],
+  "pixel_and_export_readback": {
+    "rgb": {
+      "module_count": 88,
+      "first_preview_stable": true,
+      "undo_redo_pixel_exact": true,
+      "exports": [
+        {
+          "file": "export-jpeg.jpg",
+          "bytes": 18159,
+          "format": "jpeg",
+          "readback_size": [
+            128,
+            96
+          ],
+          "readback_mode": "RGB"
+        },
+        {
+          "file": "export-pdf.pdf",
+          "bytes": 26508,
+          "format": "pdf",
+          "pdf_header_and_eof": true
+        },
+        {
+          "file": "export-pfm.pfm",
+          "bytes": 147472,
+          "format": "pfm",
+          "pfm_header": true,
+          "full_float_payload_valid": true,
+          "width": 128,
+          "height": 96,
+          "float_count": 36864
+        },
+        {
+          "file": "export-png.png",
+          "bytes": 30380,
+          "format": "png",
+          "readback_size": [
+            128,
+            96
+          ],
+          "readback_mode": "RGB"
+        },
+        {
+          "file": "export-ppm.ppm",
+          "bytes": 73744,
+          "format": "ppm",
+          "readback_size": [
+            128,
+            96
+          ],
+          "readback_mode": "RGB"
+        },
+        {
+          "file": "export-tiff.tif",
+          "bytes": 32478,
+          "format": "tiff",
+          "readback_size": [
+            128,
+            96
+          ],
+          "readback_mode": "RGB"
+        },
+        {
+          "file": "export-xcf.xcf",
+          "bytes": 133110,
+          "format": "xcf",
+          "xcf_header": true
+        }
+      ]
+    },
+    "nef": {
+      "module_count": 90,
+      "first_preview_stable": true,
+      "undo_redo_pixel_exact": true,
+      "full_png": {
+        "width": 4282,
+        "height": 2844,
+        "bits": 16,
+        "color_type": 2,
+        "bytes": 60270061,
+        "crc_all_chunks_valid": true,
+        "zlib_stream_complete": true,
+        "decoded_scanline_bytes": 73070892,
+        "chunks": 7350
+      },
+      "tiff": {
+        "shape": [
+          340,
+          512,
+          3
+        ],
+        "dtype": "uint16"
+      },
+      "jpeg": {
+        "size": [
+          512,
+          340
+        ],
+        "mode": "RGB"
+      },
+      "preview_vs_same_size_srgb_tiff": {
+        "mean_abs_8bit": 2.054597324247063,
+        "p95_abs_8bit": 9.093385214007782,
+        "max_abs_8bit": 103.01556420233463
+      }
+    },
+    "raf": {
+      "module_count": 90,
+      "first_preview_stable": true,
+      "undo_redo_pixel_exact": true,
+      "full_png": {
+        "width": 6240,
+        "height": 4160,
+        "bits": 16,
+        "color_type": 2,
+        "bytes": 123067175,
+        "crc_all_chunks_valid": true,
+        "zlib_stream_complete": true,
+        "decoded_scanline_bytes": 155754560,
+        "chunks": 15004
+      },
+      "tiff": {
+        "shape": [
+          341,
+          512,
+          3
+        ],
+        "dtype": "uint16"
+      },
+      "jpeg": {
+        "size": [
+          512,
+          341
+        ],
+        "mode": "RGB"
+      },
+      "preview_vs_same_size_srgb_tiff": {
+        "mean_abs_8bit": 0.47247470389219237,
+        "p95_abs_8bit": 1.4085603112840488,
+        "max_abs_8bit": 48.36186770428016
+      }
+    }
+  },
+  "inherited_unimplemented_or_disabled": [
+    "OpenCL/GPU and AI disabled",
+    "HEIF/AVIF/rendered JXL/OpenEXR/WebP/JPEG2000 disabled",
+    "XCF input disabled; output enabled",
+    "Persistent edit projects absent",
+    "Incomplete desktop styles/presets, automatic pickers, freehand masks and linked liquify workflows",
+    "colortransfer legacy module has no editable controls"
+  ],
+  "remaining_findings": [
+    "Measured preview/export differences documented; exact color parity not achieved",
+    "GLib-GObject critical warnings during Linux runtime reinitialization despite passing native close/reopen tests",
+    "Actual Android SAF, IME, memory, speed, long sessions and process death not tested"
+  ],
+  "artifacts": [
+    {
+      "file": "Darkroom-Mobile-v0.2.1-arm64.apk",
+      "bytes": 37602147,
+      "sha256": "d0c24ff244f58581fb8a048bf7b6cda8ac41a9ad68946e89fe576f3700247a0a"
+    },
+    {
+      "file": "Darkroom-Mobile-v0.2.1-source.zip",
+      "bytes": 24478315,
+      "sha256": "8656e5582309c370380f257cae2a702c6c06985d898876baf539eee20672a992"
+    },
+    {
+      "file": "Darkroom-Mobile-v0.2.1.patch",
+      "bytes": 246834,
+      "sha256": "fa7457546c92812da970513af320bc55a286daf93ef068fc01d4050663219c1e"
+    },
+    {
+      "file": "Darkroom-Mobile-v0.2.1-audit-evidence.zip",
+      "bytes": 288450,
+      "sha256": "f64f9336009586e7e0f90ed29e0da6935322d9151418eb72cf10f21f3510a08a"
+    }
+  ]
+}
