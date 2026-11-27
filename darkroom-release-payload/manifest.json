@@ -1,0 +1,30 @@
+{
+  "Darkroom-Mobile-v0.3.0-arm64.apk": {
+    "bytes": 37726417,
+    "sha256": "0f478f13cccc60bbba1827d4e0d93247ed2409d9db09668ef6e870d57d933244"
+  },
+  "Darkroom-Mobile-v0.3.0-source.zip": {
+    "bytes": 24525692,
+    "sha256": "65c3075357d074e5825546c5ca4f04ddd66e7266c03abdba76ccd17a229e4bc5"
+  },
+  "Darkroom-Mobile-v0.3.0.patch": {
+    "bytes": 417594,
+    "sha256": "4e82d83f8f8b41d906fe263205e78158b2aaccea11112cc10cecd5cce5b7fdad"
+  },
+  "Darkroom-Mobile-v0.3.0-SHA256SUMS": {
+    "bytes": 402,
+    "sha256": "d5b4eadeb6b14a0f5e7b5c49479d1a473149603603101a5de9ea2be40a7b1d9e"
+  },
+  "Darkroom-Mobile-v0.3.0-audit-evidence.zip": {
+    "bytes": 248618,
+    "sha256": "bf072a5ea8c71a8098294e2ef67aa4bc9307a195ef412d4328c6bf754a2c68f8"
+  },
+  "REPORT-RU.md": {
+    "bytes": 20092,
+    "sha256": "5cb122b308ceb7c31246877b204a6e9921750f974162a8b5863b948baf70b7a4"
+  },
+  "qualification.json": {
+    "bytes": 7557,
+    "sha256": "bee42cbe820e2fc9d3f35d8a813ba6fa0b2fb9da4d611fe3bbcbafb659692c3f"
+  }
+}

@@ -1,0 +1,219 @@
+{
+  "date": "2026-11-27",
+  "version": "0.3.0",
+  "version_code": 4,
+  "application_id": "design.komarpunk.darkroom.dev",
+  "base_commit": "ae4139bdf18a5c39f71c24f1fb3eab320c139cc9",
+  "engine_source_commit": "1c4eaea9df6dbe8336449ca297acbb0120d8e968",
+  "engine_branch": "5.8 development",
+  "official_desktop_reference": "5.6.2",
+  "source_changes_staged": true,
+  "github_fork_created": false,
+  "android_device_or_emulator_executed": false,
+  "instrumentation_apk_assembled": true,
+  "instrumentation_tests_executed_on_android": false,
+  "original_runtime_libraries_identical": 115,
+  "original_runtime_assets_identical": 830,
+  "added_native_bridge": 1,
+  "packaged_native_libraries_16k_aligned": 117,
+  "bridge_ndk": "28.2.13676358 / API26",
+  "bridge_sha256": "b7e41fb248350f29013b61afa096a8312db398d8786942e703092311e2ae9571",
+  "apk_signature_and_zipalign": "verified separately with apksigner/zipalign",
+  "tests": {
+    "testDevDebugUnitTest": {
+      "tests": 312,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "testDevReleaseUnitTest": {
+      "tests": 312,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "source_set_cases_per_variant": 234,
+  "additional_component_cases_per_variant": 78,
+  "lint": {
+    "errors": 0,
+    "warnings": 32,
+    "information": 3
+  },
+  "python_runtime_tests_passed": 39,
+  "native_jni_platform": "Linux x86-64 / actual compiled Kotlin NativeCore and NativeDesktop classes; original public darktable APIs; not Android APK execution",
+  "native_interop_phases_passed": 24,
+  "native_export_coupling_cases_passed": 3,
+  "factory_style_cases_passed": 3,
+  "factory_style_applications_passed": 5,
+  "bundled_styles": {
+    "total": 534,
+    "camera": 510,
+    "examples": 24,
+    "all_original_runtime_bytes_identical": true,
+    "all_official_5_6_2_files_identical": true,
+    "all_catalogued_in_automated_test": true,
+    "every_style_rendered_on_every_input": false
+  },
+  "export_pixel_readback": {
+    "rgb": {
+      "xmp_export_handoff": {
+        "shape": [
+          338,
+          450,
+          3
+        ],
+        "pixel_exact": true,
+        "maximum_channel_difference": 0,
+        "mean_absolute_channel_difference": 0.0
+      },
+      "style_export_handoff": {
+        "shape": [
+          338,
+          450,
+          3
+        ],
+        "pixel_exact": true,
+        "maximum_channel_difference": 0,
+        "mean_absolute_channel_difference": 0.0
+      },
+      "style_changes_exported_pixels": true
+    },
+    "nef": {
+      "xmp_export_handoff": {
+        "shape": [
+          340,
+          512,
+          3
+        ],
+        "pixel_exact": true,
+        "maximum_channel_difference": 0,
+        "mean_absolute_channel_difference": 0.0
+      },
+      "style_export_handoff": {
+        "shape": [
+          340,
+          512,
+          3
+        ],
+        "pixel_exact": true,
+        "maximum_channel_difference": 0,
+        "mean_absolute_channel_difference": 0.0
+      },
+      "style_changes_exported_pixels": true
+    },
+    "raf": {
+      "xmp_export_handoff": {
+        "shape": [
+          341,
+          512,
+          3
+        ],
+        "pixel_exact": true,
+        "maximum_channel_difference": 0,
+        "mean_absolute_channel_difference": 0.0
+      },
+      "style_export_handoff": {
+        "shape": [
+          341,
+          512,
+          3
+        ],
+        "pixel_exact": true,
+        "maximum_channel_difference": 0,
+        "mean_absolute_channel_difference": 0.0
+      },
+      "style_changes_exported_pixels": true
+    }
+  },
+  "official_desktop_compatibility": {
+    "official_release": {
+      "browser_download_url": "https://github.com/darktable-org/darktable/releases/download/release-5.6.2/Darktable-5.6.2-x86_64.AppImage",
+      "digest": "sha256:4b0d1c737a2a18c7d8afb81aa3daaf25930bbe541dda98e6354dabd5c2e4dc36",
+      "name": "Darktable-5.6.2-x86_64.AppImage",
+      "size": 178346488
+    },
+    "reference_version": "5.6.2",
+    "reference_sha256_verified": true,
+    "app_engine": "5.8 development / 1c4eaea9df6dbe8336449ca297acbb0120d8e968",
+    "native_v7_to_stable_v6_compatibility": "failed; not described as a passing conversion",
+    "checks": {
+      "rgb": {
+        "cli_returncode": 0,
+        "png_decoded": true,
+        "dimensions": [
+          450,
+          338
+        ],
+        "mask_compatibility_passed": false,
+        "reason": "official 5.6.2 supports mask v6; port writes v7",
+        "mask_warnings": [
+          "2.4440 [_dev_read_masks_history] source.jpg (imgid `1'): mask version mismatch: history is 7, darktable is 6",
+          "2.4441 [_dev_read_masks_history] source.jpg (imgid `1'): mask version mismatch: history is 7, darktable is 6"
+        ]
+      },
+      "nef": {
+        "cli_returncode": 0,
+        "png_decoded": true,
+        "dimensions": [
+          512,
+          340
+        ],
+        "mask_compatibility_passed": false,
+        "reason": "official 5.6.2 supports mask v6; port writes v7",
+        "mask_warnings": [
+          "3.2397 [_dev_read_masks_history] source.NEF (imgid `1'): mask version mismatch: history is 7, darktable is 6",
+          "3.2398 [_dev_read_masks_history] source.NEF (imgid `1'): mask version mismatch: history is 7, darktable is 6"
+        ]
+      },
+      "raf": {
+        "cli_returncode": 0,
+        "png_decoded": true,
+        "dimensions": [
+          512,
+          341
+        ],
+        "mask_compatibility_passed": false,
+        "reason": "official 5.6.2 supports mask v6; port writes v7",
+        "mask_warnings": [
+          "2.4990 [_dev_read_masks_history] source.RAF (imgid `1'): mask version mismatch: history is 7, darktable is 6",
+          "2.4991 [_dev_read_masks_history] source.RAF (imgid `1'): mask version mismatch: history is 7, darktable is 6"
+        ]
+      }
+    },
+    "product_action": "Keep full native v7 projects; explain native/development format before exporting XMP or newly created blend-v15 styles. No unverified v7-to-v6 rewrite.",
+    "bundled_styles_byte_identical_to_official_5_6_2": 534
+  },
+  "remaining": [
+    "Full desktop Lighttable collections/ratings/tags, batch queue and other desktop views not ported",
+    "Full module preset browser, selective style rows and instance copy/delete/reorder pending",
+    "Freehand masks, linked liquify, several automatic pickers and native RAW scopes pending",
+    "GPU/OpenCL/AI and optional codecs disabled in original Android runtime",
+    "Native v7 masks are not readable by stable desktop 5.6.2; explicit export warning; no unverified backwards rewrite",
+    "Preview/export differ as documented in 0.2.1; their algorithms unchanged",
+    "Full runtime cleanup/reinitialization paths still require native/device qualification",
+    "Physical Android loading, SAF/IME, process death, performance and memory not tested"
+  ],
+  "artifacts": [
+    {
+      "file": "Darkroom-Mobile-v0.3.0-arm64.apk",
+      "bytes": 37726417,
+      "sha256": "0f478f13cccc60bbba1827d4e0d93247ed2409d9db09668ef6e870d57d933244"
+    },
+    {
+      "file": "Darkroom-Mobile-v0.3.0-source.zip",
+      "bytes": 24525692,
+      "sha256": "65c3075357d074e5825546c5ca4f04ddd66e7266c03abdba76ccd17a229e4bc5"
+    },
+    {
+      "file": "Darkroom-Mobile-v0.3.0.patch",
+      "bytes": 417594,
+      "sha256": "4e82d83f8f8b41d906fe263205e78158b2aaccea11112cc10cecd5cce5b7fdad"
+    },
+    {
+      "file": "Darkroom-Mobile-v0.3.0-audit-evidence.zip",
+      "bytes": 248618,
+      "sha256": "bf072a5ea8c71a8098294e2ef67aa4bc9307a195ef412d4328c6bf754a2c68f8"
+    }
+  ]
+}
