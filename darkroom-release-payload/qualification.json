@@ -1,0 +1,1131 @@
+{
+  "date": "2026-11-27",
+  "version": "0.4.0",
+  "version_code": 5,
+  "application_id": "design.komarpunk.darkroom.dev",
+  "base_commit": "ae4139bdf18a5c39f71c24f1fb3eab320c139cc9",
+  "engine_source_commit": "1c4eaea9df6dbe8336449ca297acbb0120d8e968",
+  "engine_branch": "5.8 development",
+  "official_desktop_reference": "5.6.2",
+  "full_desktop_parity": false,
+  "source_changes_staged": true,
+  "github_fork_created": false,
+  "android_device_or_emulator_executed": false,
+  "instrumentation_apk_assembled": true,
+  "instrumentation_tests_executed_on_android": false,
+  "original_runtime_libraries_identical": 115,
+  "original_runtime_assets_identical": 830,
+  "packaged_native_libraries_16k_aligned": 117,
+  "bridge_ndk": "28.2.13676358 / API26",
+  "bridge_sha256": "975825c339799bdef0991e307f75fe95a7ae0c144af867479e8b98dcea01e005",
+  "apk_signature_and_zipalign": "verified separately with apksigner/zipalign",
+  "jvm_tests": {
+    "testDevDebugUnitTest": {
+      "tests": 330,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "testDevReleaseUnitTest": {
+      "tests": 330,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "source_set_cases_per_variant": 252,
+  "additional_component_cases_per_variant": 78,
+  "lint": {
+    "Warning": 33,
+    "Information": 3
+  },
+  "python_runtime_tests_passed": 39,
+  "native_jni_platform": "Linux x86-64; actual compiled Kotlin NativeCore/NativeDesktop/NativeCatalog and storage parser; original darktable engine. Not Android APK execution.",
+  "native_catalog_and_batch_cases": {
+    "rgb": {
+      "save": {
+        "invalid_tag_rejected_before_mutation": true,
+        "metadata_pixel_exact": true,
+        "native_catalog_saved": true,
+        "active_editor_unchanged_after_batch": true,
+        "native_png_export": true,
+        "batch_captured_processing": true
+      },
+      "reopen": {
+        "processing_pixel_exact": true,
+        "rating_colors_tags_persist": true
+      }
+    },
+    "nef": {
+      "save": {
+        "invalid_tag_rejected_before_mutation": true,
+        "metadata_pixel_exact": true,
+        "native_catalog_saved": true,
+        "active_editor_unchanged_after_batch": true,
+        "native_png_export": true,
+        "batch_captured_processing": true
+      },
+      "reopen": {
+        "processing_pixel_exact": true,
+        "rating_colors_tags_persist": true
+      }
+    },
+    "raf": {
+      "save": {
+        "invalid_tag_rejected_before_mutation": true,
+        "metadata_pixel_exact": true,
+        "native_catalog_saved": true,
+        "active_editor_unchanged_after_batch": true,
+        "native_png_export": true,
+        "batch_captured_processing": true
+      },
+      "reopen": {
+        "processing_pixel_exact": true,
+        "rating_colors_tags_persist": true
+      }
+    }
+  },
+  "native_phases_passed": 6,
+  "catalog_checks": [
+    "native XMP ratings/rejection/multiple color labels/hierarchical Unicode tags",
+    "large tag list and long names; comma and line-break preservation",
+    "restore in a separate JVM process",
+    "metadata edits preserve preview pixels",
+    "batch captured processing is independent of later editor edits",
+    "batch export leaves the active editor pixel-exact",
+    "native PNG output decoded independently"
+  ],
+  "desktop_surface": {
+    "reference": "pinned desktop source, not a count of every desktop action",
+    "warning": "Plugin presence only proves packaging. Widgets, pickers, gestures, dependencies and pixel output need separate checks.",
+    "views": [
+      {
+        "name": "darkroom",
+        "source": "src/views/darkroom.c",
+        "complete_mobile_view_ported": false
+      },
+      {
+        "name": "lighttable",
+        "source": "src/views/lighttable.c",
+        "complete_mobile_view_ported": false
+      },
+      {
+        "name": "slideshow",
+        "source": "src/views/slideshow.c",
+        "complete_mobile_view_ported": false
+      },
+      {
+        "name": "map",
+        "source": "src/views/map.c",
+        "complete_mobile_view_ported": false
+      },
+      {
+        "name": "tethering",
+        "source": "src/views/tethering.c",
+        "complete_mobile_view_ported": false
+      },
+      {
+        "name": "print",
+        "source": "src/views/print.c",
+        "complete_mobile_view_ported": false
+      }
+    ],
+    "panels": [
+      {
+        "name": "import",
+        "source": "src/libs/import.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "export",
+        "source": "src/libs/export.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "copy_history",
+        "source": "src/libs/copy_history.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "styles",
+        "source": "src/libs/styles.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "image",
+        "source": "src/libs/image.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "tagging",
+        "source": "src/libs/tagging.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "select",
+        "source": "src/libs/select.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "collect",
+        "source": "src/libs/collect.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "recentcollect",
+        "source": "src/libs/recentcollect.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "filtering",
+        "source": "src/libs/filtering.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "metadata",
+        "source": "src/libs/metadata.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "metadata_view",
+        "source": "src/libs/metadata_view.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "navigation",
+        "source": "src/libs/navigation.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "histogram",
+        "source": "src/libs/histogram.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "history",
+        "source": "src/libs/history.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "snapshots",
+        "source": "src/libs/snapshots.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "modulegroups",
+        "source": "src/libs/modulegroups.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "backgroundjobs",
+        "source": "src/libs/backgroundjobs.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colorpicker",
+        "source": "src/libs/colorpicker.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "masks_flexi_host",
+        "source": "src/libs/masks_flexi_host.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "session",
+        "source": "src/libs/session.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "duplicate",
+        "source": "src/libs/duplicate.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "ioporder",
+        "source": "src/libs/ioporder.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "viewswitcher",
+        "source": "src/libs/tools/viewswitcher.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "darktable_label",
+        "source": "src/libs/tools/darktable.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colorlabels",
+        "source": "src/libs/tools/colorlabels.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "ratings",
+        "source": "src/libs/tools/ratings.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "filter",
+        "source": "src/libs/tools/filter.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "lighttable_mode",
+        "source": "src/libs/tools/lighttable.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "view_toolbox",
+        "source": "src/libs/tools/view_toolbox.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "module_toolbox",
+        "source": "src/libs/tools/module_toolbox.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "filmstrip",
+        "source": "src/libs/tools/filmstrip.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "hinter",
+        "source": "src/libs/tools/hinter.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "global_toolbox",
+        "source": "src/libs/tools/global_toolbox.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "timeline",
+        "source": "src/libs/tools/timeline.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "image_infos",
+        "source": "src/libs/tools/image_infos.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "log_history",
+        "source": "src/libs/tools/log_history.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "midi",
+        "source": "src/libs/tools/midi.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "gamepad",
+        "source": "src/libs/tools/gamepad.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "camera",
+        "source": "src/libs/camera.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "live_view",
+        "source": "src/libs/live_view.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "location",
+        "source": "src/libs/location.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "map_settings",
+        "source": "src/libs/map_settings.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "map_locations",
+        "source": "src/libs/map_locations.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "geotagging",
+        "source": "src/libs/geotagging.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "print_settings",
+        "source": "src/libs/print_settings.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "neural_restore",
+        "source": "src/libs/neural_restore.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      }
+    ],
+    "processing": [
+      {
+        "name": "colorharmonizer",
+        "source": "src/iop/colorharmonizer.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "rawprepare",
+        "source": "src/iop/rawprepare.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "soften",
+        "source": "src/iop/soften.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "bloom",
+        "source": "src/iop/bloom.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "highpass",
+        "source": "src/iop/highpass.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "lowpass",
+        "source": "src/iop/lowpass.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "shadhi",
+        "source": "src/iop/shadhi.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colorreconstruct",
+        "source": "src/iop/colorreconstruction.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "tonemap",
+        "source": "src/iop/tonemap.cc",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "tonecurve",
+        "source": "src/iop/tonecurve.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colisa",
+        "source": "src/iop/colisa.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "gamma",
+        "source": "src/iop/gamma.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "temperature",
+        "source": "src/iop/temperature.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colorcorrection",
+        "source": "src/iop/colorcorrection.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "basicadj",
+        "source": "src/iop/basicadj.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "exposure",
+        "source": "src/iop/exposure.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "equalizer",
+        "source": "src/iop/equalizer.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "rgbcurve",
+        "source": "src/iop/rgbcurve.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colorbalance",
+        "source": "src/iop/colorbalance.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colorin",
+        "source": "src/iop/colorin.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colorout",
+        "source": "src/iop/colorout.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colorchecker",
+        "source": "src/iop/colorchecker.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "clipping",
+        "source": "src/iop/clipping.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "enlargecanvas",
+        "source": "src/iop/enlargecanvas.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "crop",
+        "source": "src/iop/crop.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "sharpen",
+        "source": "src/iop/sharpen.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "dither",
+        "source": "src/iop/dither.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "monochrome",
+        "source": "src/iop/monochrome.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "basecurve",
+        "source": "src/iop/basecurve.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colorzones",
+        "source": "src/iop/colorzones.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "highlights",
+        "source": "src/iop/highlights.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "overlay",
+        "source": "src/iop/overlay.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "rawoverexposed",
+        "source": "src/iop/rawoverexposed.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "velvia",
+        "source": "src/iop/velvia.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "vignette",
+        "source": "src/iop/vignette.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "splittoning",
+        "source": "src/iop/splittoning.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "spektrafilm",
+        "source": "src/iop/spektrafilm.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "grain",
+        "source": "src/iop/grain.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "clahe",
+        "source": "src/iop/clahe.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "bilateral",
+        "source": "src/iop/bilateral.cc",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "profile_gamma",
+        "source": "src/iop/profile_gamma.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colortransfer",
+        "source": "src/iop/colortransfer.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colormapping",
+        "source": "src/iop/colormapping.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "channelmixer",
+        "source": "src/iop/channelmixer.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "graduatednd",
+        "source": "src/iop/graduatednd.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "relight",
+        "source": "src/iop/relight.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "zonesystem",
+        "source": "src/iop/zonesystem.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "demosaic",
+        "source": "src/iop/demosaic.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "rotatepixels",
+        "source": "src/iop/rotatepixels.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "scalepixels",
+        "source": "src/iop/scalepixels.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "atrous",
+        "source": "src/iop/atrous.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "cacorrect",
+        "source": "src/iop/cacorrect.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "overexposed",
+        "source": "src/iop/overexposed.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "hotpixels",
+        "source": "src/iop/hotpixels.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "lowlight",
+        "source": "src/iop/lowlight.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "spots",
+        "source": "src/iop/spots.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "retouch",
+        "source": "src/iop/retouch.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "liquify",
+        "source": "src/iop/liquify.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "rawdenoise",
+        "source": "src/iop/rawdenoise.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "borders",
+        "source": "src/iop/borders.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "nlmeans",
+        "source": "src/iop/nlmeans.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colorcontrast",
+        "source": "src/iop/colorcontrast.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "levels",
+        "source": "src/iop/levels.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "rgblevels",
+        "source": "src/iop/rgblevels.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colorize",
+        "source": "src/iop/colorize.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "invert",
+        "source": "src/iop/invert.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "vibrance",
+        "source": "src/iop/vibrance.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "flip",
+        "source": "src/iop/flip.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "finalscale",
+        "source": "src/iop/finalscale.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "demosaicscale",
+        "source": "src/iop/demosaicscale.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "globaltonemap",
+        "source": "src/iop/globaltonemap.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "bilat",
+        "source": "src/iop/bilat.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "denoiseprofile",
+        "source": "src/iop/denoiseprofile.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "defringe",
+        "source": "src/iop/defringe.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "ashift",
+        "source": "src/iop/ashift.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "hazeremoval",
+        "source": "src/iop/hazeremoval.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "filmic",
+        "source": "src/iop/filmic.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "mask_manager",
+        "source": "src/iop/mask_manager.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "lut3d",
+        "source": "src/iop/lut3d.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "toneequal",
+        "source": "src/iop/toneequal.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "filmicrgb",
+        "source": "src/iop/filmicrgb.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "negadoctor",
+        "source": "src/iop/negadoctor.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "channelmixerrgb",
+        "source": "src/iop/channelmixerrgb.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "censorize",
+        "source": "src/iop/censorize.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colorbalancergb",
+        "source": "src/iop/colorbalancergb.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "cacorrectrgb",
+        "source": "src/iop/cacorrectrgb.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "diffuse",
+        "source": "src/iop/diffuse.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "blurs",
+        "source": "src/iop/blurs.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "sigmoid",
+        "source": "src/iop/sigmoid.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "agx",
+        "source": "src/iop/agx.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "primaries",
+        "source": "src/iop/primaries.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "colorequal",
+        "source": "src/iop/colorequal.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "contrastntexture",
+        "source": "src/iop/contrastntexture.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "rasterfile",
+        "source": "src/iop/rasterfile.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "satcurvergb",
+        "source": "src/iop/satcurvergb.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "watermark",
+        "source": "src/iop/watermark.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "lens",
+        "source": "src/iop/lens.cc",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      }
+    ],
+    "formats": [
+      {
+        "name": "copy",
+        "source": "src/imageio/format/copy.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "jpeg",
+        "source": "src/imageio/format/jpeg.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "pdf",
+        "source": "src/imageio/format/pdf.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "png",
+        "source": "src/imageio/format/png.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "ppm",
+        "source": "src/imageio/format/ppm.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "pfm",
+        "source": "src/imageio/format/pfm.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "tiff",
+        "source": "src/imageio/format/tiff.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "jpegxl",
+        "source": "src/imageio/format/jxl.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "heif",
+        "source": "src/imageio/format/heif.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "webp",
+        "source": "src/imageio/format/webp.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "exr",
+        "source": "src/imageio/format/exr.cc",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "j2k",
+        "source": "src/imageio/format/j2k.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "avif",
+        "source": "src/imageio/format/avif.c",
+        "android_plugin_installed": false,
+        "complete_mobile_interaction_verified": false
+      },
+      {
+        "name": "xcf",
+        "source": "src/imageio/format/xcf.c",
+        "android_plugin_installed": true,
+        "complete_mobile_interaction_verified": false
+      }
+    ],
+    "counts": {
+      "views": 6,
+      "panels": 47,
+      "processing": 97,
+      "formats": 14
+    },
+    "installed_processing_plugins": 97
+  },
+  "remaining": [
+    "Full collections, grouping, virtual copies and catalog synchronization",
+    "Complete metadata/GPS editor and selective history copy/paste",
+    "Full module preset browser and instance copy/delete/reorder",
+    "Selective style history rows and portable external-asset relinking",
+    "Freehand/outline mask editing, full mask manager and linked liquify canvas",
+    "Complete automatic pickers, RAW scopes, waveform/vectorscope and soft proof",
+    "Map/geotagging, desktop print layout, tethering and slideshow views",
+    "Lua/script integration, optional AI, GPU/OpenCL and six optional codecs",
+    "5.8-dev native v7 masks remain incompatible with stable 5.6.2",
+    "Fast preview/HQ export differences unchanged; full cleanup/reinitialization needs qualification",
+    "Queue is foreground app work, not a background service; hard process exit can leave a partial new output",
+    "Physical Android JNI loading, SAF/IME, real process death, performance and RAM not tested"
+  ],
+  "artifacts": [
+    {
+      "file": "Darkroom-Mobile-v0.4.0-arm64.apk",
+      "bytes": 37805389,
+      "sha256": "7c45281985d1e7c35b15a82a9b98dbc3b4c6227fc8f08be5ff5f74f2c67fb7c1"
+    },
+    {
+      "file": "Darkroom-Mobile-v0.4.0-source.zip",
+      "bytes": 24551959,
+      "sha256": "f63804a69a5ea4316def0104015aae2f59c895cdc3958bed3ad01e201c2e2d1a"
+    },
+    {
+      "file": "Darkroom-Mobile-v0.4.0.patch",
+      "bytes": 504835,
+      "sha256": "c5312626609f8aed9605aeb57ded46e6a9296015358bd0caf7703882fb18feea"
+    },
+    {
+      "file": "Darkroom-Mobile-v0.4.0-audit-evidence.zip",
+      "bytes": 270976,
+      "sha256": "2b63608ab9757ef2308dead507ddb9888997ce213c32983d6d2610d47dcc2b7f"
+    }
+  ]
+}

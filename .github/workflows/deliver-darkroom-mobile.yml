@@ -1,0 +1,47 @@
+name: Deliver Darkroom Mobile APK
+on:
+  push:
+    branches: [deliver-darkroom-mobile-0-4-0-7c45281-docs]
+permissions:
+  contents: write
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Validate all published inputs
+        run: |
+          python3 - <<'CHECK'
+          import json,hashlib,zipfile
+          from pathlib import Path
+          root=Path('darkroom-release-payload')
+          for name,meta in json.loads((root/'manifest.json').read_text()).items():
+              p=root/name
+              assert p.stat().st_size==meta['bytes']
+              assert hashlib.sha256(p.read_bytes()).hexdigest()==meta['sha256']
+              if name.endswith(('.apk','.zip')):
+                  with zipfile.ZipFile(p) as z: assert z.testzip() is None
+          CHECK
+      - name: Publish separate prerelease without overwriting assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if ! gh release view darkroom-mobile-v0.4.0 >/dev/null 2>&1; then
+            gh release create darkroom-mobile-v0.4.0 --target 7555f0d1bd8e5f4b0de02c8918a5c43fc2fce1d6 --prerelease --latest=false --title 'Darkroom Mobile 0.4.0 — Android APK' --notes-file darkroom-release-payload/notes.md
+          fi
+          for name in Darkroom-Mobile-v0.4.0-arm64.apk Darkroom-Mobile-v0.4.0-source.zip Darkroom-Mobile-v0.4.0.patch Darkroom-Mobile-v0.4.0-SHA256SUMS Darkroom-Mobile-v0.4.0-audit-evidence.zip REPORT-RU.md qualification.json; do
+            if ! gh release view darkroom-mobile-v0.4.0 --json assets --jq '.assets[].name' | grep -Fxq "$name"; then
+              gh release upload darkroom-mobile-v0.4.0 "darkroom-release-payload/$name"
+            fi
+          done
+      - name: Download the complete APK and verify SHA-256
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir downloaded
+          gh release download darkroom-mobile-v0.4.0 --pattern Darkroom-Mobile-v0.4.0-arm64.apk --dir downloaded
+          echo '7c45281985d1e7c35b15a82a9b98dbc3b4c6227fc8f08be5ff5f74f2c67fb7c1  downloaded/Darkroom-Mobile-v0.4.0-arm64.apk' | sha256sum --check
