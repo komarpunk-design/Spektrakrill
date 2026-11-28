@@ -1,0 +1,38 @@
+{
+  "Darktable-Desktop-Android-v0.1.0-arm64.apk": {
+    "bytes": 373617553,
+    "sha256": "7801f4089ed86ad519f3ed300444dfdae028e65c8b613b21689c5f740a57d5f1"
+  },
+  "Darktable-Desktop-Android-v0.1.0-source.zip": {
+    "bytes": 125350,
+    "sha256": "e50c342c1e7ac61565da8d1cfb57f8a84a3c62a6fc8369940c1979c4111e4aff"
+  },
+  "Darktable-Desktop-Android-v0.1.0.patch": {
+    "bytes": 217659,
+    "sha256": "a2f324effab45771d95651f293a60658a0cbeaa78175057ddc9d33ace2807fa3"
+  },
+  "Darktable-Desktop-Android-v0.1.0-evidence.zip": {
+    "bytes": 21169,
+    "sha256": "dc26d3f5314425e73afda9f13a733f164549bc832d16eca2136678bff45886bd"
+  },
+  "PORT-STATUS.md": {
+    "bytes": 3322,
+    "sha256": "69a8bfc6f57ce0ef9085c50c4d0dd1e45e169b93c112a4ccafc6dbc799ffb8b5"
+  },
+  "apk-qualification.json": {
+    "bytes": 1041,
+    "sha256": "d882c33729a47b1aca5a9b595818a79a97ffc56ba5499742ddd606faa18a3959"
+  },
+  "darktable-5.6.2.tar.xz": {
+    "bytes": 8458268,
+    "sha256": "d2da92c670401d350b576431f21e58bee40348e1f5078201a8a1b8c270585834"
+  },
+  "proot-v5.1.107.102-source.zip": {
+    "bytes": 552401,
+    "sha256": "30d12a6e2cc4147123756ff58edea262d3083bbc238c12d0ab9b39e3d1c40852"
+  },
+  "Darktable-Desktop-Android-v0.1.0-SHA256SUMS": {
+    "bytes": 791,
+    "sha256": "fa54127fa0c54c253db2005859d1445d85ee5cbc41be9f061a160174dbac44c5"
+  }
+}

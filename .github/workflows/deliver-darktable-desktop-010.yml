@@ -1,0 +1,50 @@
+name: Deliver original desktop darktable Android experiment
+on:
+  push:
+    branches: [deliver-darktable-desktop-010-7801f40]
+permissions:
+  contents: write
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          lfs: true
+      - name: Validate complete LFS payloads
+        run: |
+          python3 - <<'CHECK'
+          import json,hashlib,zipfile
+          from pathlib import Path
+          root=Path('darktable-desktop-release-010')
+          for name,meta in json.loads((root/'manifest.json').read_text()).items():
+              p=root/name
+              assert p.stat().st_size==meta['bytes']
+              with p.open('rb') as f: assert hashlib.file_digest(f,'sha256').hexdigest()==meta['sha256']
+              if name.endswith(('.apk','.zip')):
+                  with zipfile.ZipFile(p) as z: assert z.testzip() is None
+          CHECK
+      - name: Publish separate experimental prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if ! gh release view darktable-desktop-android-v0.1.0 >/dev/null 2>&1; then
+            gh release create darktable-desktop-android-v0.1.0 --target "$GITHUB_SHA" --prerelease --latest=false --title 'Original desktop darktable 5.6.2 on Android — experimental 0.1.0' --notes-file darktable-desktop-release-010/notes.md
+          fi
+          python3 -c "import json; print('\n'.join(json.load(open('darktable-desktop-release-010/manifest.json'))))" > /tmp/desktop-assets.txt
+          while IFS= read -r name; do
+            if ! gh release view darktable-desktop-android-v0.1.0 --json assets --jq '.assets[].name' | grep -Fxq "$name"; then
+              gh release upload darktable-desktop-android-v0.1.0 "darktable-desktop-release-010/$name"
+            fi
+          done < /tmp/desktop-assets.txt
+      - name: Download complete release APK and verify SHA-256
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir downloaded
+          gh release download darktable-desktop-android-v0.1.0 --pattern Darktable-Desktop-Android-v0.1.0-arm64.apk --dir downloaded
+          echo '7801f4089ed86ad519f3ed300444dfdae028e65c8b613b21689c5f740a57d5f1  downloaded/Darktable-Desktop-Android-v0.1.0-arm64.apk' | sha256sum --check

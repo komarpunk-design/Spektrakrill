@@ -1,0 +1,29 @@
+{
+  "apk": "Darktable-Desktop-Android-v0.1.0-arm64.apk",
+  "bytes": 373617553,
+  "sha256": "7801f4089ed86ad519f3ed300444dfdae028e65c8b613b21689c5f740a57d5f1",
+  "zip_crc_verified": true,
+  "payload_sha256_verified": true,
+  "payload_stored_without_aapt_transformation": true,
+  "original_android_proot_bytes_preserved": true,
+  "runtime": {
+    "version": "5.6.2",
+    "architecture": "aarch64",
+    "transport": "original GTK3 Broadway over private Unix HTTP socket",
+    "runtime": "Linux/glibc in PRoot; not a native Android GTK backend",
+    "sha256": "6e1473ffb32ae95d1b7683e2ae3cdadc703926c15035adddbdd4fb9e4a191e8a",
+    "compressedBytes": 373435193,
+    "uncompressedBytes": 1089905239,
+    "originalAppImageSha256": "5b8015f8534453cb3bbd6e5a03e362cb7d9d9573f20d3928aadad354df18ad10",
+    "originalViews": [
+      "libdarkroom.so",
+      "liblighttable.so",
+      "libmap.so",
+      "libprint.so",
+      "libslideshow.so",
+      "libtethering.so"
+    ],
+    "androidRuntimeExecuted": false,
+    "hardwareParityVerified": false
+  }
+}
